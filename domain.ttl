@@ -1,0 +1,30 @@
+#
+# This file contains domain related information, more precisely the knowledge.
+#
+
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+@prefix haar: <http://localhost/haarpracht/>
+
+<> a <http://www.w3.org/2002/07/owl#Ontology> .
+
+haar:person a <http://www.w3.org/2002/07/owl#Class> ;
+    rdfs:label "Person" ;
+    haar:hasProperty haar:age ;
+    haar:hasProperty haar:name .
+
+haar:mitarbeiter a <http://www.w3.org/2002/07/owl#Class> ;
+    rdfs:subClassOf haar:person ;
+    rdfs:label "Mitarbeiter" ;
+    haar:hasProperty haar:id .
+
+
+haar:id rdfs:label "Mitarbeiternummer" .
+
+haar:name rdfs:label "Name" .
+
+# Restrict age to be between 1 and 100
+haar:age rdfs:label "Alter" ;
+    haar:hasRestriction haar:ageRes .
+
+haar:ageRes haar:minimumDoubleValue 1 ;
+    haar:maximumDoubleValue 100 .

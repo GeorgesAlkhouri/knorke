@@ -1,14 +1,14 @@
 <form method="post">
-    <!-- haar:name -->
+    <!-- knok:name -->
     <div>
         <strong>Name:</strong><br/>
-        <input type="text" name="haar:name"/>
+        <input type="text" name="knok:person/name"/>
     </div>
 
-    <!-- haar:age -->
+    <!-- knok:age -->
     <div>
         <strong>Age:</strong><br/>
-        <input type="text" name="haar:age"/>
+        <input type="text" name="knok:person/age"/>
     </div>
 
     <button type="submit">Save</button>

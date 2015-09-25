@@ -1,4 +1,5 @@
 {
+    "name": "k00ni/knorke",
     "require": {
         "saft/saft": "*",
         "twig/twig": "~1.0"
@@ -6,7 +7,7 @@
     "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
-            "Haarpracht\\": "src/Haarpracht/"
+            "Knorke\\": "src/Knorke/"
         }
     }
 }

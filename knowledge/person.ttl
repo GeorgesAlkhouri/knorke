@@ -1,0 +1,24 @@
+#
+# Semantic information about a Person
+#
+# Include knorke.ttl for more information.
+#
+@prefix : <http://localhost/k00ni/knorke/person/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix knok: <http://localhost/k00ni/knorke/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<> a <http://www.w3.org/2002/07/owl#Ontology> .
+
+:Person a foaf:Person ;
+    knok:hasProperty :age .
+
+# Our person related age is based on foaf's age.
+:age rdfs:subPropertyOf foaf:age .
+
+:age knok:hasRestriction :ageRes .
+
+# Restrict age to be between 1 and 100
+:ageRes knok:minimumDoubleValue 1 ;
+    knok:maximumDoubleValue 100 .

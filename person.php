@@ -2,24 +2,6 @@
 
 require 'vendor/autoload.php';
 
-use Saft\Addition\Virtuoso\Store\Virtuoso;
-use Saft\Rdf\NodeFactoryImpl;
-use Saft\Rdf\StatementFactoryImpl;
-use Saft\Rdf\StatementIteratorFactoryImpl;
-use Saft\Sparql\Query\QueryFactoryImpl;
-use Saft\Sparql\Query\QueryUtils;
-use Saft\Sparql\Result\ResultFactoryImpl;
-
-$config = array(
-    'dsn' => 'VOS',
-    'username' => 'dba',
-    'password' => 'dba'
-);
-
-$virtuoso = new Virtuoso(new NodeFactoryImpl(), new StatementFactoryImpl(), new QueryFactoryImpl(),
-    new ResultFactoryImpl(), new StatementIteratorFactoryImpl(), $config
-);
-
 /**
  * Output template
  */
@@ -31,7 +13,7 @@ echo $template->render(array('person' => array('name' => 'Konrad')));
 /**
  * Validation area
  */
-if (isset($_REQUEST['haar:age'])) {
-    $person = new \Haarpracht\Person($virtuoso, 'http://localhost/haarpracht/');
-    $person->validateData($_REQUEST);
+if (isset($_REQUEST['knok:person/age'])) {
+    $person = new \Knorke\ClassHandler(__DIR__ . '/knowledge/person.ttl');
+    $person->validateData($_REQUEST, 'http://localhost/k00ni/knorke/person/Person');
 }

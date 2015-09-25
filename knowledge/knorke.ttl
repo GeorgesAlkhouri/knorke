@@ -1,0 +1,15 @@
+#
+# Knorke Vocabulary
+#
+# This file contains the main knowledge about Knorke.
+#
+@prefix : <http://localhost/k00ni/knorke/> .
+@prefix knok: <http://localhost/k00ni/knorke/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<> a <http://www.w3.org/2002/07/owl#Ontology> .
+
+:hasProperty a owl:ObjectProperty .
+
+:hasRestriction a owl:ObjectProperty .

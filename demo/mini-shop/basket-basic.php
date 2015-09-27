@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * This file demonstrate how basic basket handling is done by showing how to only add valid products.
+ */
+
 require __DIR__ .'/../../vendor/autoload.php';
 
 /**

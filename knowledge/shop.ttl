@@ -1,0 +1,28 @@
+#
+# Semantic information about E-Commerce.
+#
+# Include knorke.ttl and good-relations-1.0.ttl for more information.
+#
+@prefix : <http://localhost/k00ni/knorke/shop/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix gr: <http://purl.org/goodrelations/v1#> .
+@prefix knok: <http://localhost/k00ni/knorke/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<> a <http://www.w3.org/2002/07/owl#Ontology> .
+
+#
+# Classes
+#
+:ProductOrService rdfs:subClassOf gr:ProductOrService ;
+    knok:hasProperty :name .
+
+#
+# Properties
+#
+:name rdfs:subPropertyOf gr:name ;
+    knok:hasRestriction :nameRes .
+
+:nameRes knok:minimumStringLength 3 ;
+    knok:regexToApprove "/[a-z0-9\s-]{3,}/si" .

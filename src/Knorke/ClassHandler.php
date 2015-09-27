@@ -74,12 +74,16 @@ class ClassHandler
 
     public function validateData($data, $classUri)
     {
-        $blankPerson = new \Saft\Rapid\Blank();
-        $blankPerson->initByStatementIterator($this->fileIterator, $classUri);
+        $blank = new \Saft\Rapid\Blank();
+        $blank->initByStatementIterator($this->fileIterator, $classUri);
 
-        $shortenedPropertyUri = str_replace($this->mainUri, 'knok:', $blankPerson[$this->mainUri . 'hasProperty']);
+        $shortenedPropertyUri = str_replace($this->mainUri, 'knok:', $blank[$this->mainUri . 'hasProperty']);
 
-        $restrictions = $this->getRestrictions($blankPerson[$this->mainUri . 'hasProperty']);
+        $restrictions = $this->getRestrictions($blank[$this->mainUri . 'hasProperty']);
+
+        /*
+         * Datatype: Double
+         */
 
         /**
          * checks minimum double value
@@ -102,6 +106,34 @@ class ClassHandler
 
             if ($maximumValue < $value) {
                 throw new \Exception('Value higher as '. $maximumValue .' : '. $value);
+            }
+        }
+
+        /*
+         * Datatype: String
+         */
+
+        /**
+         * checks minimum string length
+         */
+        if (isset($restrictions[$this->mainUri . 'minimumStringLength'])) {
+            $value = $data[$shortenedPropertyUri];
+            $minimumStringLength = $restrictions[$this->mainUri . 'minimumStringLength'];
+
+            if (strlen($value) < $minimumStringLength) {
+                throw new \Exception('String length is lower as '. $minimumStringLength .' : '. strlen($value));
+            }
+        }
+
+        /**
+         * checks string against a regular expression
+         */
+        if (isset($restrictions[$this->mainUri . 'regexToApprove'])) {
+            $value = $data[$shortenedPropertyUri];
+            $regex = $restrictions[$this->mainUri . 'regexToApprove'];
+
+            if (0 == preg_match($regex, $value)) {
+                throw new \Exception('Regex '. $regex .' for the following string not match: '. $value);
             }
         }
     }

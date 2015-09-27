@@ -1,6 +1,6 @@
 # Knorke Demos
 
-## <a href="person.php">Person</a>
+## <a href="person/person.php">Person</a>
 
 This small demo takes your input and validates it against knowledge/person.ttl.
 

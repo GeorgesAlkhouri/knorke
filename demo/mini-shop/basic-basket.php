@@ -43,7 +43,7 @@ if (isset($_REQUEST['addProduct'])) {
  */
 $loader = new Twig_Loader_Filesystem(__DIR__);
 $twig = new Twig_Environment($loader);
-$template = $twig->loadTemplate('basket.html');
+$template = $twig->loadTemplate('basket-basic.html');
 echo $template->render(array(
     'basketItems' => $_SESSION['basketItems'],
     'exceptionMessage' => $exceptionMessage

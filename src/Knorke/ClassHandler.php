@@ -10,6 +10,9 @@ use Saft\Rdf\StatementFactoryImpl;
  */
 class ClassHandler
 {
+    /**
+     * @var string
+     */
     protected $domainFilepath;
 
     /**
@@ -17,6 +20,14 @@ class ClassHandler
      */
     protected $fileIterator;
 
+    /**
+     * @var string
+     */
+    protected $mainUri = 'http://localhost/k00ni/knorke/';
+
+    /**
+     *
+     */
     function __construct($domainFilepath)
     {
         $this->domainFilepath = $domainFilepath;
@@ -41,7 +52,7 @@ class ClassHandler
         foreach ($this->fileIterator as $statement) {
             if (
                 $propertyUri == $statement->getSubject()->getUri()
-                && 'http://localhost/k00ni/knorke/hasRestriction' == $statement->getPredicate()->getUri()
+                && $this->mainUri . 'hasRestriction' == $statement->getPredicate()->getUri()
             ) {
                 // assumption is, that only one or no restriction per class exists
                 $restrictions = new \Saft\Rapid\Blank();
@@ -66,20 +77,16 @@ class ClassHandler
         $blankPerson = new \Saft\Rapid\Blank();
         $blankPerson->initByStatementIterator($this->fileIterator, $classUri);
 
-        $shortenedPropertyUri = str_replace(
-            'http://localhost/k00ni/knorke/',
-            'knok:',
-            $blankPerson['http://localhost/k00ni/knorke/hasProperty']
-        );
+        $shortenedPropertyUri = str_replace($this->mainUri, 'knok:', $blankPerson[$this->mainUri . 'hasProperty']);
 
-        $restrictions = $this->getRestrictions($blankPerson['http://localhost/k00ni/knorke/hasProperty']);
+        $restrictions = $this->getRestrictions($blankPerson[$this->mainUri . 'hasProperty']);
 
         /**
          * checks minimum double value
          */
-        if (isset($restrictions['http://localhost/k00ni/knorke/minimumDoubleValue'])) {
+        if (isset($restrictions[$this->mainUri . 'minimumDoubleValue'])) {
             $value = (double)$data[$shortenedPropertyUri];
-            $minimumValue = $restrictions['http://localhost/k00ni/knorke/minimumDoubleValue'];
+            $minimumValue = $restrictions[$this->mainUri . 'minimumDoubleValue'];
 
             if ($minimumValue > $value) {
                 throw new \Exception('Value lower as '. $minimumValue .' : '. $value);
@@ -89,9 +96,9 @@ class ClassHandler
         /**
          * checks maximum double value
          */
-        if (isset($restrictions['http://localhost/k00ni/knorke/maximumDoubleValue'])) {
+        if (isset($restrictions[$this->mainUri . 'maximumDoubleValue'])) {
             $value = (double)$data[$shortenedPropertyUri];
-            $maximumValue = $restrictions['http://localhost/k00ni/knorke/maximumDoubleValue'];
+            $maximumValue = $restrictions[$this->mainUri . 'maximumDoubleValue'];
 
             if ($maximumValue < $value) {
                 throw new \Exception('Value higher as '. $maximumValue .' : '. $value);

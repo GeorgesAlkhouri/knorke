@@ -3,8 +3,8 @@
 #
 # This file contains the main knowledge about Knorke.
 #
-@prefix : <http://localhost/aksw/knorke/> .
-@prefix knok: <http://localhost/aksw/knorke/> .
+@prefix : <http://inspirito.de/ontology/knorke/ns#> .
+@prefix knok: <http://inspirito.de/ontology/knorke/ns#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .

@@ -3,13 +3,47 @@
 #
 # This file contains the main knowledge about Knorke.
 #
-@prefix : <http://localhost/k00ni/knorke/> .
-@prefix knok: <http://localhost/k00ni/knorke/> .
+@prefix : <http://localhost/aksw/knorke/> .
+@prefix knok: <http://localhost/aksw/knorke/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<> a <http://www.w3.org/2002/07/owl#Ontology> .
+<> a owl:Ontology .
 
+# Properties
 :hasProperty a owl:ObjectProperty .
 
 :hasRestriction a owl:ObjectProperty .
+
+:restrictionOneOf a :Restriction .
+
+# Classes
+:Property rdfs:label "Property" ;
+          a owl:DatatypeProperty .
+
+:Restriction rdfs:label "Restriction"@en ;
+    rdfs:label "Einschränkung"@de .
+
+# Misc
+:all rdfs:label "all"@en ;
+    rdfs:label "alle"@de .
+
+:some rdfs:label "some"@en ;
+    rdfs:label "einige"@de .
+
+:available rdfs:label "available"@en ;
+    rdfs:label "vorhanden"@de .
+
+:notAvailable rdfs:label "not available"@en ;
+    rdfs:label "nicht vorhanden"@de .
+
+:isMandatory rdfs:label "Mandatory property"@en ;
+    rdfs:label "Erforderliche Eigenschaft"@de ;
+    rdfs:range xsd:boolean .
+
+:yes rdfs:label "yes"@en ;
+    rdfs:label "ja"@de .
+
+:no rdfs:label "no"@en ;
+    rdfs:label "nein"@de .

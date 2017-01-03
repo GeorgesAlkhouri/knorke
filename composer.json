@@ -2,9 +2,11 @@
     "name": "k00ni/knorke",
     "require": {
         "saft/saft": "*",
-        "twig/twig": "~1.0"
+        "particle/state": "*",
+        "twig/twig": "1.*"
     },
     "minimum-stability": "dev",
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "Knorke\\": "src/Knorke/"

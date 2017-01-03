@@ -9,6 +9,7 @@
 @prefix knok: <http://localhost/k00ni/knorke/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema> .
 
 <> a <http://www.w3.org/2002/07/owl#Ontology> .
 
@@ -18,6 +19,9 @@
 :ProductOrService rdfs:subClassOf gr:ProductOrService ;
     knok:hasProperty :name .
 
+:service rdfs:subClassOf :ProductOrService ;
+    knok:hasReaction :serviceReac .
+
 #
 # Properties
 #
@@ -26,3 +30,26 @@
 
 :nameRes knok:minimumStringLength 3 ;
     knok:regexToApprove "/[a-z0-9\s-]{3,}/si" .
+
+
+#
+# Reactions
+#
+# If a ProductOrService will be added/updated/removed, add a deposit product or update an existing one
+# remove remaining one, if no services are in use anymore.
+:serviceReac knok:onAddOrUpdateOrDelete :createOrUpdateOrDeleteReaction .
+
+:createOrUpdateOrDeleteReaction knok:createOrUpdateSame :depositInstance .
+
+# describe deposit product. it has two related priceIncreaseSteps, which describe how to
+# increase the price value of the deposit based on the overall price of all included services.
+:depositInstance rdfs:subClassOf :ProductOrService ;
+    :hasPriceIncreaseSteps :priceIncreaseStep1, :priceIncreaseStep2 .
+
+# at 10 €, add 5 € deposit
+:priceIncreaseStep1 :atPricePointOf "10"^^xsd:decimal ;
+    :addPriceValueOf "5"^^xsd:decimal .
+
+# at 50 €, add 25 € deposit
+:priceIncreaseStep2 :atPricePointOf "50"^^xsd:decimal ;
+    :addPriceValueOf "25"^^xsd:decimal .

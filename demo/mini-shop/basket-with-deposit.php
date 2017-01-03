@@ -1,7 +1,7 @@
 <?php
 
 /**
- * This file demonstrate how basic basket handling is done by showing how to only add valid products.
+ * This file demonstrate how basket handling is done in combination with a basic deposit system.
  */
 
 require __DIR__ .'/../../vendor/autoload.php';
@@ -49,7 +49,7 @@ if (isset($_REQUEST['addProduct'])) {
  */
 $loader = new Twig_Loader_Filesystem(__DIR__);
 $twig = new Twig_Environment($loader);
-$template = $twig->loadTemplate('basket-basic.html');
+$template = $twig->loadTemplate('basic-basket.html');
 echo $template->render(array(
     'basketItems' => $_SESSION['basketItems'],
     'exceptionMessage' => $exceptionMessage

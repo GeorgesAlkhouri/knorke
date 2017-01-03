@@ -12,12 +12,22 @@
 <> a <http://www.w3.org/2002/07/owl#Ontology> .
 
 :Person rdfs:subClassOf foaf:Person ;
-    knok:hasProperty :age .
+    knok:hasProperty :age , :street , :adress .
 
 # Our person related age is based on foaf's age.
 :age rdfs:subPropertyOf foaf:age ;
-    knok:hasRestriction :ageRes .
+    knok:hasRestriction :ageRes , :adressRes .
 
 # Restrict age to be between 1 and 100
 :ageRes knok:minimumDoubleValue 1 ;
     knok:maximumDoubleValue 100 .
+
+:street knok:hasRestriction :streetRes .
+
+:streetRes knok:regexToApprove "/[a-z0-9\s-]{3,}/si" .
+
+
+:adress knok:hasRestriction :adressRes ;
+	isRelatedTo :person .
+
+:addressRes :needValidField :street .

@@ -1,8 +1,7 @@
 {
     "name": "k00ni/knorke",
     "require": {
-        "saft/saft": "*",
-        "particle/state": "*",
+        "saft/saft-data": ">=0.8",
         "twig/twig": "1.*"
     },
     "minimum-stability": "dev",

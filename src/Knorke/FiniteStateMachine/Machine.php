@@ -16,13 +16,15 @@ class Machine
         $this->transitions[$name] = $fromTo;
     }
 
-    public function callUserFunction($callback, $name, $parameter)
+    public function callUserFunction($callback, $name, array $parameter = null)
     {
         if (is_array($callback) || is_callable($callback)) {
             // build function parameter list
             $fullParameterArray = array();
-            $fullParameterArray[] = array('transition' => $name);
-            $fullParameterArray = array_merge($fullParameterArray, $parameter);
+            $fullParameterArray[] = array('transition' => $name); // transition related data
+            if (0 < count($parameter)) {
+                $fullParameterArray = array_merge($fullParameterArray, $parameter);
+            }
 
             call_user_func_array(
                 $callback,
@@ -45,10 +47,13 @@ class Machine
     }
 
     /**
+     * Change the state of the machine from X to Y. Because of that, several of callbacks may be called with parameters
+     * given from the outside and the inside.
+     *
      * @param string $name
-     * @param array $parameter optional, default is array()
+     * @param array $parameter Parameter given from the outside. Optional, default is array()
      */
-    public function transition($name, array $parameter = array())
+    public function transition($name, array $parameter = null)
     {
         $this->setCurrentState($this->transitions[$name]['to']);
 
@@ -59,6 +64,8 @@ class Machine
                     $this->callUserFunction($callback, $name, $parameter);
                 }
             }
+
+        // in case an exception was thrown, catch it and stop further execution of the machine
         } catch (\Exception $e) {
             if (isset($this->callbacks['__on_exception'])) {
                 foreach ($this->callbacks['__on_exception'] as $callback) {
@@ -66,7 +73,7 @@ class Machine
                 }
             } else {
                 // TODO report depending on the log-level
-                echo PHP_EOL . 'Exception: '. $e->getMessage();
+                echo PHP_EOL . 'Exception: '. $e->getMessage() . PHP_EOL;
             }
         }
     }

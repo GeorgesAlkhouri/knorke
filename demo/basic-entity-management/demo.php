@@ -31,7 +31,7 @@ $commonNamespaces = new CommonNamespaces();
 $commonNamespaces->add('kno-person', 'https://raw.githubusercontent.com/k00ni/knorke/master/knowledge/person.ttl#');
 
 $dataValidator = new DataValidator($commonNamespaces);
-$dataValidator->loadOntologicalModel(__DIR__ . '/../../knowledge/knorke/person.nt');
+$dataValidator->loadOntologicalModel(__DIR__ . '/../../knowledge/person.nt');
 
 try {
     $dataValidator->validate(

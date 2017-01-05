@@ -18,10 +18,12 @@ use Saft\Rdf\NodeUtils;
 class DataValidator
 {
     protected $commonNamespaces;
+    protected $ontologicalModel;
 
     public function __construct(CommonNamespaces $commonNamespaces)
     {
         $this->commonNamespaces = $commonNamespaces;
+        $this->ontologicalModel = null;
     }
 
     /**
@@ -86,21 +88,20 @@ class DataValidator
             new StatementIteratorFactoryImpl(),
             new NodeUtils()
         );
-        return $parser->parseStringToIterator(file_get_contents($filepath));
+        $this->ontologicalModel = $parser->parseStringToIterator(file_get_contents($filepath));
     }
 
     /**
      * @param array $dataToCheck Array with the structure like: array('kno:Person/age' => 'foobar', ... )
-     * @param StatementIterator $ontologicalModel
      * @param string $typeUri
      * @return True if no errors were found
      * @throws \Exception in case of an validation error
      */
-    public function validate(array $dataToCheck, StatementIterator $ontologicalModel, $typeUri)
+    public function validate(array $dataToCheck, $typeUri)
     {
         // load resource behind given type
         $typedBlank = new DataBlank($this->commonNamespaces);
-        $typedBlank->initByStatementIterator($ontologicalModel, $typeUri);
+        $typedBlank->initByStatementIterator($this->ontologicalModel, $typeUri);
 
         // check each property of the type, if it is available and suits the restrictions
         foreach ($typedBlank['kno:hasProperty'] as $shortendObjectUri) {
@@ -110,7 +111,7 @@ class DataValidator
 
             // load restrictions per property
             $propertyBlank = new DataBlank($this->commonNamespaces);
-            $propertyBlank->initByStatementIterator($ontologicalModel, $fullObjectUri);
+            $propertyBlank->initByStatementIterator($this->ontologicalModel, $fullObjectUri);
             foreach ($propertyBlank as $shortenPropertyUri => $object) {
                 // if a property with a restriction was found
                 if (false !== strpos($shortenPropertyUri, 'kno:restriction')) {

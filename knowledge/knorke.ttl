@@ -10,8 +10,14 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<> a owl:Ontology .
+#
+# General
+#
+:hasProperty rdf:type rdfs:Property .
 
+#
+# Restrictions
+#
 :restrictionHasDatatype rdf:type rdfs:Property .
 :restrictionMinimumNumber rdf:type rdfs:Property .
 :restrictionMaximumNumber rdf:type rdfs:Property .

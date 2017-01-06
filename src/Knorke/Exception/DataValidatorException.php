@@ -5,17 +5,6 @@ namespace Knorke\Exception;
 /**
  * Used for data validator tasks.
  */
-class DataValidatorException extends \Exception
+class DataValidatorException extends KnorkeException
 {
-    protected $payload;
-
-    public function getPayload()
-    {
-        return $this->payload;
-    }
-
-    public function setPayload($payload)
-    {
-        $this->payload = $payload;
-    }
 }

@@ -1,13 +1,23 @@
 {
     "name": "k00ni/knorke",
     "require": {
-        "saft/saft-data": ">=0.8"
+        "saft/saft-data": ">=0.8",
+        "saft/saft-sparql": ">=0.8",
+        "saft/saft-store": ">=0.8"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "*"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "Knorke\\": "src/Knorke/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
         }
     }
 }

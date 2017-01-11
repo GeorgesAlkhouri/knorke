@@ -1,4 +1,4 @@
-<file:///home/k00ni/Documents/knorke/./knowledge/knorke/person.ttl> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Ontology> .
+<file:///home/k00ni/Documents/knorke/./knowledge/person.ttl> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Ontology> .
 <https://raw.githubusercontent.com/k00ni/knorke/master/knowledge/person.ttl#Person> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://xmlns.com/foaf/0.1/Person> .
 <https://raw.githubusercontent.com/k00ni/knorke/master/knowledge/person.ttl#Person> <https://raw.githubusercontent.com/k00ni/knorke/master/knowledge/knorke.ttl#hasProperty> <https://raw.githubusercontent.com/k00ni/knorke/master/knowledge/person.ttl#age> .
 <https://raw.githubusercontent.com/k00ni/knorke/master/knowledge/person.ttl#Person> <https://raw.githubusercontent.com/k00ni/knorke/master/knowledge/knorke.ttl#hasProperty> <https://raw.githubusercontent.com/k00ni/knorke/master/knowledge/person.ttl#firstname> .

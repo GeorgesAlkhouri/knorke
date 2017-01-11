@@ -15,6 +15,10 @@
 #
 :hasProperty rdf:type rdfs:Property .
 
+:order rdf:type rdfs:Property .
+
+:inheritsAllPropertiesOf rdf:type rdfs:Property .
+
 #
 # Restrictions
 #

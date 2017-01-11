@@ -56,6 +56,52 @@ class InMemoryStore extends BasicTriplePatternStore
     }
 
     /**
+     * Workaround for faulty Saft\Sparql\Query\AbstractQuery functions to extract filter properly. We are only interested
+     * in certain filters for TitleHelper use case.
+     */
+    public function getFiltersIfAvailable($queryParts)
+    {
+        preg_match_all('/FILTER\s\((\?[a-z]+\s*=\s*[a-z:\/<>]+.*?)\)/si', $queryParts['where'], $matches);
+
+        if (false == isset($matches[1][0])) {
+            return null;
+        }
+
+        $entries = explode('||', $matches[1][0]);
+
+        /*
+         * determine variable position (s, p or o)
+         */
+        preg_match('/\?([a-z0-9]+)/', $entries[0], $matches);
+        $variablePosition = -1; // we assume it is in the variable list
+        foreach ($queryParts['variables'] as $key => $var) {
+            if ($matches[1] == $var) {
+                $variablePosition = $key;
+            }
+        }
+
+        /*
+         * collect possible values for the variable
+         */
+        $possibleValues = array();
+        foreach ($entries as $key => $value) {
+            // extract URIs
+            preg_match('/<([a-z0-9:\/\-#_%\?\)\(]+)>/si', $value, $uris);
+            if (isset($uris[1])) {
+                $possibleValues[$uris[1]] = $uris[1];
+            }
+        }
+
+        $positionIdentifiers = array('s', 'p', 'o');
+
+        return array(
+            'variable_position' => $variablePosition,
+            'variable_letter' => $positionIdentifiers[$variablePosition],
+            'possible_values' => $possibleValues
+        );
+    }
+
+    /**
      * This method sends a SPARQL query to the store.
      *
      * @param  string $query The SPARQL query to send to the store.
@@ -71,28 +117,11 @@ class InMemoryStore extends BasicTriplePatternStore
         if ('selectQuery' == $this->queryUtils->getQueryType($query)) {
             $queryParts = $queryObject->getQueryParts();
             $triplePattern = $queryParts['triple_pattern'];
-
-            // handle ?s ?p ?o
-            if (1 == count($triplePattern)
-                && 'var' == $triplePattern[0]['s_type']
-                && 'var' == $triplePattern[0]['p_type']
-                && 'var' == $triplePattern[0]['o_type']) {
-                // generate result
-                $setEntries = array();
-                foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
-                    $setEntries[] = array(
-                        $triplePattern[0]['s'] => $stmt->getSubject(),
-                        $triplePattern[0]['p'] => $stmt->getPredicate(),
-                        $triplePattern[0]['o'] => $stmt->getObject()
-                    );
-                }
-                $result = new SetResultImpl($setEntries);
-                $result->setVariables($queryParts['variables']);
-                return $result;
+            $setEntries = array();
 
             // handle ?s ?p ?o
             //        ?s rdf:type foaf:Person
-            } elseif (2 == count($triplePattern)
+            if (2 <= count($triplePattern)
                 // ?s ?p ?o.
                 && 'var' == $triplePattern[0]['s_type']
                 && 'var' == $triplePattern[0]['p_type']
@@ -117,8 +146,6 @@ class InMemoryStore extends BasicTriplePatternStore
                     }
                 }
 
-                $setEntries = array();
-
                 // 2. get all p and o for collected s
                 foreach ($this->statements['http://saft/defaultGraph/'] as $statement) {
                     $s = $statement->getSubject();
@@ -134,10 +161,40 @@ class InMemoryStore extends BasicTriplePatternStore
                     }
                 }
 
-                $result = new SetResultImpl($setEntries);
-                $result->setVariables($queryParts['variables']);
-                return $result;
+            // handle ?s ?p ?o
+            } elseif (0 < count($triplePattern)
+                && 'var' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']) {
+                // generate result
+                foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
+                    $setEntries[] = array(
+                        $triplePattern[0]['s'] => $stmt->getSubject(),
+                        $triplePattern[0]['p'] => $stmt->getPredicate(),
+                        $triplePattern[0]['o'] => $stmt->getObject()
+                    );
+                }
             }
+
+            /*
+             * apply filter like FILTER (?p = <http://...>) and remove statements which dont match
+             */
+            $filterInformation = $this->getFiltersIfAvailable($queryParts);
+            if (null !== $filterInformation) {
+                foreach ($setEntries as $key => $stmtArray) {
+                    // remove entries which are not fit the given filters
+                    $relatedNode = $stmtArray[$filterInformation['variable_letter']];
+                    // we assume that the node is a named node
+                    if (false == isset($filterInformation['possible_values'][$relatedNode->getUri()])) {
+                        // if its node does not match with the filter requirements, remove the statement from the result
+                        unset($setEntries[$key]);
+                    }
+                }
+            }
+
+            $result = new SetResultImpl($setEntries);
+            $result->setVariables($queryParts['variables']);
+            return $result;
         }
         return parent::query($query, $options);
     }

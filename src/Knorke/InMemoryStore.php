@@ -46,6 +46,8 @@ class InMemoryStore extends BasicTriplePatternStore
         QueryFactory $queryFactory,
         StatementIteratorFactory $statementIteratorFactory
     ) {
+        parent::__construct($nodeFactory, $statementFactory, $queryFactory, $statementIteratorFactory);
+
         $this->nodeFactory = $nodeFactory;
         $this->queryFactory = $queryFactory;
         $this->statementFactory = $statementFactory;
@@ -71,7 +73,7 @@ class InMemoryStore extends BasicTriplePatternStore
             $triplePattern = $queryParts['triple_pattern'];
 
             // handle ?s ?p ?o
-            if (1 == count($queryParts['triple_pattern'])
+            if (1 == count($triplePattern)
                 && 'var' == $triplePattern[0]['s_type']
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
@@ -87,12 +89,56 @@ class InMemoryStore extends BasicTriplePatternStore
                 $result = new SetResultImpl($setEntries);
                 $result->setVariables($queryParts['variables']);
                 return $result;
-            }
 
             // handle ?s ?p ?o
-            //        ?o rdf:type foaf:Person
-        } else {
-            return parent::query($query, $options);
+            //        ?s rdf:type foaf:Person
+            } elseif (2 == count($triplePattern)
+                // ?s ?p ?o.
+                && 'var' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']
+                // ?s rdf:type foaf:Person.
+                && 'var' == $triplePattern[1]['s_type']
+                && 'uri' == $triplePattern[1]['p_type']
+                && 'uri' == $triplePattern[1]['o_type']) {
+
+                $relevantS = array();
+
+                // ignore first pattern because it casts variables on s, p and o
+
+                // 1. check which s has wanted p and o
+                foreach ($this->statements['http://saft/defaultGraph/'] as $statement) {
+                    $s = $statement->getSubject();
+                    $p = $statement->getPredicate();
+                    $o = $statement->getObject();
+                    if ($p->getUri() == $triplePattern[1]['p']
+                        && $o->isNamed() && $o->getUri() == $triplePattern[1]['o']) {
+                        $relevantS[$s->getUri()] = $s;
+                    }
+                }
+
+                $setEntries = array();
+
+                // 2. get all p and o for collected s
+                foreach ($this->statements['http://saft/defaultGraph/'] as $statement) {
+                    $s = $statement->getSubject();
+                    $p = $statement->getPredicate();
+                    $o = $statement->getObject();
+
+                    if (isset($relevantS[$s->getUri()])) {
+                        $setEntries[] = array(
+                            $triplePattern[0]['s'] => $s,
+                            $triplePattern[0]['p'] => $p,
+                            $triplePattern[0]['o'] => $o
+                        );
+                    }
+                }
+
+                $result = new SetResultImpl($setEntries);
+                $result->setVariables($queryParts['variables']);
+                return $result;
+            }
         }
+        return parent::query($query, $options);
     }
 }

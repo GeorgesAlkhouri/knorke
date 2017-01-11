@@ -3,6 +3,7 @@
 namespace Tests\Knorke;
 
 use Knorke\InMemoryStore;
+use Saft\Rdf\LiteralImpl;
 use Saft\Rdf\NamedNodeImpl;
 use Saft\Rdf\NodeFactoryImpl;
 use Saft\Rdf\NodeUtils;
@@ -29,7 +30,8 @@ class InMemoryStoreTest extends UnitTestCase
         );
     }
 
-    public function testSPOQuery()
+    // check super standard queries like ?s ?p ?o, nothing special.
+    public function testQuerySPOQuery()
     {
         $this->fixture->addStatements(array(
             new StatementImpl(
@@ -52,6 +54,48 @@ class InMemoryStoreTest extends UnitTestCase
         $this->assertSetIteratorEquals(
             $expectedResult,
             $this->fixture->query('SELECT * WHERE {?s ?p ?o.}')
+        );
+    }
+
+    // check queries like ?s ?p ?o. ?s rdf:type foaf:Person.
+    public function testQuerySPOWithTypedSQuery()
+    {
+        $this->fixture->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://s'),
+                new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                new LiteralImpl($this->nodeUtils, 'Label for s')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://s'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://s-to-be-ignore'),
+                new NamedNodeImpl($this->nodeUtils, 'http://p-to-be-ignore'),
+                new NamedNodeImpl($this->nodeUtils, 'http://o-to-be-ignore')
+            ),
+        ));
+
+        $expectedResult = new SetResultImpl(array(
+            array(
+                's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
+            ),
+            array(
+                's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'foaf:Person'),
+            )
+        ));
+        $expectedResult->setVariables(array('s', 'p', 'o'));
+
+        // check for classic SPO
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {?s ?p ?o. ?s rdf:type foaf:Person}')
         );
     }
 }

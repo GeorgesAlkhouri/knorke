@@ -152,7 +152,7 @@ class InMemoryStore extends BasicTriplePatternStore
                     $p = $statement->getPredicate();
                     $o = $statement->getObject();
 
-                    if (isset($relevantS[$s->getUri()])) {
+                    if ($s->isNamed() && isset($relevantS[$s->getUri()])) {
                         $setEntries[] = array(
                             $triplePattern[0]['s'] => $s,
                             $triplePattern[0]['p'] => $p,

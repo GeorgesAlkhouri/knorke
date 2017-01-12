@@ -27,6 +27,37 @@ class DataBlankTest extends UnitTestCase
         $this->fixture = new DataBlank(new CommonNamespaces());
     }
 
+    public function testNoPrefixedPredicateAndObject()
+    {
+        $this->fixture = new DataBlank(new CommonNamespaces(), array(
+            'use_prefixed_predicates' => false,
+            'use_prefixed_objects' => false,
+        ));
+
+        $result = new SetResultImpl(array(
+            array(
+                's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
+            ),
+            array(
+                's' => new BlankNodeImpl('blank'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'http://xmlns.com/foaf/0.1/Person'),
+            )
+        ));
+
+        $this->fixture->initBySetResult($result, 'http://s');
+
+        $this->assertEquals(
+            array(
+                'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' => 'http://xmlns.com/foaf/0.1/Person',
+                'http://www.w3.org/2000/01/rdf-schema#label' => 'Label for s'
+            ),
+            $this->fixture->getArrayCopy()
+        );
+    }
+
     public function testPrefixedPredicate()
     {
         $this->fixture = new DataBlank(new CommonNamespaces(), array(

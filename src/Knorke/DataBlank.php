@@ -81,23 +81,22 @@ class DataBlank extends \ArrayObject
                 $value = '_:' . $entry[$object]->getBlankId();
             }
 
-            // furthermore, set namespace shortcut (e.g. rdf) as key and object value, to improve
-            // handling later on.
+            // prefix predicates if wanted
             if ($this->options['use_prefixed_predicates']) {
-                foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
-                    if (false !== strpos($entry[$predicate]->getUri(), $nsUri)) {
-                        $predicateValue = str_replace($nsUri, $ns .':', $entry[$predicate]->getUri());
-                        break;
-                    }
-                }
+                $predicateValue = $this->transformPrefixToFullVersionOrBack($entry[$predicate]->getUri());
+
+            // or transform all predicates back to their full length, if possible
+            } else {
+                $predicateValue = $this->transformPrefixToFullVersionOrBack($entry[$predicate]->getUri(), 'not_prefixed');
             }
-            if ($this->options['use_prefixed_objects']) {
-                foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
-                    $objectObj = $entry[$object];
-                    if ($objectObj->isNamed() && false !== strpos($objectObj->getUri(), $nsUri)) {
-                        $objectUri = $objectObj->getUri();
-                        $value = str_replace($nsUri, $ns .':', $objectUri);
-                    }
+
+            if ($entry[$object]->isNamed()) {
+                // prefix objects if wanted
+                if ($this->options['use_prefixed_objects']) {
+                    $value = $this->transformPrefixToFullVersionOrBack($entry[$object]->getUri());
+                // or transform all objects back to their full length, if possible
+                } else {
+                    $value = $this->transformPrefixToFullVersionOrBack($entry[$object]->getUri(), 'not_prefixed');
                 }
             }
 
@@ -185,5 +184,26 @@ class DataBlank extends \ArrayObject
         } else {
             $this[$key] = $value;
         }
+    }
+
+    protected function transformPrefixToFullVersionOrBack($uri, $mode = 'prefixed')
+    {
+        if ('prefixed' == $mode) {
+            foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
+                if (false !== strpos($uri, $nsUri)) {
+                    return str_replace($nsUri, $ns .':', $uri);
+                }
+            }
+
+        // replace prefix with full URI if possible
+        } else { // = not_prefixed
+            foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
+                if (false !== strpos($uri, $ns .':')) {
+                    return str_replace($ns .':', $nsUri, $uri);
+                }
+            }
+        }
+
+        return $uri;
     }
 }

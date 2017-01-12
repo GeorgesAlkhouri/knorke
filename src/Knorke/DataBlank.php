@@ -58,10 +58,15 @@ class DataBlank extends \ArrayObject
     public function initBySetResult(\Saft\Sparql\Result\SetResult $result, $subjectUri, $predicate = 'p', $object = 'o')
     {
         foreach ($result as $entry) {
+            // named node
             if ($entry[$object]->isNamed()) {
                 $value = $entry[$object]->getUri();
+            // literal
             } elseif ($entry[$object]->isLiteral()) {
                 $value = $entry[$object]->getValue();
+            // blank node
+            } elseif ($entry[$object]->isBlank()) {
+                $value = '_:' . $entry[$object]->getBlankId();
             }
 
             // set full property URI as key and object value
@@ -73,11 +78,9 @@ class DataBlank extends \ArrayObject
                 if (false !== strpos($entry[$predicate]->getUri(), $nsUri)) {
                     $shorterProperty = str_replace($nsUri, $ns .':', $entry[$predicate]->getUri());
                     $this->setValue($shorterProperty, $value);
-                    unset($this[$statement->getPredicate()->getUri()]);
+                    unset($this[$entry[$predicate]->getUri()]);
                 }
             }
-
-            // TODO blank nodes
         }
     }
 

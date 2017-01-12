@@ -41,9 +41,20 @@ class DataBlank extends \ArrayObject
      */
     protected $commonNamespaces;
 
-    public function __construct(CommonNamespaces $commonNamespaces)
+    /**
+     * @param CommonNamespaces $commonNamespaces
+     * @param array $options optional, default=array()
+     */
+    public function __construct(CommonNamespaces $commonNamespaces, array $options = array())
     {
         $this->commonNamespaces = $commonNamespaces;
+        $this->options = array_merge(
+            array(
+                'use_prefixed_predicates' => true,
+                'use_prefixed_objects' => true
+            ),
+            $options
+        );
     }
 
     /**
@@ -58,6 +69,7 @@ class DataBlank extends \ArrayObject
     public function initBySetResult(\Saft\Sparql\Result\SetResult $result, $subjectUri, $predicate = 'p', $object = 'o')
     {
         foreach ($result as $entry) {
+            $predicateValue = $entry[$predicate]->getUri();
             // named node
             if ($entry[$object]->isNamed()) {
                 $value = $entry[$object]->getUri();
@@ -69,18 +81,28 @@ class DataBlank extends \ArrayObject
                 $value = '_:' . $entry[$object]->getBlankId();
             }
 
-            // set full property URI as key and object value
-            $this->setValue($entry[$predicate]->getUri(), $value);
-
             // furthermore, set namespace shortcut (e.g. rdf) as key and object value, to improve
             // handling later on.
-            foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
-                if (false !== strpos($entry[$predicate]->getUri(), $nsUri)) {
-                    $shorterProperty = str_replace($nsUri, $ns .':', $entry[$predicate]->getUri());
-                    $this->setValue($shorterProperty, $value);
-                    unset($this[$entry[$predicate]->getUri()]);
+            if ($this->options['use_prefixed_predicates']) {
+                foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
+                    if (false !== strpos($entry[$predicate]->getUri(), $nsUri)) {
+                        $predicateValue = str_replace($nsUri, $ns .':', $entry[$predicate]->getUri());
+                        break;
+                    }
                 }
             }
+            if ($this->options['use_prefixed_objects']) {
+                foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
+                    $objectObj = $entry[$object];
+                    if ($objectObj->isNamed() && false !== strpos($objectObj->getUri(), $nsUri)) {
+                        $objectUri = $objectObj->getUri();
+                        $value = str_replace($nsUri, $ns .':', $objectUri);
+                    }
+                }
+            }
+
+            // set property key and object value
+            $this->setValue($predicateValue, $value);
         }
     }
 
@@ -107,16 +129,18 @@ class DataBlank extends \ArrayObject
                 }
 
                 // furthermore, set namespace shortcut (e.g. rdf) as key and object value, to improve
-                // handling later on. remove original entries with long predicate URIS.
+                // handling later on. remove original entries with long predicate URIs.
                 $shorterProperty = null;
                 $shorterObject = null;
                 foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
                     // shorten property
-                    if (false !== strpos($statement->getPredicate()->getUri(), $nsUri)) {
+                    if ($this->options['use_prefixed_predicates']
+                        && false !== strpos($statement->getPredicate()->getUri(), $nsUri)) {
                         $shorterProperty = str_replace($nsUri, $ns .':', $statement->getPredicate()->getUri());
                     }
                     // shorten object
-                    if ($statement->getObject()->isNamed()
+                    if ($this->options['use_prefixed_objects']
+                        && $statement->getObject()->isNamed()
                         && false !== strpos($statement->getObject()->getUri(), $nsUri)) {
                         $shorterObject = str_replace($nsUri, $ns .':', $statement->getObject()->getUri());
                     }

@@ -104,9 +104,9 @@ class InMemoryStore extends BasicTriplePatternStore
     /**
      * This method sends a SPARQL query to the store.
      *
-     * @param  string $query The SPARQL query to send to the store.
-     * @param  array $options It contains key-value pairs and should provide additional introductions for the store
-     *                        and/or its adapter(s) (optional).
+     * @param string $query The SPARQL query to send to the store.
+     * @param array $options It contains key-value pairs and should provide additional introductions for the store
+     *                       and/or its adapter(s) (optional).
      * @return Result Returns result of the query. Its type depends on the type of the query.
      * @throws \Exception If query is no string, is malformed or an execution error occured.
      */

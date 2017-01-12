@@ -189,6 +189,25 @@ class InMemoryStore extends BasicTriplePatternStore
                         );
                     }
                 }
+
+            // handle _:blankid ?p ?o
+            } elseif (1 == count($triplePattern)
+                && 'blanknode' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']) {
+                // generate result
+                foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
+                    $subject = $stmt->getSubject();
+                    if ($subject->isBlank()) {
+                        $blankId = '_:'.$subject->getBlankId();
+                        if ($blankId == $triplePattern[0]['s']) {
+                            $setEntries[] = array(
+                                $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
+                                $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
+                            );
+                        }
+                    }
+                }
             }
 
             /*

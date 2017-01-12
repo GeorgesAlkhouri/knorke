@@ -109,6 +109,36 @@ class InMemoryStoreTest extends UnitTestCase
         );
     }
 
+    // check _:blank ?p ?o.
+    public function testQuerySPOWithFixedBlankNodeSubject()
+    {
+        $this->fixture->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://s-to-be-ignored'),
+                new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                new LiteralImpl($this->nodeUtils, 'Label for s')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl('genid1'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
+            )
+        ));
+
+        $expectedResult = new SetResultImpl(array(
+            array(
+                'p' => new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'foaf:Person'),
+            )
+        ));
+        $expectedResult->setVariables(array('p', 'o'));
+
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {_:genid1 ?p ?o.}')
+        );
+    }
+
     // check <http://> ?p ?o.
     public function testQuerySPOWithFixedSubject()
     {
@@ -124,7 +154,7 @@ class InMemoryStoreTest extends UnitTestCase
                 new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
             ),
             new StatementImpl(
-                new BlankNodeImpl($this->nodeUtils, 'b123'),
+                new BlankNodeImpl('b123'),
                 new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
                 new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
             ),

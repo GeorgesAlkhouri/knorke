@@ -174,6 +174,21 @@ class InMemoryStore extends BasicTriplePatternStore
                         $triplePattern[0]['o'] => $stmt->getObject()
                     );
                 }
+
+            // handle <http://> ?p ?o
+            } elseif (1 == count($triplePattern)
+                && 'uri' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']) {
+                // generate result
+                foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
+                    if ($stmt->getSubject()->isNamed() && $stmt->getSubject()->getUri() == $triplePattern[0]['s']) {
+                        $setEntries[] = array(
+                            $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
+                            $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
+                        );
+                    }
+                }
             }
 
             /*

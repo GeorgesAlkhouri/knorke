@@ -3,6 +3,7 @@
 namespace Tests\Knorke;
 
 use Knorke\InMemoryStore;
+use Saft\Rdf\BlankNodeImpl;
 use Saft\Rdf\LiteralImpl;
 use Saft\Rdf\NamedNodeImpl;
 use Saft\Rdf\NodeFactoryImpl;
@@ -57,7 +58,8 @@ class InMemoryStoreTest extends UnitTestCase
         );
     }
 
-    // check ?s ?p ?o with a FILTER on ?p
+    // check ?s ?p ?o.
+    //       FILTER (?p = <http://p> || ?p = <http://p1>)
     public function testQuerySPOQueryWithFilter()
     {
         $this->fixture->addStatements(array(
@@ -107,7 +109,43 @@ class InMemoryStoreTest extends UnitTestCase
         );
     }
 
-    // check queries like ?s ?p ?o. ?s rdf:type foaf:Person.
+    // check <http://> ?p ?o.
+    public function testQuerySPOWithFixedSubject()
+    {
+        $this->fixture->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://s'),
+                new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                new LiteralImpl($this->nodeUtils, 'Label for s')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://s-to-be-ignored'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl($this->nodeUtils, 'b123'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
+            ),
+        ));
+
+        $expectedResult = new SetResultImpl(array(
+            array(
+                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
+            )
+        ));
+        $expectedResult->setVariables(array('p', 'o'));
+
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {<http://s> ?p ?o.}')
+        );
+    }
+
+    // check ?s ?p ?o.
+    //       ?s rdf:type foaf:Person.
     public function testQuerySPOWithTypedSQuery()
     {
         $this->fixture->addStatements(array(

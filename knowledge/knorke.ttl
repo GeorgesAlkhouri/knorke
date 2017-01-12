@@ -15,8 +15,6 @@
 #
 :hasProperty rdf:type rdfs:Property .
 
-:order rdf:type rdfs:Property .
-
 :inheritsAllPropertiesOf rdf:type rdfs:Property .
 
 #
@@ -26,3 +24,4 @@
 :restrictionMinimumNumber rdf:type rdfs:Property .
 :restrictionMaximumNumber rdf:type rdfs:Property .
 :restrictionOneOf rdf:type rdfs:Property .
+:restrictionOrder rdf:type rdfs:Property .

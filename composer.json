@@ -1,9 +1,7 @@
 {
     "name": "k00ni/knorke",
     "require": {
-        "saft/saft-data": ">=0.8",
-        "saft/saft-sparql": ">=0.8",
-        "saft/saft-store": ">=0.8"
+        "saft/saft": "dev-master"
     },
     "require-dev": {
         "phpunit/phpunit": "*"

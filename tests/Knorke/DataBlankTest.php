@@ -18,18 +18,31 @@ use Saft\Sparql\Result\SetResultImpl;
 
 class DataBlankTest extends UnitTestCase
 {
+    protected $commonNamespaces;
     protected $nodeUtils;
 
     public function setUp()
     {
+        $this->commonNamespaces = new CommonNamespaces();
         $this->nodeUtils = new NodeUtils();
 
         $this->fixture = new DataBlank(new CommonNamespaces());
     }
 
+    public function testGetterMagic()
+    {
+        $blank = new DataBlank($this->commonNamespaces);
+        $blank['rdfs:label'] = 'label';
+        $this->assertEquals($blank->get('http://www.w3.org/2000/01/rdf-schema#label'), 'label');
+
+        $blank = new DataBlank($this->commonNamespaces);
+        $blank['http://www.w3.org/2000/01/rdf-schema#label'] = 'label';
+        $this->assertEquals($blank->get('rdfs:label'), 'label');
+    }
+
     public function testNoPrefixedPredicateAndObject()
     {
-        $this->fixture = new DataBlank(new CommonNamespaces(), array(
+        $this->fixture = new DataBlank($this->commonNamespaces, array(
             'use_prefixed_predicates' => false,
             'use_prefixed_objects' => false,
         ));

@@ -59,6 +59,35 @@ class DataBlank extends \ArrayObject
     }
 
     /**
+     * Helper function to allow content gathering by using full URIs or prefixed ones. If the indirect way worked, the
+     * previously try $property will be applied to.
+     */
+    public function get($property)
+    {
+        // found? ok, return back!
+        if (isset($this[$property])) {
+            return $this[$property];
+        } else {
+            // if not found, try the prefixed version resp. the full URI
+            if (false !== strpos($property, 'http://')) { // full URI
+                $shortendProperty = $this->commonNamespaces->shortenUri($property);
+                if (isset($this[$shortendProperty])) {
+                    $this[$property] = $this[$shortendProperty];
+                    return $this[$shortendProperty];
+                }
+            } else { // shorted version
+                $extendedProperty = $this->commonNamespaces->extendUri($property);
+                if (isset($this[$extendedProperty])) {
+                    $this[$property] = $this[$extendedProperty];
+                    return $this[$extendedProperty];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Init instance by a given SetResult instance.
      *
      * @param SetResult $result

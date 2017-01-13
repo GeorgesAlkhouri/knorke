@@ -59,7 +59,7 @@ class CommonNamespaces
     public function extendUri($shortendUri)
     {
         foreach ($this->namespaces as $ns => $nsUri) {
-            if (false !== strpos($shortendUri, $ns)) {
+            if (false !== strpos($shortendUri, $ns .':')) {
                 return str_replace($ns .':', $nsUri, $shortendUri);
             }
         }

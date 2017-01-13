@@ -13,6 +13,11 @@ use Saft\Sparql\Result\SetResultImpl;
 class InMemoryStore extends BasicTriplePatternStore
 {
     /**
+     * @var CommonNamespaces
+     */
+    protected $commonNamespaces;
+
+    /**
      * @var NodeFactory
      */
     protected $nodeFactory;
@@ -44,10 +49,12 @@ class InMemoryStore extends BasicTriplePatternStore
         NodeFactory $nodeFactory,
         StatementFactory $statementFactory,
         QueryFactory $queryFactory,
-        StatementIteratorFactory $statementIteratorFactory
+        StatementIteratorFactory $statementIteratorFactory,
+        CommonNamespaces $commonNamespaces
     ) {
         parent::__construct($nodeFactory, $statementFactory, $queryFactory, $statementIteratorFactory);
 
+        $this->commonNamespaces = $commonNamespaces;
         $this->nodeFactory = $nodeFactory;
         $this->queryFactory = $queryFactory;
         $this->statementFactory = $statementFactory;
@@ -173,6 +180,28 @@ class InMemoryStore extends BasicTriplePatternStore
                         $triplePattern[0]['p'] => $stmt->getPredicate(),
                         $triplePattern[0]['o'] => $stmt->getObject()
                     );
+                }
+
+            // handle foo:s ?p ?o
+            } elseif (1 == count($triplePattern)
+                && false === strpos($triplePattern[0]['s'], 'http://')
+                && 'uri' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']) {
+                // generate result
+                foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
+                    if ($stmt->getSubject()->isNamed()) {
+                        $fullUri = $this->commonNamespaces->extendUri($triplePattern[0]['s']);
+                        // check for subject with full URI
+                        // and check for subject with prefixed URI
+                        if ($stmt->getSubject()->getUri() == $triplePattern[0]['s']
+                            || $stmt->getSubject()->getUri() == $fullUri) {
+                            $setEntries[] = array(
+                                $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
+                                $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
+                            );
+                        }
+                    }
                 }
 
             // handle <http://> ?p ?o

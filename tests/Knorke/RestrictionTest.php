@@ -29,7 +29,8 @@ class RestrictionTest extends UnitTestCase
             new NodeFactoryImpl($this->nodeUtils),
             new StatementFactoryImpl(),
             new QueryFactoryImpl($this->nodeUtils, new QueryUtils()),
-            new StatementIteratorFactoryImpl()
+            new StatementIteratorFactoryImpl(),
+            new CommonNamespaces()
         );
     }
 

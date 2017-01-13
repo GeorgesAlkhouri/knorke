@@ -2,6 +2,7 @@
 
 namespace Tests\Knorke;
 
+use Knorke\CommonNamespaces;
 use Knorke\InMemoryStore;
 use Saft\Rdf\BlankNodeImpl;
 use Saft\Rdf\LiteralImpl;
@@ -17,17 +18,57 @@ use Saft\Sparql\Result\SetResultImpl;
 
 class InMemoryStoreTest extends UnitTestCase
 {
+    protected $commonNamespaces;
     protected $nodeUtils;
 
     public function setUp()
     {
+        $this->commonNamespaces = new CommonNamespaces();
         $this->nodeUtils = new NodeUtils();
 
+        $this->initFixture();
+    }
+
+    protected function initFixture()
+    {
         $this->fixture = new InMemoryStore(
             new NodeFactoryImpl($this->nodeUtils),
             new StatementFactoryImpl(),
             new QueryFactoryImpl($this->nodeUtils, new QueryUtils()),
-            new StatementIteratorFactoryImpl()
+            new StatementIteratorFactoryImpl(),
+            $this->commonNamespaces
+        );
+
+        return $this->fixture;
+    }
+
+    // if we only stored full URI resources, test how the store reacts if we search for a prefixed one
+    public function testQuerySearchForPrefixedResource()
+    {
+        $this->commonNamespaces->add('foo', 'http://foo/');
+
+        $this->initFixture();
+
+        $this->fixture->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/o')
+            )
+        ));
+
+        $expectedResult = new SetResultImpl(array(
+            array(
+                'p' => new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'http://foo/o'),
+            )
+        ));
+        $expectedResult->setVariables(array('p', 'o'));
+
+        // check for classic SPO
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {foo:s ?p ?o.}')
         );
     }
 

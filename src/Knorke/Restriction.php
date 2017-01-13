@@ -18,17 +18,20 @@ class Restriction
         $this->store = $store;
     }
 
-    public function getRestrictionsForResource($resourceUri)
+    public function getRestrictionsForResource($resourceUri, array $dataBlankOptions = array())
     {
-        $blank = new DataBlank($this->commonNamespaces);
+        $options = array_merge(
+            array('use_prefixed_predicates' => true, 'use_prefixed_objects' => true),
+            $dataBlankOptions
+        );
+        $blank = new DataBlank($this->commonNamespaces, $options);
         $blank->initBySetResult($this->store->query('SELECT * WHERE {<'. $resourceUri .'> ?p ?o.}'), $resourceUri);
 
-        // if the filter inherits properties from another resource, copy their properties into the filter
-        if (isset($blank['kno:inheritsAllPropertiesOf'])) {
+        if (null !== $blank->get('kno:inheritsAllPropertiesOf')) {
             // get infos from the other resource
-            $foreignResourceUri = $blank['kno:inheritsAllPropertiesOf'];
+            $foreignResourceUri = $blank->get('kno:inheritsAllPropertiesOf');
             $foreignResourceInfo = $this->store->query('SELECT * WHERE {<'. $foreignResourceUri .'> ?p ?o.}');
-            $foreignResourceBlank = new DataBlank($this->commonNamespaces);
+            $foreignResourceBlank = new DataBlank($this->commonNamespaces, $dataBlankOptions);
             $foreignResourceBlank->initBySetResult($foreignResourceInfo, $foreignResourceUri);
             // copy property-value combination into blank instance
             foreach ($foreignResourceBlank as $property => $value) {
@@ -36,9 +39,8 @@ class Restriction
             }
         }
 
-        // if its defined, it references a resource
-        if (isset($blank['kno:restrictionOrder'])) {
-            $orderResource = $blank['kno:restrictionOrder'];
+        if (null !== $blank->get('kno:restrictionOrder')) {
+            $orderResource = $blank->get('kno:restrictionOrder');
             $orderInformation = $this->store->query('SELECT * WHERE {'. $orderResource .' ?p ?o.}');
             $orderBlank = new DataBlank($this->commonNamespaces);
             $orderBlank->initBySetResult($orderInformation, $orderResource);

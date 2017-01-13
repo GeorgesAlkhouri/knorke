@@ -45,7 +45,9 @@ class RestrictionTest extends UnitTestCase
         http://resourceWithRestrictions
             rdfs:label "label"@de ;
             kno:restrictionOneOf http://foo , http://bar ;
-            kno:restrictionOrder [
+            kno:inheritsAllPropertiesOf http://foreign-resource .
+
+        http://foreign-resource kno:restrictionOrder [
                 kno:_0 http://foo ;
                 kno:_1 http://bar
             ] .

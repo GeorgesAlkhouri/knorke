@@ -3,6 +3,7 @@
 namespace Knorke;
 
 use Saft\Rdf\StatementIterator;
+use Saft\Sparql\Result\SetResult;
 
 /**
  * This class maps a given result of a certain resource, class, ... to an instance of itself. With that you
@@ -60,13 +61,13 @@ class DataBlank extends \ArrayObject
     /**
      * Init instance by a given SetResult instance.
      *
-     * @param Saft\Sparql\Result\SetResult $result
+     * @param SetResult $result
      * @param string $subjectUri
      * @param string $predicate Default: p (optional)
      * @param string $object Default: o (optional)
      * @todo support blank nodes
      */
-    public function initBySetResult(\Saft\Sparql\Result\SetResult $result, $subjectUri, $predicate = 'p', $object = 'o')
+    public function initBySetResult(SetResult $result, $subjectUri, $predicate = 'p', $object = 'o')
     {
         foreach ($result as $entry) {
             $predicateValue = $entry[$predicate]->getUri();
@@ -114,55 +115,17 @@ class DataBlank extends \ArrayObject
      */
     public function initByStatementIterator(StatementIterator $iterator, $resourceUri)
     {
-        $this['__subjectUri'] = $this->commonNamespaces->shortenUri($resourceUri);
-
-        // go through given statements
+        $entries = array();
         foreach ($iterator as $statement) {
-            // if the current statement has as subject URI the same as the given $resourceUri, integrate
-            // its property + value into this instance.
-            if ($statement->getSubject()->getUri() == $resourceUri) {
-                if ($statement->getObject()->isNamed()) {
-                    $value = $statement->getObject()->getUri();
-                } elseif ($statement->getObject()->isLiteral()) {
-                    $value = $statement->getObject()->getValue();
-                }
-
-                // furthermore, set namespace shortcut (e.g. rdf) as key and object value, to improve
-                // handling later on. remove original entries with long predicate URIs.
-                $shorterProperty = null;
-                $shorterObject = null;
-                foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
-                    // shorten property
-                    if ($this->options['use_prefixed_predicates']
-                        && false !== strpos($statement->getPredicate()->getUri(), $nsUri)) {
-                        $shorterProperty = str_replace($nsUri, $ns .':', $statement->getPredicate()->getUri());
-                    }
-                    // shorten object
-                    if ($this->options['use_prefixed_objects']
-                        && $statement->getObject()->isNamed()
-                        && false !== strpos($statement->getObject()->getUri(), $nsUri)) {
-                        $shorterObject = str_replace($nsUri, $ns .':', $statement->getObject()->getUri());
-                    }
-                }
-
-                // store shorten values
-                if (null !== $shorterProperty && null !== $shorterObject) {
-                    $this->setValue($shorterProperty, $shorterObject);
-
-                } elseif (null !== $shorterProperty) {
-                    $this->setValue($shorterProperty, $value);
-
-                } elseif (null !== $shorterObject) {
-                    $this->setValue($statement->getPredicate()->getUri(), $shorterObject);
-
-                // store full length values
-                } else {
-                    $this->setValue($statement->getPredicate()->getUri(), $value);
-                }
-
-                // TODO blank nodes
+            if ($statement->getSubject() == $resourceUri) {
+                $entries[] = array(
+                    'p' => $statement->getPredicate(),
+                    'o' => $statement->getObject()
+                );
             }
         }
+
+        return $this->initBySetResult(new SetResultImpl($entries), $resourceUri);
     }
 
     /**
@@ -186,6 +149,13 @@ class DataBlank extends \ArrayObject
         }
     }
 
+    /**
+     * Transforms a given URI to a prefixed version or back.
+     *
+     * @param string $uri
+     * @param string $mode possible values: prefixed, not_prefixed. default: prefixed
+     * @return string
+     */
     protected function transformPrefixToFullVersionOrBack($uri, $mode = 'prefixed')
     {
         if ('prefixed' == $mode) {

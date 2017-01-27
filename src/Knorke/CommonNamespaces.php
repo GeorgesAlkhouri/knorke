@@ -88,6 +88,11 @@ class CommonNamespaces
         return isset($this->namespaces[$prefix]) ? $this->namespaces[$prefix] : null;
     }
 
+    public function isShortenedUri($string)
+    {
+        return false == strpos($string, '://');
+    }
+
     public function shortenUri($uri)
     {
         foreach ($this->namespaces as $ns => $nsUri) {

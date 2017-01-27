@@ -47,7 +47,7 @@ class StatisticValueTest extends UnitTestCase
      * Tests for compute
      */
 
-    public function testCompute1()
+    public function testCompute()
     {
         $this->store->addStatements(array(
             new StatementImpl(

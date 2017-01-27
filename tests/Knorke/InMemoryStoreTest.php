@@ -42,6 +42,61 @@ class InMemoryStoreTest extends UnitTestCase
         return $this->fixture;
     }
 
+    /*
+     * Tests for query
+     */
+
+    // check if query method handles prefixed and non-prefixed URIs well
+    public function testQueryIfQueryHandlesPrefixedAndNonPrefixedUrisWell()
+    {
+        $this->commonNamespaces->add('foo', 'http://foo/');
+
+        $this->initFixture();
+
+        $this->fixture->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'foo:s'),
+                new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                new LiteralImpl($this->nodeUtils, 'Label for s')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
+            ),
+            // has to be ignored
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/s-to-be-ignore'),
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/p-to-be-ignore'),
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/o-to-be-ignore')
+            ),
+        ));
+
+        $expectedResult = new SetResultImpl(array(
+            array(
+                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
+            ),
+            array(
+                'p' => new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'foaf:Person'),
+            )
+        ));
+        $expectedResult->setVariables(array('p', 'o'));
+
+        // case 1
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {foo:s ?p ?o.}')
+        );
+
+        // case 2
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {<http://foo/s> ?p ?o.}')
+        );
+    }
+
     // if we only stored full URI resources, test how the store reacts if we search for a prefixed one
     public function testQuerySearchForPrefixedResource()
     {

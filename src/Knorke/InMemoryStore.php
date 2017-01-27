@@ -211,11 +211,21 @@ class InMemoryStore extends BasicTriplePatternStore
                 && 'var' == $triplePattern[0]['o_type']) {
                 // generate result
                 foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
-                    if ($stmt->getSubject()->isNamed() && $stmt->getSubject()->getUri() == $triplePattern[0]['s']) {
-                        $setEntries[] = array(
-                            $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
-                            $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
-                        );
+                    if ($stmt->getSubject()->isNamed()) {
+                        $sUri = $stmt->getSubject()->getUri();
+                        // if subject matches directly
+                        $condition1 = $sUri == $triplePattern[0]['s'];
+
+                        // if subject is shortened but its extended version matches
+                        $condition2 = $this->commonNamespaces->isShortenedUri($sUri)
+                            && $this->commonNamespaces->extendUri($sUri) == $triplePattern[0]['s'];
+
+                        if ($condition1 || $condition2) {
+                            $setEntries[] = array(
+                                $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
+                                $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
+                            );
+                        }
                     }
                 }
 

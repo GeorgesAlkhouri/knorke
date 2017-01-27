@@ -228,8 +228,12 @@ class InMemoryStore extends BasicTriplePatternStore
                 foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
                     $subject = $stmt->getSubject();
                     if ($subject->isBlank()) {
-                        $blankId = '_:'.$subject->getBlankId();
-                        if ($blankId == $triplePattern[0]['s']) {
+                        if ('_:' !== substr($subject->getBlankId(), 0, 2)) {
+                            $blankId = '_:'.$subject->getBlankId();
+                        } else {
+                            $blankId = $subject->getBlankId();
+                        }
+                        if (strtolower($blankId) == strtolower($triplePattern[0]['s'])) {
                             $setEntries[] = array(
                                 $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
                                 $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()

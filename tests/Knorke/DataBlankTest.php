@@ -4,6 +4,7 @@ namespace Tests\Knorke;
 
 use Knorke\CommonNamespaces;
 use Knorke\DataBlank;
+use Knorke\InMemoryStore;
 use Saft\Rdf\BlankNodeImpl;
 use Saft\Rdf\LiteralImpl;
 use Saft\Rdf\NamedNodeImpl;
@@ -27,6 +28,51 @@ class DataBlankTest extends UnitTestCase
         $this->nodeUtils = new NodeUtils();
 
         $this->fixture = new DataBlank(new CommonNamespaces());
+        $this->store = new InMemoryStore(
+            new NodeFactoryImpl($this->nodeUtils),
+            new StatementFactoryImpl(),
+            new QueryFactoryImpl($this->nodeUtils, new QueryUtils()),
+            new StatementIteratorFactoryImpl(),
+            new CommonNamespaces()
+        );
+    }
+
+    // test init process to only read what is really relevant
+    public function testClearSeparatedStuffBySubject()
+    {
+        $result = new SetResultImpl(array(
+            array(
+                's' => new NamedNodeImpl($this->nodeUtils, 'stat:1'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
+                'o' => new BlankNodeImpl('genid1')
+            ),
+            array(
+                's' => new BlankNodeImpl('genid1'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
+                'o' => new LiteralImpl($this->nodeUtils, '[stat:2]*2')
+            ),
+            array(
+                's' => new NamedNodeImpl($this->nodeUtils, 'stat:2'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            ),
+            array(
+                's' => new NamedNodeImpl($this->nodeUtils, 'stat:2'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                'o' => new LiteralImpl($this->nodeUtils, 'Statistic Value 2')
+            ),
+        ));
+        $result->setVariables('s', 'p', 'o');
+
+        $this->fixture->initBySetResult($result, 'stat:2');
+
+        $this->assertEquals(
+            array(
+                'rdf:type' => 'kno:StatisticValue',
+                'rdfs:label' => 'Statistic Value 2',
+            ),
+            $this->fixture->getArrayCopy()
+        );
     }
 
     public function testGetterMagic()
@@ -64,7 +110,6 @@ class DataBlankTest extends UnitTestCase
 
         $this->assertEquals(
             array(
-                'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' => 'http://xmlns.com/foaf/0.1/Person',
                 'http://www.w3.org/2000/01/rdf-schema#label' => 'Label for s'
             ),
             $this->fixture->getArrayCopy()
@@ -95,7 +140,6 @@ class DataBlankTest extends UnitTestCase
 
         $this->assertEquals(
             array(
-                'rdf:type' => 'http://xmlns.com/foaf/0.1/Person',
                 'rdfs:label' => 'Label for s'
             ),
             $this->fixture->getArrayCopy()
@@ -126,7 +170,6 @@ class DataBlankTest extends UnitTestCase
 
         $this->assertEquals(
             array(
-                'rdf:type' => 'foaf:Person',
                 'rdfs:label' => 'Label for s'
             ),
             $this->fixture->getArrayCopy()

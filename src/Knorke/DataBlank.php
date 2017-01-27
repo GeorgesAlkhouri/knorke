@@ -96,9 +96,17 @@ class DataBlank extends \ArrayObject
      * @param string $object Default: o (optional)
      * @todo support blank nodes
      */
-    public function initBySetResult(SetResult $result, $subjectUri, $predicate = 'p', $object = 'o')
+    public function initBySetResult(SetResult $result, $subjectUri, $subject = 's', $predicate = 'p', $object = 'o')
     {
         foreach ($result as $entry) {
+            // ignore entry if its subject is not relevant
+            if (isset($entry[$subject])) {
+                $subjectValue = $entry[$subject]->isNamed() ? $entry[$subject]->getUri() : $entry[$subject]->getBlankId();
+                if ($subjectValue !== $subjectUri) {
+                    continue;
+                }
+            }
+
             $predicateValue = $entry[$predicate]->getUri();
             // named node
             if ($entry[$object]->isNamed()) {

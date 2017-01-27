@@ -58,7 +58,7 @@ Variable **$computedValues** will look like this now:
 ```php
 $result = array(
    'http://foo/value1' => 3,
-   'http://foo/value2' => 7,   // rule was: value1 + 5
+   'http://foo/value2' => 8,   // rule was: value1 + 5
    'http://foo/value3' => 4.5  // rule was: (value1 * 3)/2
 );
 ```

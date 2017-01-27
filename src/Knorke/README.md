@@ -17,18 +17,18 @@ It allows you to define some kind of a mapping and to compute values which depen
 
 These rules are to described in **RDF** as following:
 ```
-@prefix : <http://foo/> .
+@prefix foo: <http://foo/> .
 
-:value1 rdf:type kno:StatisticValue .
-    
-:value2 rdf:type kno:StatisticValue ;
+foo:value1 rdf:type kno:StatisticValue .
+
+foo:value2 rdf:type kno:StatisticValue ;
     kno:computationOrder [
-        kno:_0 "[:value1]+5"
+        kno:_0 "[foo:value1]+5"
     ];
-    
-:value3 rdf:type kno:StatisticValue ;
+
+foo:value3 rdf:type kno:StatisticValue ;
     kno:computationOrder [
-        kno:_0 "[:value1]*3" ;
+        kno:_0 "[foo:value1]*3" ;
         kno:_1 "/2"
     ];
 ```
@@ -38,13 +38,17 @@ The RDF describes *all* values relevant for computation. Now we look into PHP-co
 
 $store = /* load RDF string into a Store instance, i.e.g InMemoryStore */;
 
-// define your non-depending values. these are usually ones which you provide in 
+// define your non-depending values. these are usually ones which you provide in
 // order to compute all depending ones.
 $mapping = array(
    'http://foo/value1' => 3
 );
 
-$statisticValueInstance = new StatisticValue($store, new CommonNamespaces(), $mapping);
+// add foo namespace to collection for later use
+$namespaces = new CommonNamespaces();
+$namespaces->add('foo', 'http:/foo/');
+
+$statisticValueInstance = new StatisticValue($store, $namespaces, $mapping);
 
 $computedValues = $statisticValueInstance->compute();
 ```

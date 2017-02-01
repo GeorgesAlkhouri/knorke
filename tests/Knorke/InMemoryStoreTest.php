@@ -74,12 +74,12 @@ class InMemoryStoreTest extends UnitTestCase
 
         $expectedResult = new SetResultImpl(array(
             array(
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/2000/01/rdf-schema#label'),
                 'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
             ),
             array(
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'foaf:Person'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'http://xmlns.com/foaf/0.1/Person'),
             )
         ));
         $expectedResult->setVariables(array('p', 'o'));
@@ -223,8 +223,8 @@ class InMemoryStoreTest extends UnitTestCase
 
         $expectedResult = new SetResultImpl(array(
             array(
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'foaf:Person'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'http://xmlns.com/foaf/0.1/Person'),
             )
         ));
         $expectedResult->setVariables(array('p', 'o'));
@@ -258,7 +258,7 @@ class InMemoryStoreTest extends UnitTestCase
 
         $expectedResult = new SetResultImpl(array(
             array(
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/2000/01/rdf-schema#label'),
                 'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
             )
         ));
@@ -296,13 +296,13 @@ class InMemoryStoreTest extends UnitTestCase
         $expectedResult = new SetResultImpl(array(
             array(
                 's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/2000/01/rdf-schema#label'),
                 'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
             ),
             array(
                 's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'foaf:Person'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'http://xmlns.com/foaf/0.1/Person'),
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
@@ -310,7 +310,7 @@ class InMemoryStoreTest extends UnitTestCase
         // check for classic SPO
         $this->assertSetIteratorEquals(
             $expectedResult,
-            $this->fixture->query('SELECT * WHERE {?s ?p ?o. ?s rdf:type foaf:Person}')
+            $this->fixture->query('SELECT * WHERE {?s ?p ?o. ?s rdf:type foaf:Person.}')
         );
     }
 }

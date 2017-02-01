@@ -3,6 +3,7 @@
 namespace Knorke;
 
 use Saft\Store\BasicTriplePatternStore;
+use Saft\Rdf\Node;
 use Saft\Rdf\NodeFactory;
 use Saft\Rdf\StatementFactory;
 use Saft\Rdf\StatementIteratorFactory;
@@ -21,6 +22,11 @@ class InMemoryStore extends BasicTriplePatternStore
      * @var NodeFactory
      */
     protected $nodeFactory;
+
+    /**
+     * @var NodeUtils
+     */
+    protected $nodeUtils;
 
     /**
      * @var QueryFactory
@@ -60,6 +66,51 @@ class InMemoryStore extends BasicTriplePatternStore
         $this->statementFactory = $statementFactory;
         $this->statementIteratorFactory = $statementIteratorFactory;
         $this->queryUtils = new QueryUtils();
+    }
+
+    /**
+     * Adds multiple Statements to (default-) graph. It holds added statements as long as this instance exists.
+     *
+     * @param StatementIterator|array $statements StatementList instance must contain Statement instances which are
+     *                                            'concret-' and not 'pattern'-statements.
+     * @param Node $graph Overrides target graph. If set, all statements will be add to that graph, if available.
+     * @param array $options It contains key-value pairs and should provide additional introductions for the store and/or
+     *                       its adapter(s).
+     */
+    public function addStatements($statements, Node $graph = null, array $options = array())
+    {
+        $checkedStatements = array();
+
+        // extend URIs if neccessary
+        foreach ($statements as $statement) {
+            $subject = $statement->getSubject();
+            $predicate = $statement->getPredicate();
+            $object = $statement->getObject();
+
+            // check if its a prefixed one
+            if ($subject->isNamed() && $this->commonNamespaces->isShortenedUri($subject->getUri())) {
+                $subject = $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($subject->getUri()));
+            }
+
+            // check if its a prefixed one
+            if ($predicate->isNamed() && $this->commonNamespaces->isShortenedUri($predicate->getUri())) {
+                $predicate = $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($predicate->getUri()));
+            }
+
+            // check if its a prefixed one
+            if ($object->isNamed() && $this->commonNamespaces->isShortenedUri($object->getUri())) {
+                $object = $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($object->getUri()));
+            }
+
+            $checkedStatements[] = $this->statementFactory->createStatement(
+                $subject,
+                $predicate,
+                $object,
+                $statement->getGraph()
+            );
+        }
+
+        parent::addStatements($checkedStatements, $graph, $options);
     }
 
     /**
@@ -140,16 +191,52 @@ class InMemoryStore extends BasicTriplePatternStore
 
                 $relevantS = array();
 
+                // extend triple pattern for S, P and O, if a prefixed URL was used
+                // we already know, that p and o are URIs!
+                if ($this->commonNamespaces->isShortenedUri($triplePattern[1]['p'])) {
+                    $extendedTriplePatternPUri = $this->commonNamespaces->extendUri($triplePattern[1]['p']);
+                } else {
+                    // set null because there is nothing to extend here
+                    $extendedTriplePatternPUri = null;
+                }
+                if ($this->commonNamespaces->isShortenedUri($triplePattern[1]['o'])) {
+                    $extendedTriplePatternOUri = $this->commonNamespaces->extendUri($triplePattern[1]['o']);
+                } else {
+                    // set null because there is nothing to extend here
+                    $extendedTriplePatternOUri = null;
+                }
+
                 // ignore first pattern because it casts variables on s, p and o
 
-                // 1. check which s has wanted p and o
+                // 1. check, which s has wanted p and o
                 foreach ($this->statements['http://saft/defaultGraph/'] as $statement) {
                     $s = $statement->getSubject();
                     $p = $statement->getPredicate();
                     $o = $statement->getObject();
+                    // standard check
                     if ($p->getUri() == $triplePattern[1]['p']
                         && $o->isNamed() && $o->getUri() == $triplePattern[1]['o']) {
                         $relevantS[$s->getUri()] = $s;
+
+                    // also check, if extended versions of tripple pattern p and o lead to something
+                    } elseif (null !== $extendedTriplePatternPUri || null !== $extendedTriplePatternOUri) {
+                        // does predicate matches?
+                        $predicateMatches = false;
+                        if ($p->getUri() == $extendedTriplePatternPUri || $p->getUri() == $triplePattern[1]['p']) {
+                            $predicateMatches = true;
+                        }
+
+                        // does object matches?
+                        $objectMatches = false;
+                        if ($o->isNamed() &&
+                            ($o->getUri() == $extendedTriplePatternOUri || $o->getUri() == $triplePattern[1]['o'])) {
+                            $objectMatches = true;
+                        }
+
+                        // if both matches, add $s
+                        if ($predicateMatches && $objectMatches) {
+                            $relevantS[$s->getUri()] = $s;
+                        }
                     }
                 }
 

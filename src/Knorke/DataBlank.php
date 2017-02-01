@@ -141,6 +141,8 @@ class DataBlank extends \ArrayObject
             // set property key and object value
             $this->setValue($predicateValue, $value);
         }
+
+        $result->rewind();
     }
 
     /**

@@ -91,8 +91,8 @@ class StatisticValueTest extends UnitTestCase
 
         $this->assertEquals(
             array(
-                'stat:1' => 8.5,
-                'stat:2' => 2
+                'http://statValue/1' => 8.5,
+                'http://statValue/2' => 2
             ),
             $this->fixture->compute()
         );
@@ -127,6 +127,21 @@ class StatisticValueTest extends UnitTestCase
                 new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
                 new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
             ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
+                new BlankNodeImpl('genid1')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl('genid1'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
+                new LiteralImpl($this->nodeUtils, '[stat:1]*2')
+            ),
         ));
 
         $this->initFixture(array(
@@ -135,7 +150,8 @@ class StatisticValueTest extends UnitTestCase
 
         $this->assertEquals(
             array(
-                'stat:1' => 5
+                'http://statValue/1' => 5,
+                'http://statValue/2' => 10
             ),
             $this->fixture->compute()
         );

@@ -78,14 +78,20 @@ class StatisticValue
         foreach ($statisticalValuesWithCompOrder as $uri => $computationOrder) {
             // assumption: properties are something like "kno:_1" and ordered, therefore we ignore properties later on
             // store computed value for statisticValue instance
-            $computedValues[$uri] = $this->executeComputationOrder(
+            $computedValues[$this->commonNamespaces->extendUri($uri)] = $this->executeComputationOrder(
                 $computationOrder,              // rule how to compute
                 $computedValues,                // already computed stuff from before
                 $statisticalValuesWithCompOrder // computation order per statistical value URI
             );
         }
 
-        return $computedValues;
+        // extend all URI keys if neccessary
+        $result = array();
+        foreach ($computedValues as $uri => $value) {
+            $result[$this->commonNamespaces->extendUri($uri)] = $value;
+        }
+
+        return $result;
     }
 
     /**

@@ -47,8 +47,10 @@ class StatisticValueTest extends UnitTestCase
      * Tests for compute
      */
 
-    public function testCompute()
+    public function testCompute1()
     {
+        $this->commonNamespaces->add('stat', 'http://statValue/');
+
         $this->store->addStatements(array(
             new StatementImpl(
                 new NamedNodeImpl($this->nodeUtils, 'stat:1'),
@@ -82,13 +84,26 @@ class StatisticValueTest extends UnitTestCase
             ),
         ));
 
-        $this->commonNamespaces->add('stat', 'http://statValue/');
+        /*
+         * check with non-prefixed keys in mapping
+         */
+        $this->initFixture(array(
+            'http://statValue/2' => 2
+        ));
+        $this->assertEquals(
+            array(
+                'http://statValue/1' => 8.5,
+                'http://statValue/2' => 2
+            ),
+            $this->fixture->compute()
+        );
 
-        // setup mapping for non-depending values
+        /*
+         * check with prefixed keys in mapping
+         */
         $this->initFixture(array(
             'stat:2' => 2
         ));
-
         $this->assertEquals(
             array(
                 'http://statValue/1' => 8.5,
@@ -145,7 +160,7 @@ class StatisticValueTest extends UnitTestCase
         ));
 
         $this->initFixture(array(
-            'stat:1' => 5
+            'http://statValue/1' => 5
         ));
 
         $this->assertEquals(
@@ -176,7 +191,9 @@ class StatisticValueTest extends UnitTestCase
 
     public function testExecuteComputationOrderWithDoubleValuesValueIsNumber()
     {
-        $mapping = array('stat:1' => 3);
+        $this->commonNamespaces->add('stat', 'http://statValue/');
+
+        $mapping = array('http://statValue/1' => 3);
         $this->initFixture($mapping);
 
         $this->assertEquals(
@@ -199,30 +216,50 @@ class StatisticValueTest extends UnitTestCase
 
     public function testExecuteComputationOrderWithDoubleValuesValueIsUri()
     {
-        $mapping = array('stat:1' => 3, 'stat:2' => 3);
+        $this->commonNamespaces->add('stat', 'http://statValue/');
+
+        $mapping = array('http://statValue/1' => 3, 'http://statValue/2' => 3);
+
         $this->initFixture($mapping);
 
+        // multiple
         $this->assertEquals(
-            9,
-            $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]*stat:2'), $mapping, array())
+            9, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]*stat:2'), $mapping, array())
         );
         $this->assertEquals(
-            6,
-            $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]+stat:2'), $mapping, array())
+            9, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]*http://statValue/2'), $mapping, array())
+        );
+
+        // plus
+        $this->assertEquals(
+            6, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]+stat:2'), $mapping, array())
         );
         $this->assertEquals(
-            0,
-            $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]-stat:2'), $mapping, array())
+            6, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]+http://statValue/2'), $mapping, array())
+        );
+
+        // minus
+        $this->assertEquals(
+            0, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]-stat:2'), $mapping, array())
         );
         $this->assertEquals(
-            1,
-            $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]/stat:2'), $mapping, array())
+            0, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]-http://statValue/2'), $mapping, array())
+        );
+
+        // division
+        $this->assertEquals(
+            1, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]/stat:2'), $mapping, array())
+        );
+        $this->assertEquals(
+            1, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]/http://statValue/2'), $mapping, array())
         );
     }
 
     // check how the computation reacts if it has to use an uncomputed value in a computation
     public function testExecuteComputationOrderWithNotYetComputedValue()
     {
+        $this->commonNamespaces->add('stat', 'http://statValue/');
+
         $this->store->addStatements(array(
             new StatementImpl(
                 new NamedNodeImpl($this->nodeUtils, 'stat:2'),
@@ -263,12 +300,12 @@ class StatisticValueTest extends UnitTestCase
                 array(
                     'kno:_0' => '[stat:3]*2'
                 ),
-                array('stat:1' => 3),
+                array('http://statValue/1' => 3),
                 array(
-                    'stat:2' => array(
+                    'http://statValue/2' => array(
                         'kno:_0' => '[stat:3]*2'
                     ),
-                    'stat:3' => array(
+                    'http://statValue/3' => array(
                         'kno:_0' => '[stat:1]+4'
                     ),
                 )

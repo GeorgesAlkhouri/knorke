@@ -57,7 +57,8 @@ class StatisticValue
             // check for values which have no computationOrder property but are part of the mapping
             if (false === isset($statisticValue['kno:computationOrder'])
                 && false === isset($this->mapping[$uri])
-                && false === isset($this->mapping[$this->commonNamespaces->shortenUri($uri)])) {
+                && false === isset($this->mapping[$this->commonNamespaces->shortenUri($uri)])
+                && false === isset($this->mapping[$this->commonNamespaces->extendUri($uri)])) {
                 $e = new KnorkeException('Statistic value ' . $uri . ' is non-depending, but has no mapping.');
                 $e->setPayload($statisticValue);
                 throw $e;
@@ -68,11 +69,16 @@ class StatisticValue
         $statisticalValuesWithCompOrder = array();
         foreach ($statisticValues as $uri => $statisticValue) {
             if (isset($statisticValue['kno:computationOrder'])) {
-                $statisticalValuesWithCompOrder[$uri] = $this->getComputationOrderFor($uri, $statisticValues);
+                $statisticalValuesWithCompOrder[$this->commonNamespaces->extendUri($uri)] =
+                    $this->getComputationOrderFor($uri, $statisticValues);
             }
         }
 
-        $computedValues = $this->mapping;
+        // extend all URI keys if neccessary
+        $computedValues = array();
+        foreach ($this->mapping as $uri => $value) {
+            $computedValues[$this->commonNamespaces->extendUri($uri)] = $value;
+        }
 
         // go through all statistic value instances with computationOrder property and compute related values
         foreach ($statisticalValuesWithCompOrder as $uri => $computationOrder) {
@@ -85,13 +91,7 @@ class StatisticValue
             );
         }
 
-        // extend all URI keys if neccessary
-        $result = array();
-        foreach ($computedValues as $uri => $value) {
-            $result[$this->commonNamespaces->extendUri($uri)] = $value;
-        }
-
-        return $result;
+        return $computedValues;
     }
 
     /**
@@ -166,44 +166,51 @@ class StatisticValue
             $value2 = null;
 
             preg_match('/\[(.*?)\]([*\/+-]{1})(.*)/', $computationRule, $doubleValueMatch);
-            preg_match('/([*|\/|+|-])(.*)/', $computationRule, $singleValueMatch);
+            preg_match('/^([*|\/|+|-])(.*)/', $computationRule, $singleValueMatch);
 
-            // found match for 2 values with an operation to compute (like a+1). can only be as the first entry
+            /*
+             * found match for 2 values with an operation to compute (like a+1). can only be as the first entry
+             */
             if (isset($doubleValueMatch[1]) && null == $lastComputedValue) {
-                if (isset($computedValues[$doubleValueMatch[1]])) {
-                    $value1 = (float)$computedValues[$doubleValueMatch[1]];
+                $statisticValue1Uri = $this->commonNamespaces->extendUri($doubleValueMatch[1]);
+
+                if (isset($computedValues[$statisticValue1Uri])) {
+                    $value1 = (float)$computedValues[$statisticValue1Uri];
                 } else {
                     // get value because it wasn't computed yet
                     $value1 = $this->executeComputationOrder(
-                        $statisticalValuesWithCompOrder[$doubleValueMatch[1]],
+                        $statisticalValuesWithCompOrder[$statisticValue1Uri],
                         $computedValues,
                         $statisticalValuesWithCompOrder
                     );
                 }
                 $operation = $doubleValueMatch[2];
+                $value2 = $doubleValueMatch[3];
 
-            // found match for 1 value with 1 operation to compute (like +2). here we use the result of the computation
-            // last round
+            /*
+             * found match for 1 value with 1 operation to compute (like +2).
+             * here we use the result of the computation last round as value1
+             */
             } elseif (isset($singleValueMatch[1]) && null !== $lastComputedValue) {
                 $value1 = (float)$lastComputedValue;
                 $operation = $singleValueMatch[1];
+                $value2 = $singleValueMatch[2];
             }
 
-            // value 2
-            // check if value2 contains letters; if so, its an URI, if not, assume its a simple number
-            if (0 < preg_match('/([a-zA-Z:])/', $singleValueMatch[2], $value2Match)) {
-                if (isset($computedValues[$singleValueMatch[2]])) {
-                    $value2 = $computedValues[$singleValueMatch[2]];
-                } else {
-                    // get value because it wasn't computed yet
+            // if value2 is not a number, assume its an URI
+            if (false === is_numeric($value2)) {
+                $value2 = $this->commonNamespaces->extendUri($value2);
+
+                // get value because it wasn't computed yet
+                if (false == isset($computedValues[$value2])) {
                     $value2 = $this->executeComputationOrder(
-                        $statisticalValuesWithCompOrder[$singleValueMatch[2]],
+                        $statisticalValuesWithCompOrder[$value2],
                         $computedValues,
                         $statisticalValuesWithCompOrder
                     );
+                } else {
+                    $value2 = (float)$computedValues[$value2];
                 }
-            } else {
-                $value2 = $singleValueMatch[2];
             }
 
             // computation
@@ -250,6 +257,12 @@ class StatisticValue
                 // order entries by key
                 $computationOrder = $computationOrderBlank->getArrayCopy();
                 ksort($computationOrder);
+
+                // extend all URIs used
+                foreach ($computationOrder as $key => $string) {
+                    unset($computationOrder[$key]);
+                    $computationOrder[$key] = $this->commonNamespaces->extendUri($string);
+                }
 
                 return $computationOrder;
             }

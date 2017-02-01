@@ -101,6 +101,6 @@ class CommonNamespaces
             }
         }
 
-        return $string;
+        return $uri;
     }
 }

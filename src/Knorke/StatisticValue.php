@@ -55,7 +55,9 @@ class StatisticValue
         // check that all non-depending values were defined
         foreach ($statisticValues as $uri => $statisticValue) {
             // check for values which have no computationOrder property but are part of the mapping
-            if (false === isset($statisticValue['kno:computationOrder']) && false === isset($this->mapping[$uri])) {
+            if (false === isset($statisticValue['kno:computationOrder'])
+                && false === isset($this->mapping[$uri])
+                && false === isset($this->mapping[$this->commonNamespaces->shortenUri($uri)])) {
                 $e = new KnorkeException('Statistic value ' . $uri . ' is non-depending, but has no mapping.');
                 $e->setPayload($statisticValue);
                 throw $e;

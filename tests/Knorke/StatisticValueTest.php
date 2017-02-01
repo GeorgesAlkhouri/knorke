@@ -98,6 +98,7 @@ class StatisticValueTest extends UnitTestCase
         );
     }
 
+    // check how compute reacts on a missing mapping
     public function testComputeMissingMapping()
     {
         $this->setExpectedException('Knorke\Exception\KnorkeException');
@@ -113,6 +114,31 @@ class StatisticValueTest extends UnitTestCase
         $this->initFixture(array());
 
         $this->fixture->compute();
+    }
+
+    // if static value information is described using exented URIs, check prefixed version
+    public function testComputeCheckForPrefixedAndUnprefixedUri()
+    {
+        $this->commonNamespaces->add('stat', 'http://statValue/');
+
+        $this->store->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/1'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            ),
+        ));
+
+        $this->initFixture(array(
+            'stat:1' => 5
+        ));
+
+        $this->assertEquals(
+            array(
+                'stat:1' => 5
+            ),
+            $this->fixture->compute()
+        );
     }
 
     /*

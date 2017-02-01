@@ -86,14 +86,40 @@ class StatisticValue
         return $computedValues;
     }
 
+    /**
+     * @param string|float $value1
+     * @param string $operation Either +, -, * or /
+     * @param float $value1
+     */
     public function computeValue($value1, $operation, $value2)
     {
-        switch($operation) {
-            case '+': return $value1 + (float)$value2;
-            case '*': return $value1 * (float)$value2;
-            case '-': return $value1 - (float)$value2;
-            case '/': return $value1 / (float)$value2;
-            default: return null;
+        // if $value1 is a string, we assume its a date like '2017-01-01'
+        if (is_string($value1)) {
+            $dateTime = $value1 . ' 00:00:00';
+            $timestamp = strtotime($dateTime);
+
+            // stop here, if value2 is crap
+            $value2 = (int)$value2;
+            if (0 == $value2) {
+                return null;
+            }
+
+            // $value2 is the number of days we go forward or backward from the given date
+            switch ($operation) {
+                case '+': return date('Y-m-d', ($timestamp+(86400*$value2)));
+                case '-': return date('Y-m-d', ($timestamp-(86400*$value2)));
+                default: return null;
+            }
+
+        // value1 and value2 are both floats and can therefore be computed directly
+        } else {
+            switch($operation) {
+                case '+': return $value1 + (float)$value2;
+                case '*': return $value1 * (float)$value2;
+                case '-': return $value1 - (float)$value2;
+                case '/': return $value1 / (float)$value2;
+                default: return null;
+            }
         }
     }
 

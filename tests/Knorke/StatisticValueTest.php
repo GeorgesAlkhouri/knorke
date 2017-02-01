@@ -110,10 +110,21 @@ class StatisticValueTest extends UnitTestCase
             ),
         ));
 
-        $this->initFixture(array(
-        ));
+        $this->initFixture(array());
 
         $this->fixture->compute();
+    }
+
+    /*
+     * Tests for compute Value
+     */
+
+    public function testComputeValue()
+    {
+        $this->initFixture(array());
+
+        $this->assertEquals('2017-01-10', $this->fixture->computeValue('2017-01-05', '+', 5));
+        $this->assertEquals('2017-01-01', $this->fixture->computeValue('2017-01-06', '-', 5));
     }
 
     /*

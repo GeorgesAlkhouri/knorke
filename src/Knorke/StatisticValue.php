@@ -147,7 +147,7 @@ class StatisticValue
                     $value2 = $computedValues[$singleValueMatch[2]];
                 } else {
                     // get value because it wasn't computed yet
-                    $value1 = $this->executeComputationOrder(
+                    $value2 = $this->executeComputationOrder(
                         $statisticalValuesWithCompOrder[$singleValueMatch[2]],
                         $computedValues,
                         $statisticalValuesWithCompOrder

@@ -102,7 +102,7 @@ class StatisticValue
     public function computeValue($value1, $operation, $value2)
     {
         // if $value1 is a string, we assume its a date like '2017-01-01'
-        if (is_string($value1)) {
+        if (is_string($value1) && is_numeric($value2)) {
             $dateTime = $value1 . ' 00:00:00';
             $timestamp = strtotime($dateTime);
 
@@ -116,6 +116,21 @@ class StatisticValue
             switch ($operation) {
                 case '+': return date('Y-m-d', ($timestamp+(86400*$value2)));
                 case '-': return date('Y-m-d', ($timestamp-(86400*$value2)));
+                default: return null;
+            }
+
+        // if $value1 amd $value2 are strings
+        } elseif (is_string($value1) && is_string($value2)) {
+            $dateTime1 = $value1 . ' 00:00:00';
+            $timestamp1 = strtotime($dateTime1);
+
+            $dateTime2 = $value2 . ' 00:00:00';
+            $timestamp2 = strtotime($dateTime2);
+
+            // operation needs to be MINUS, so we remove the second timestamp from the first
+            // and will receive the number of days as difference
+            switch ($operation) {
+                case '-': return ($timestamp1-$timestamp2)/(60*60*24);
                 default: return null;
             }
 

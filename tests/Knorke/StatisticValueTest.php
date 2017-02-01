@@ -167,6 +167,7 @@ class StatisticValueTest extends UnitTestCase
 
         $this->assertEquals('2017-01-10', $this->fixture->computeValue('2017-01-05', '+', 5));
         $this->assertEquals('2017-01-01', $this->fixture->computeValue('2017-01-06', '-', 5));
+        $this->assertEquals(2,            $this->fixture->computeValue('2017-01-06', '-', '2017-01-04'));
     }
 
     /*

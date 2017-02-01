@@ -43,6 +43,68 @@ class InMemoryStoreTest extends UnitTestCase
     }
 
     /*
+     * Tests for addStatements
+     */
+
+    // checks, that prefixed and unprefixed URIs stored as unprefixed ones
+    public function testAddStatementsIfPrefixedAndUnprefixedURIsAreStoredCorrectly()
+    {
+        $this->commonNamespaces->add('foo', 'http://foo/');
+
+        $this->initFixture();
+
+        /*
+         * check storing prefixed URIs
+         */
+        $this->fixture->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'foo:s'),
+                new NamedNodeImpl($this->nodeUtils, 'foo:p'),
+                new NamedNodeImpl($this->nodeUtils, 'foo:o')
+            ),
+        ));
+
+        $expectedResult = new SetResultImpl(array(
+            array(
+                's' => new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'http://foo/o'),
+            )
+        ));
+        $expectedResult->setVariables(array('s', 'p', 'o'));
+
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {?s ?p ?o.}')
+        );
+
+        /*
+         * check storing unprefixed URIs
+         */
+        $this->fixture->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/o')
+            ),
+        ));
+
+        $expectedResult = new SetResultImpl(array(
+            array(
+                's' => new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
+                'p' => new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
+                'o' => new NamedNodeImpl($this->nodeUtils, 'http://foo/o'),
+            )
+        ));
+        $expectedResult->setVariables(array('s', 'p', 'o'));
+
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {?s ?p ?o.}')
+        );
+    }
+
+    /*
      * Tests for query
      */
 

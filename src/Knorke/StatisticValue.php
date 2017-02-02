@@ -180,6 +180,11 @@ class StatisticValue
                     $lastComputedValue = $maxMatches[1];
                 }
 
+            // Reuse existing value
+            // TODO implement gathering referenced value, if not computed yet
+            } elseif (preg_match('/^\[(.*?)\]$/', $computationRule, $reuseMatch) && isset($reuseMatch[1])) {
+                $lastComputedValue = $computedValues[$reuseMatch[1]];
+
             // parse and handle rule
             } else {
                 preg_match('/\[(.*?)\]([*\/+-]{1})(.*)/', $computationRule, $doubleValueMatch);

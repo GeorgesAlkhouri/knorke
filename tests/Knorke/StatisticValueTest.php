@@ -314,6 +314,39 @@ class StatisticValueTest extends UnitTestCase
         );
     }
 
+    public function testComputeUseValue()
+    {
+        $this->commonNamespaces->add('stat', 'http://statValue/');
+
+        $this->store->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
+                new BlankNodeImpl('genid1')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl('genid1'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
+                new LiteralImpl($this->nodeUtils, '[stat:1]')
+            )
+        ));
+
+        $this->initFixture(array('http://statValue/1' => 0.2));
+
+        $this->assertEquals(
+            array(
+                'http://statValue/1' => 0.2,
+                'http://statValue/2' => 0.2
+            ),
+            $this->fixture->compute()
+        );
+    }
+
     /*
      * Tests for compute Value
      */

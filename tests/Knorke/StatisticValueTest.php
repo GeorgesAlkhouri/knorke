@@ -196,6 +196,52 @@ class StatisticValueTest extends UnitTestCase
         );
     }
 
+    // test handling of if clauses
+    public function testComputeIfClause()
+    {
+        $this->commonNamespaces->add('stat', 'http://statValue/');
+
+        $this->store->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
+                new BlankNodeImpl('genid1')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl('genid1'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
+                new LiteralImpl($this->nodeUtils, 'IF([stat:1]>30, 1, 0)')
+            ),
+        ));
+
+        // check for if option
+        $this->initFixture(array('http://statValue/1' => 31));
+
+        $this->assertEquals(
+            array(
+                'http://statValue/1' => 31,
+                'http://statValue/2' => 1
+            ),
+            $this->fixture->compute()
+        );
+
+        // check for else option
+        $this->initFixture(array('http://statValue/1' => 20));
+
+        $this->assertEquals(
+            array(
+                'http://statValue/1' => 20,
+                'http://statValue/2' => 0
+            ),
+            $this->fixture->compute()
+        );
+    }
+
     // check how compute reacts on a missing mapping
     public function testComputeMissingMapping()
     {

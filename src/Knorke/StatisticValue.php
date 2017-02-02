@@ -163,57 +163,76 @@ class StatisticValue
         foreach ($computationOrder as $computationRule) {
             $value1 = null;
             $value2 = null;
+            $operation = null;
 
-            preg_match('/\[(.*?)\]([*\/+-]{1})(.*)/', $computationRule, $doubleValueMatch);
-            preg_match('/^([*|\/|+|-])(.*)/', $computationRule, $singleValueMatch);
+            // ROUNDUP: if its a float, always round to the next higher number (e.g. 1.1 => 2)
+            if ('ROUNDUP' == $computationRule) {
+                $precision = 0;
+                $fig = (int)str_pad('1', $precision, '0');
+                $lastComputedValue = (ceil($lastComputedValue * $fig) / $fig);
 
-            /*
-             * found match for 2 values with an operation to compute (like a+1). can only be as the first entry
-             */
-            if (isset($doubleValueMatch[1]) && null == $lastComputedValue) {
-                $statisticValue1Uri = $this->commonNamespaces->extendUri($doubleValueMatch[1]);
+            // MAX(result,..): checks result and decides to keep result or to use the alternative, if its higher
+            } elseif ('MAX(result' == substr($computationRule, 0, 10)) {
+                // get max alternative
+                preg_match('/MAX\(result,([0-9\s]+)\)/', $computationRule, $maxMatches);
+                // use alternative over last computed value, if alternative is heigher
+                if (isset($maxMatches[1]) && $maxMatches[1] > $lastComputedValue) {
+                    $lastComputedValue = $maxMatches[1];
+                }
 
-                if (isset($computedValues[$statisticValue1Uri])) {
-                    $value1 = $computedValues[$statisticValue1Uri];
-                } else {
+            // parse and handle rule
+            } else {
+                preg_match('/\[(.*?)\]([*\/+-]{1})(.*)/', $computationRule, $doubleValueMatch);
+                preg_match('/^([*|\/|+|-])(.*)/', $computationRule, $singleValueMatch);
+
+                /*
+                 * found match for 2 values with an operation to compute (like a+1). can only be as the first entry
+                 */
+                if (isset($doubleValueMatch[1]) && null == $lastComputedValue) {
+                    $statisticValue1Uri = $this->commonNamespaces->extendUri($doubleValueMatch[1]);
+
+                    if (isset($computedValues[$statisticValue1Uri])) {
+                        $value1 = $computedValues[$statisticValue1Uri];
+                    } else {
+                        // get value because it wasn't computed yet
+                        $value1 = $this->executeComputationOrder(
+                            $statisticalValuesWithCompOrder[$statisticValue1Uri],
+                            $computedValues,
+                            $statisticalValuesWithCompOrder
+                        );
+                    }
+                    $operation = $doubleValueMatch[2];
+                    $value2 = $doubleValueMatch[3];
+
+                /*
+                 * found match for 1 value with 1 operation to compute (like +2).
+                 * here we use the result of the computation last round as value1
+                 */
+                } elseif (isset($singleValueMatch[1]) && null !== $lastComputedValue) {
+                    $value1 = $lastComputedValue;
+                    $operation = $singleValueMatch[1];
+                    $value2 = $singleValueMatch[2];
+                }
+
+                // if value2 is not a number, assume its an URI
+                if (false === is_numeric($value2) && null !== $value2) {
+                    $value2 = $this->commonNamespaces->extendUri($value2);
+
                     // get value because it wasn't computed yet
-                    $value1 = $this->executeComputationOrder(
-                        $statisticalValuesWithCompOrder[$statisticValue1Uri],
-                        $computedValues,
-                        $statisticalValuesWithCompOrder
-                    );
+                    if (false == isset($computedValues[$value2])) {
+                        $value2 = $this->executeComputationOrder(
+                            $statisticalValuesWithCompOrder[$value2],
+                            $computedValues,
+                            $statisticalValuesWithCompOrder
+                        );
+                    } else {
+                        $value2 = $computedValues[$value2];
+                    }
                 }
-                $operation = $doubleValueMatch[2];
-                $value2 = $doubleValueMatch[3];
 
-            /*
-             * found match for 1 value with 1 operation to compute (like +2).
-             * here we use the result of the computation last round as value1
-             */
-            } elseif (isset($singleValueMatch[1]) && null !== $lastComputedValue) {
-                $value1 = $lastComputedValue;
-                $operation = $singleValueMatch[1];
-                $value2 = $singleValueMatch[2];
+                // computation
+                $lastComputedValue = $this->computeValue($value1, $operation, $value2);
             }
-
-            // if value2 is not a number, assume its an URI
-            if (false === is_numeric($value2)) {
-                $value2 = $this->commonNamespaces->extendUri($value2);
-
-                // get value because it wasn't computed yet
-                if (false == isset($computedValues[$value2])) {
-                    $value2 = $this->executeComputationOrder(
-                        $statisticalValuesWithCompOrder[$value2],
-                        $computedValues,
-                        $statisticalValuesWithCompOrder
-                    );
-                } else {
-                    $value2 = $computedValues[$value2];
-                }
-            }
-
-            // computation
-            $lastComputedValue = $this->computeValue($value1, $operation, $value2);
 
             if (null !== $lastComputedValue) continue;
 

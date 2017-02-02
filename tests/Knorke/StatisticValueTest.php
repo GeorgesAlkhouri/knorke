@@ -47,7 +47,7 @@ class StatisticValueTest extends UnitTestCase
      * Tests for compute
      */
 
-    public function testCompute1()
+    public function testCompute()
     {
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
@@ -155,24 +155,6 @@ class StatisticValueTest extends UnitTestCase
         );
     }
 
-    // check how compute reacts on a missing mapping
-    public function testComputeMissingMapping()
-    {
-        $this->setExpectedException('Knorke\Exception\KnorkeException');
-
-        $this->store->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:1'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
-            ),
-        ));
-
-        $this->initFixture(array());
-
-        $this->fixture->compute();
-    }
-
     // if static value information is described using exented URIs, check prefixed version
     public function testComputeCheckForPrefixedAndUnprefixedUri()
     {
@@ -209,6 +191,124 @@ class StatisticValueTest extends UnitTestCase
             array(
                 'http://statValue/1' => 5,
                 'http://statValue/2' => 10
+            ),
+            $this->fixture->compute()
+        );
+    }
+
+    // check how compute reacts on a missing mapping
+    public function testComputeMissingMapping()
+    {
+        $this->setExpectedException('Knorke\Exception\KnorkeException');
+
+        $this->store->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'stat:1'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            ),
+        ));
+
+        $this->initFixture(array());
+
+        $this->fixture->compute();
+    }
+
+    public function testComputeMax()
+    {
+        $this->commonNamespaces->add('stat', 'http://statValue/');
+
+        $this->store->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
+                new BlankNodeImpl('genid1')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl('genid1'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
+                new LiteralImpl($this->nodeUtils, '[stat:1]*2')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl('genid1'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:_1'),
+                new LiteralImpl($this->nodeUtils, 'MAX(result,2)')
+            ),
+        ));
+
+        // check for result
+        $this->initFixture(array('http://statValue/1' => 2));
+
+        $this->assertEquals(
+            array(
+                'http://statValue/1' => 2,
+                'http://statValue/2' => 4
+            ),
+            $this->fixture->compute()
+        );
+
+        // check for alternative
+        $this->initFixture(array('http://statValue/1' => 0.4));
+
+        $this->assertEquals(
+            array(
+                'http://statValue/1' => 0.4,
+                'http://statValue/2' => 2
+            ),
+            $this->fixture->compute()
+        );
+    }
+
+    public function testComputeRoundUp()
+    {
+        $this->commonNamespaces->add('stat', 'http://statValue/');
+
+        $this->store->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
+                new BlankNodeImpl('genid1')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl('genid1'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
+                new LiteralImpl($this->nodeUtils, '[stat:1]*2')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl('genid1'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:_1'),
+                new LiteralImpl($this->nodeUtils, 'ROUNDUP')
+            ),
+        ));
+
+        // round up with <0.5
+        $this->initFixture(array('http://statValue/1' => 0.2));
+
+        $this->assertEquals(
+            array(
+                'http://statValue/1' => 0.2,
+                'http://statValue/2' => 1
+            ),
+            $this->fixture->compute()
+        );
+
+        // round up with >0.5
+        $this->initFixture(array('http://statValue/1' => 0.4));
+
+        $this->assertEquals(
+            array(
+                'http://statValue/1' => 0.4,
+                'http://statValue/2' => 1
             ),
             $this->fixture->compute()
         );

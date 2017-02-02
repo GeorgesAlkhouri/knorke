@@ -56,7 +56,6 @@ class StatisticValue
         foreach ($statisticValues as $uri => $statisticValue) {
             // check for values which have no computationOrder property but are part of the mapping
             if (false === isset($statisticValue['kno:computationOrder'])
-                && false === isset($this->mapping[$uri])
                 && false === isset($this->mapping[$this->commonNamespaces->shortenUri($uri)])
                 && false === isset($this->mapping[$this->commonNamespaces->extendUri($uri)])) {
                 $e = new KnorkeException('Statistic value ' . $uri . ' is non-depending, but has no mapping.');
@@ -175,7 +174,7 @@ class StatisticValue
                 $statisticValue1Uri = $this->commonNamespaces->extendUri($doubleValueMatch[1]);
 
                 if (isset($computedValues[$statisticValue1Uri])) {
-                    $value1 = (float)$computedValues[$statisticValue1Uri];
+                    $value1 = $computedValues[$statisticValue1Uri];
                 } else {
                     // get value because it wasn't computed yet
                     $value1 = $this->executeComputationOrder(
@@ -192,7 +191,7 @@ class StatisticValue
              * here we use the result of the computation last round as value1
              */
             } elseif (isset($singleValueMatch[1]) && null !== $lastComputedValue) {
-                $value1 = (float)$lastComputedValue;
+                $value1 = $lastComputedValue;
                 $operation = $singleValueMatch[1];
                 $value2 = $singleValueMatch[2];
             }
@@ -209,7 +208,7 @@ class StatisticValue
                         $statisticalValuesWithCompOrder
                     );
                 } else {
-                    $value2 = (float)$computedValues[$value2];
+                    $value2 = $computedValues[$value2];
                 }
             }
 

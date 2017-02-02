@@ -52,6 +52,7 @@ class StatisticValueTest extends UnitTestCase
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
         $this->store->addStatements(array(
+            // stat:1
             new StatementImpl(
                 new NamedNodeImpl($this->nodeUtils, 'stat:1'),
                 new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
@@ -72,6 +73,7 @@ class StatisticValueTest extends UnitTestCase
                 new NamedNodeImpl($this->nodeUtils, 'kno:_1'),
                 new LiteralImpl($this->nodeUtils, '+4.5')
             ),
+            // stat:2
             new StatementImpl(
                 new NamedNodeImpl($this->nodeUtils, 'stat:2'),
                 new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
@@ -82,18 +84,54 @@ class StatisticValueTest extends UnitTestCase
                 new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
                 new LiteralImpl($this->nodeUtils, 'Statistic Value 2')
             ),
+            // stat:date
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'stat:date'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'stat:date'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
+                new BlankNodeImpl('genid2')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl('genid2'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
+                new LiteralImpl($this->nodeUtils, '[stat:startdate]-4')
+            ),
+            // stat:days
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'stat:days'),
+                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'stat:days'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
+                new BlankNodeImpl('genid3')
+            ),
+            new StatementImpl(
+                new BlankNodeImpl('genid3'),
+                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
+                new LiteralImpl($this->nodeUtils, '[stat:startdate]-stat:date')
+            ),
         ));
 
         /*
          * check with non-prefixed keys in mapping
          */
         $this->initFixture(array(
-            'http://statValue/2' => 2
+            'http://statValue/2' => 2,
+            'http://statValue/startdate' => '2017-01-05'
         ));
         $this->assertEquals(
             array(
                 'http://statValue/1' => 8.5,
-                'http://statValue/2' => 2
+                'http://statValue/2' => 2,
+                'http://statValue/date' => '2017-01-01',
+                'http://statValue/days' => 4.0,
+                'http://statValue/startdate' => '2017-01-05'
             ),
             $this->fixture->compute()
         );
@@ -102,12 +140,16 @@ class StatisticValueTest extends UnitTestCase
          * check with prefixed keys in mapping
          */
         $this->initFixture(array(
-            'stat:2' => 2
+            'stat:2' => 2,
+            'http://statValue/startdate' => '2017-01-05'
         ));
         $this->assertEquals(
             array(
                 'http://statValue/1' => 8.5,
-                'http://statValue/2' => 2
+                'http://statValue/2' => 2,
+                'http://statValue/date' => '2017-01-01',
+                'http://statValue/days' => 4.0,
+                'http://statValue/startdate' => '2017-01-05'
             ),
             $this->fixture->compute()
         );

@@ -88,6 +88,32 @@ class DataBlank extends \ArrayObject
     }
 
     /**
+     * Init instance by a simple array with properties as keys and according values.
+     *
+     * @param array $array
+     */
+    public function initByArray(array $array)
+    {
+        foreach ($array as $property => $value) {
+            // predicate
+            if ($this->options['use_prefixed_predicates']) {
+                $property = $this->commonNamespaces->shortenUri($property);
+            } else {
+                $property = $this->commonNamespaces->extendUri($property);
+            }
+
+            // object
+            if ($this->options['use_prefixed_objects']) {
+                $value = $this->commonNamespaces->shortenUri($value);
+            } else {
+                $value = $this->commonNamespaces->extendUri($value);
+            }
+
+            $this->setValue($property, $value);
+        }
+    }
+
+    /**
      * Init instance by a given SetResult instance.
      *
      * @param SetResult $result

@@ -182,7 +182,7 @@ class StatisticValue
 
             // IF clause: set value depending on an if-clause, e.g. IF([stat:1] > 0, 1, 0)
             // TODO implement gathering referenced value, if not computed yet
-            } elseif (preg_match('/IF\(\[(.*)\]([>|<])([0-9]+),\s*([0-9]+),\s*([0-9]+)\)/', $computationRule, $ifMatch)
+            } elseif (preg_match('/IF\(\[(.*)\]\s*([>|<])\s*([0-9]+),\s*([0-9]+),\s*([0-9]+)\)/', $computationRule, $ifMatch)
                 && isset($ifMatch[1])) {
                 $statisticValueUri = $this->commonNamespaces->extendUri($ifMatch[1]); // e.g. stat:2
                 $ifOperation = $ifMatch[2];                                           // e.g. >

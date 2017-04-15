@@ -2,10 +2,34 @@
 
 namespace Tests\Knorke;
 
+use PHPUnit\Framework\TestCase;
+use Saft\Rdf\NodeFactoryImpl;
+use Saft\Rdf\NodeUtils;
 use Saft\Sparql\Result\SetResult;
 
-class UnitTestCase extends \PHPUnit_Framework_TestCase
+class UnitTestCase extends TestCase
 {
+    /**
+     * Contains an instance of the class to test.
+     *
+     * @var mixed
+     */
+    protected $fixture;
+
+    protected $nodeFactory;
+    protected $nodeUtils;
+
+    protected $testGraphUri = 'http://semanticdbl/testgraph/';
+    protected $testGraph;
+
+    public function setUp()
+    {
+        parent::setUp();
+        $this->nodeUtils = new NodeUtils();
+        $this->nodeFactory = new NodeFactoryImpl($this->nodeUtils);
+        $this->testGraph = $this->nodeFactory->createNamedNode($this->testGraphUri);
+    }
+
     /**
      * Checks two lists which implements \Iterator interface, if they contain the same Statement instances.
      * The checks will be executed using PHPUnit's assert functions.

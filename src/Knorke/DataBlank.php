@@ -2,6 +2,7 @@
 
 namespace Knorke;
 
+use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\StatementIterator;
 use Saft\Sparql\Result\SetResult;
 

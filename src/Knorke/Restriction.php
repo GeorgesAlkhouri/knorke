@@ -2,6 +2,7 @@
 
 namespace Knorke;
 
+use Saft\Rdf\CommonNamespaces;
 use Saft\Store\Store;
 
 /**

@@ -2,11 +2,11 @@
 
 namespace Tests\Knorke;
 
-use Knorke\CommonNamespaces;
 use Knorke\DataBlank;
 use Knorke\InMemoryStore;
 use Knorke\StatisticValue;
 use Saft\Rdf\BlankNodeImpl;
+use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\LiteralImpl;
 use Saft\Rdf\NamedNodeImpl;
 use Saft\Rdf\NodeFactoryImpl;
@@ -245,7 +245,7 @@ class StatisticValueTest extends UnitTestCase
     // check how compute reacts on a missing mapping
     public function testComputeMissingMapping()
     {
-        $this->setExpectedException('Knorke\Exception\KnorkeException');
+        $this->expectException('Knorke\Exception\KnorkeException');
 
         $this->store->addStatements(array(
             new StatementImpl(

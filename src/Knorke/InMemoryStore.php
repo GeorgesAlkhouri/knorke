@@ -3,6 +3,7 @@
 namespace Knorke;
 
 use Saft\Store\BasicTriplePatternStore;
+use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\Node;
 use Saft\Rdf\NodeFactory;
 use Saft\Rdf\StatementFactory;

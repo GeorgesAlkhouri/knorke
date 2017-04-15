@@ -3,6 +3,7 @@
 namespace Knorke;
 
 use Knorke\Exception\KnorkeException;
+use Saft\Rdf\CommonNamespaces;
 use Saft\Store\Store;
 
 class StatisticValue
@@ -219,14 +220,22 @@ class StatisticValue
 
                     if (isset($computedValues[$statisticValue1Uri])) {
                         $value1 = $computedValues[$statisticValue1Uri];
-                    } else {
+                    } elseif (isset($statisticalValuesWithCompOrder[$statisticValue1Uri])) {
                         // get value because it wasn't computed yet
                         $value1 = $this->executeComputationOrder(
                             $statisticalValuesWithCompOrder[$statisticValue1Uri],
                             $computedValues,
                             $statisticalValuesWithCompOrder
                         );
+                    } else {
+                        $e = new KnorkeException('Parameter computation order is undefined.');
+                        $e->setPayload(array(
+                            'array_with_comp_order' => $statisticalValuesWithCompOrder,
+                            'key_to_access_array' => $statisticValue1Uri
+                        ));
+                        throw $e;
                     }
+
                     $operation = $doubleValueMatch[2];
                     $value2 = $doubleValueMatch[3];
 

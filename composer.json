@@ -1,15 +1,16 @@
 {
     "name": "k00ni/knorke",
     "require": {
-        "saft/saft-data": ">=0.8",
-        "saft/saft-rdf": ">=0.8",
-        "saft/saft-sparql": ">=0.8",
-        "saft/saft-store": ">=0.8"
+        "php": ">=7.0.17",
+        "paragonie/easydb": "2.*",
+        "saft/saft-data": ">=0.8.1",
+        "saft/saft-rdf": ">=0.8.1",
+        "saft/saft-sparql": ">=0.8.1",
+        "saft/saft-store": ">=0.8.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "*"
+        "phpunit/phpunit": "6.*"
     },
-    "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload": {
         "psr-4": {

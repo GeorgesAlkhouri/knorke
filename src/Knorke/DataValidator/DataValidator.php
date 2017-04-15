@@ -2,10 +2,10 @@
 
 namespace Knorke\DataValidator;
 
-use Knorke\CommonNamespaces;
 use Knorke\DataBlank;
 use Knorke\Exception\DataValidatorException;
 use Saft\Data\NQuadsParser;
+use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NodeFactoryImpl;
 use Saft\Rdf\StatementFactoryImpl;
 use Saft\Rdf\StatementIterator;

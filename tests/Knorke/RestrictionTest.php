@@ -2,10 +2,10 @@
 
 namespace Tests\Knorke;
 
-use Knorke\CommonNamespaces;
 use Knorke\InMemoryStore;
 use Knorke\Restriction;
 use Saft\Rdf\BlankNodeImpl;
+use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\LiteralImpl;
 use Saft\Rdf\NamedNodeImpl;
 use Saft\Rdf\NodeFactoryImpl;

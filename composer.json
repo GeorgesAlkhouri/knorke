@@ -9,7 +9,7 @@
         "saft/saft-store": ">=0.8.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "6.*"
+        "phpunit/phpunit": ">=6.0"
     },
     "prefer-stable": true,
     "autoload": {

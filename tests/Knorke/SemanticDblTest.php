@@ -28,7 +28,9 @@ class SemanticDblTest extends UnitTestCase
 
         $this->commonNamespaces = new CommonNamespaces();
         $this->statementFactory = new StatementFactoryImpl();
+
         $this->initFixture();
+        $this->fixture->setup();
 
         $this->fixture->getDb()->q(
             'DELETE FROM graph WHERE uri LIKE ?',
@@ -350,6 +352,21 @@ class SemanticDblTest extends UnitTestCase
         $this->fixture->hasMatchingStatement(
             $this->statementFactory->createStatement($this->testGraph, $this->testGraph, $this->testGraph)
         );
+    }
+
+    /*
+     * Tests for isSetup
+     */
+
+    public function testIsSetup()
+    {
+        $this->fixture->getDb()->run('DROP TABLE IF EXISTS graph, quad, value');
+
+        $this->assertFalse($this->fixture->isSetup());
+
+        $this->fixture->setup();
+
+        $this->assertTrue($this->fixture->isSetup());
     }
 
     /*
@@ -690,5 +707,18 @@ class SemanticDblTest extends UnitTestCase
                   WHERE {?s ?p ?o. ?s rdf:type foaf:Person.}'
             )
         );
+    }
+
+    /*
+     * Test setup
+     */
+    public function testSetup()
+    {
+        $this->fixture->getDb()->run('DROP TABLE IF EXISTS graph, quad, value');
+
+        $this->fixture->setup();
+
+        $tables = $this->fixture->getDb()->run('SHOW TABLES');
+        $this->assertEquals(3, count($tables));
     }
 }

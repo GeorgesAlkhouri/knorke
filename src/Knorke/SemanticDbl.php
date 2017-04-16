@@ -19,6 +19,15 @@ use Saft\Store\Store;
 
 class SemanticDbl implements Store
 {
+    protected $commonNamespaces;
+    protected $nodeFactory;
+    protected $nodeUtils;
+    protected $queryFactory;
+    protected $queryUtils;
+    protected $statementFactory;
+    protected $statementIteratorFactory;
+    protected $tables;
+
     public function __construct(
         NodeFactory $nodeFactory,
         StatementFactory $statementFactory,
@@ -33,23 +42,6 @@ class SemanticDbl implements Store
         $this->statementIteratorFactory = $statementIteratorFactory;
         $this->nodeUtils = new NodeUtils();
         $this->queryUtils = new QueryUtils();
-    }
-
-    /**
-     * @param string $username
-     * @param string $password
-     * @param string $database
-     * @param string $host Optional, default is 127.0.0.1
-     */
-    public function connect(string $username, string $password, string $database, string $host = '127.0.0.1')
-    {
-        $this->pdo = Factory::create(
-            'mysql:host='. $host .';'.
-                'dbname='. $database .';'.
-                'charset=utf8;',
-            $username,
-            $password
-        );
     }
 
     /**
@@ -226,6 +218,23 @@ class SemanticDbl implements Store
         ));
 
         return $this->pdo->getPdo()->lastInsertId();
+    }
+
+    /**
+     * @param string $username
+     * @param string $password
+     * @param string $database
+     * @param string $host Optional, default is 127.0.0.1
+     */
+    public function connect(string $username, string $password, string $database, string $host = '127.0.0.1')
+    {
+        $this->pdo = Factory::create(
+            'mysql:host='. $host .';'.
+                'dbname='. $database .';'.
+                'charset=utf8;',
+            $username,
+            $password
+        );
     }
 
     /**
@@ -571,6 +580,13 @@ class SemanticDbl implements Store
         throw new \Exception('Not implemented yet. Use query function.');
     }
 
+    public function isSetup()
+    {
+        return true === $this->tableExists('graph')
+            && true === $this->tableExists('quad')
+            && true === $this->tableExists('value');
+    }
+
     /**
      * This method sends a SPARQL query to the store.
      *
@@ -772,5 +788,65 @@ class SemanticDbl implements Store
        }
 
        throw new \Exception('Only select queries are supported for now.');
+    }
+
+    public function setup()
+    {
+        if ($this->isSetup()) {
+            return;
+        }
+
+        if (false === $this->tableExists('graph')) {
+            $this->pdo->run(
+                "CREATE TABLE `graph` (
+                  `uri` varchar(255) COLLATE utf8_unicode_ci NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;"
+            );
+            $this->pdo->run("ALTER TABLE `graph` ADD PRIMARY KEY (`uri`);");
+        }
+
+        if (false === $this->tableExists('quad')) {
+            $this->pdo->run(
+                "CREATE TABLE `quad` (
+                  `graph` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                  `subject_id` int(12) NOT NULL,
+                  `predicate_id` int(12) NOT NULL,
+                  `object_id` int(12) NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci ROW_FORMAT=COMPACT;"
+            );
+            $this->pdo->run(
+                "ALTER TABLE `quad` ADD PRIMARY KEY (`graph`,`subject_id`,`predicate_id`,`object_id`);"
+            );
+        }
+
+        if (false === $this->tableExists('value')) {
+            $this->pdo->run(
+                "CREATE TABLE `value` (
+                  `id` int(12) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                  `value` text COLLATE utf8_unicode_ci NOT NULL,
+                  `type` enum('uri','blanknode','literal') COLLATE utf8_unicode_ci NOT NULL,
+                  `language` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+                  `datatype` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;"
+            );
+            $this->pdo->run(
+                "ALTER TABLE `value`
+                  ADD KEY `type` (`type`),
+                  ADD KEY `language` (`language`),
+                  ADD KEY `datatype` (`datatype`);"
+            );
+            $this->pdo->run("ALTER TABLE `value` ADD FULLTEXT KEY `value` (`value`);");
+        }
+    }
+
+    protected function tableExists($table)
+    {
+        foreach ($this->pdo->run('SHOW TABLES') as $value) {
+            if (array_values($value)[0] == $table) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

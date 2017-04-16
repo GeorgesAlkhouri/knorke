@@ -37,6 +37,11 @@ class InMemoryStore implements Store
     protected $queryFactory;
 
     /**
+     * @var string
+     */
+    protected $defaultGraphUri = 'http://knorke/defaultGraph/';
+
+    /**
      * @var StatementFactory
      */
     protected $statementFactory;
@@ -116,13 +121,13 @@ class InMemoryStore implements Store
                 $graphUri = $graph->getUri();
             // no graph information given, use default graph
             } elseif (null === $graph && null === $statement->getGraph()) {
-                $graphUri = 'http://saft/defaultGraph/';
+                $graphUri = $this->defaultGraphUri;
             // no graph given, use graph information from $statement
             } elseif (null === $graph && $statement->getGraph()->isNamed()) {
                 $graphUri = $statement->getGraph()->getUri();
             // no graph given, use graph information from $statement
             } elseif (null === $graph && false == $statement->getGraph()->isNamed()) {
-                $graphUri = 'http://saft/defaultGraph/';
+                $graphUri = $this->defaultGraphUri;
             }
             // use hash to differenciate between statements (no doublings allowed)
             $statementHash = hash('sha256', serialize($statement));
@@ -165,7 +170,7 @@ class InMemoryStore implements Store
 
         // no graph information given, use default graph
         } elseif (null === $graph && null === $statement->getGraph()) {
-            $graphUri = 'http://saft/defaultGraph/';
+            $graphUri = $this->defaultGraphUri;
 
         // no graph given, use graph information from $statement
         } elseif (null === $graph && $statement->getGraph()->isNamed()) {
@@ -173,7 +178,7 @@ class InMemoryStore implements Store
 
         // no graph given, use graph information from $statement
         } elseif (null === $graph && false == $statement->getGraph()->isNamed()) {
-            $graphUri = 'http://saft/defaultGraph/';
+            $graphUri = $this->defaultGraphUri;
         }
 
         // use hash to differenciate between statements (no doublings allowed)
@@ -252,7 +257,7 @@ class InMemoryStore implements Store
     {
         $graphs = array();
         foreach (array_keys($this->statements) as $graphUri) {
-            if ('http://saft/defaultGraph/' == $graphUri) {
+            if ($this->defaultGraphUri == $graphUri) {
                 $graphs[$graphUri] = $this->nodeFactory->createNamedNode($graphUri);
             }
         }
@@ -276,7 +281,7 @@ class InMemoryStore implements Store
 
         // no graph information given, use default graph
         } elseif (null === $graph && null === $statement->getGraph()) {
-            $graphUri = 'http://saft/defaultGraph/';
+            $graphUri = $this->defaultGraphUri;
 
         // no graph given, use graph information from $statement
         } elseif (null === $graph && $statement->getGraph()->isNamed()) {
@@ -284,7 +289,7 @@ class InMemoryStore implements Store
 
         // no graph given, use graph information from $statement
         } elseif (null === $graph && false == $statement->getGraph()->isNamed()) {
-            $graphUri = 'http://saft/defaultGraph/';
+            $graphUri = $this->defaultGraphUri;
         }
 
         if (false == isset($this->statements[$graphUri])) {
@@ -292,7 +297,7 @@ class InMemoryStore implements Store
         }
 
         // if not default graph was requested
-        if ('http://saft/defaultGraph/' != $graphUri) {
+        if ($this->defaultGraphUri != $graphUri) {
             return new StatementSetResultImpl($this->statements[$graphUri]);
 
         // if default graph was requested, return matching statements from all graphs
@@ -300,7 +305,7 @@ class InMemoryStore implements Store
             $_statements = array();
             foreach ($this->statements as $graphUri => $statements) {
                 foreach ($statements as $statement) {
-                    if ('http://saft/defaultGraph/' == $graphUri) {
+                    if ($this->defaultGraphUri == $graphUri) {
                         $graph = null;
                     } else {
                         $graph = $this->nodeFactory->createNamedNode($graphUri);
@@ -342,13 +347,13 @@ class InMemoryStore implements Store
             $graphUri = $graph->getUri();
         // no graph information given, use default graph
         } elseif (null === $graph && null === $statement->getGraph()) {
-            $graphUri = 'http://saft/defaultGraph/';
+            $graphUri = $this->defaultGraphUri;
         // no graph given, use graph information from $statement
         } elseif (null === $graph && $statement->getGraph()->isNamed()) {
             $graphUri = $statement->getGraph()->getUri();
         // no graph given, use graph information from $statement
         } elseif (null === $graph && false == $statement->getGraph()->isNamed()) {
-            $graphUri = 'http://saft/defaultGraph/';
+            $graphUri = $this->defaultGraphUri;
         }
         // exception if at least one statement is already stored, use according graphURI
         if (0 < count($this->statements)) {
@@ -431,6 +436,14 @@ class InMemoryStore implements Store
     public function query($query, array $options = array())
     {
         $queryObject = $this->queryFactory->createInstanceByQueryString($query);
+        $queryParts = $queryObject->getQueryParts();
+
+        // get graph from query
+        if (isset($queryParts['graphs']) && 0 < count($queryParts['graphs'])) {
+            $graphUri = $queryParts['graphs'][0];
+        } else {
+            $graphUri = $this->defaultGraphUri;
+        }
 
         if ('selectQuery' == $this->queryUtils->getQueryType($query)) {
             $queryParts = $queryObject->getQueryParts();
@@ -469,7 +482,7 @@ class InMemoryStore implements Store
                 // ignore first pattern because it casts variables on s, p and o
 
                 // 1. check, which s has wanted p and o
-                foreach ($this->statements['http://saft/defaultGraph/'] as $statement) {
+                foreach ($this->statements[$graphUri] as $statement) {
                     $s = $statement->getSubject();
                     $p = $statement->getPredicate();
                     $o = $statement->getObject();
@@ -501,7 +514,7 @@ class InMemoryStore implements Store
                 }
 
                 // 2. get all p and o for collected s
-                foreach ($this->statements['http://saft/defaultGraph/'] as $statement) {
+                foreach ($this->statements[$this->defaultGraphUri] as $statement) {
                     $s = $statement->getSubject();
                     $p = $statement->getPredicate();
                     $o = $statement->getObject();
@@ -521,7 +534,7 @@ class InMemoryStore implements Store
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
                 // generate result
-                foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
+                foreach ($this->statements[$graphUri] as $stmt) {
                     $setEntries[] = array(
                         $triplePattern[0]['s'] => $stmt->getSubject(),
                         $triplePattern[0]['p'] => $stmt->getPredicate(),
@@ -536,7 +549,7 @@ class InMemoryStore implements Store
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
                 // generate result
-                foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
+                foreach ($this->statements[$graphUri] as $stmt) {
                     if ($stmt->getSubject()->isNamed()) {
                         $fullUri = $this->commonNamespaces->extendUri($triplePattern[0]['s']);
                         // check for subject with full URI
@@ -557,7 +570,7 @@ class InMemoryStore implements Store
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
                 // generate result
-                foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
+                foreach ($this->statements[$graphUri] as $stmt) {
                     if ($stmt->getSubject()->isNamed()) {
                         $sUri = $stmt->getSubject()->getUri();
                         // if subject matches directly
@@ -582,7 +595,7 @@ class InMemoryStore implements Store
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
                 // generate result
-                foreach ($this->statements['http://saft/defaultGraph/'] as $stmt) {
+                foreach ($this->statements[$graphUri] as $stmt) {
                     $subject = $stmt->getSubject();
                     if ($subject->isBlank()) {
                         if ('_:' !== substr($subject->getBlankId(), 0, 2)) {

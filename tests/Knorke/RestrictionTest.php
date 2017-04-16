@@ -23,20 +23,20 @@ class RestrictionTest extends UnitTestCase
 
     public function setUp()
     {
-        $this->nodeUtils = new NodeUtils();
+        parent::setUp();
 
         $this->store = new InMemoryStore(
             new NodeFactoryImpl($this->nodeUtils),
             new StatementFactoryImpl(),
             new QueryFactoryImpl($this->nodeUtils, new QueryUtils()),
             new StatementIteratorFactoryImpl(),
-            new CommonNamespaces()
+            $this->commonNamespaces
         );
     }
 
     protected function initFixture()
     {
-        $this->fixture = new Restriction($this->store, new CommonNamespaces());
+        $this->fixture = new Restriction($this->store, $this->commonNamespaces, $this->nodeUtils);
         return $this->fixture;
     }
 
@@ -104,7 +104,9 @@ class RestrictionTest extends UnitTestCase
                 'kno:restrictionOrder' => array(
                     'kno:_0' => 'http://foo',
                     'kno:_1' => 'http://bar',
+                    '_idUri' => '_:genid1'
                 ),
+                '_idUri' => 'http://foreign-resource'
             ),
             $restrictions->getArrayCopy()
         );

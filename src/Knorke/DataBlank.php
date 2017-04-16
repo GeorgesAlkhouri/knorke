@@ -2,9 +2,13 @@
 
 namespace Knorke;
 
+use Knorke\Exception\KnorkeException;
 use Saft\Rdf\CommonNamespaces;
+use Saft\Rdf\NamedNode;
+use Saft\Rdf\NodeUtils;
 use Saft\Rdf\StatementIterator;
 use Saft\Sparql\Result\SetResult;
+use Saft\Store\Store;
 
 /**
  * This class maps a given result of a certain resource, class, ... to an instance of itself. With that you
@@ -29,7 +33,7 @@ use Saft\Sparql\Result\SetResult;
  *
  * To do that just call:
  *
- *      $blank = new Saft\Rapid\Blank($setResult, 'p', 'o');
+ *      $blank = new Knorke\DataBlank($setResult, 'p', 'o');
  *      $blank['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'] = 'http://www.w3.org/2002/07/owl#Class';
  *
  * Or even with namespaces:
@@ -45,15 +49,21 @@ class DataBlank extends \ArrayObject
 
     /**
      * @param CommonNamespaces $commonNamespaces
+     * @param NodeUtils $nodeUtils
      * @param array $options optional, default=array()
      */
-    public function __construct(CommonNamespaces $commonNamespaces, array $options = array())
-    {
+    public function __construct(
+        CommonNamespaces $commonNamespaces,
+        NodeUtils $nodeUtils,
+        array $options = array()
+    ) {
         $this->commonNamespaces = $commonNamespaces;
+        $this->nodeUtils = $nodeUtils;
         $this->options = array_merge(
             array(
+                'add_internal_data_fields' => true, // if set to true, fields like _idUri gets created
                 'use_prefixed_predicates' => true,
-                'use_prefixed_objects' => true
+                'use_prefixed_objects' => true,
             ),
             $options
         );
@@ -170,6 +180,10 @@ class DataBlank extends \ArrayObject
         }
 
         $result->rewind();
+
+        if ($this->options['add_internal_data_fields']) {
+            $this['_idUri'] = $subjectUri;
+        }
     }
 
     /**
@@ -192,6 +206,51 @@ class DataBlank extends \ArrayObject
         }
 
         return $this->initBySetResult(new SetResultImpl($entries), $resourceUri);
+    }
+
+    /**
+     * @param Store $store
+     * @param NamedNode $graph
+     * @param string $resourceId
+     */
+    public function initByStoreSearch(Store $store, NamedNode $graph, string $resourceId)
+    {
+        if ($this->nodeUtils->simpleCheckURI($resourceId)) {
+            $resourceIdSubject = '<'. $resourceId .'>';
+        } elseif ($this->nodeUtils->simpleCheckBlankNodeId($resourceId)) {
+            // leave it as it is
+        } else {
+            throw new \KnorkeException('Invalid $resourceId given (must be URI or blank node): '. $resourceId);
+        }
+
+        if ($this->options['add_internal_data_fields']) {
+            $this->setValue('_idUri', $resourceId);
+        }
+
+        // ask store for all properties and values for the given resource
+        $setResult = $store->query('SELECT * FROM <'. $graph->getUri() .'> WHERE {
+            '. $resourceIdSubject .' ?p ?o.
+        }');
+
+        // init direct connections of the subject
+        $this->initBySetResult($setResult, $resourceId);
+
+        // recursive init objects which are URIs and connections too
+        foreach ($this as $key => $value) {
+            // value is URI or blank node
+            if ($this->nodeUtils->simpleCheckURI($value)
+                || $this->nodeUtils->simpleCheckBlankNodeId($value)) {
+
+                $valueDataBlank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+                // init value instance recursively
+                if ($value !== $resourceId) {
+                    $valueDataBlank->initByStoreSearch($store, $graph, $value);
+                    if (1 < count($valueDataBlank)) {
+                        $this[$key] = $valueDataBlank;
+                    }
+                }
+            }
+        }
     }
 
     /**

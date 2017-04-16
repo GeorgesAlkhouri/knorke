@@ -3,6 +3,7 @@
 namespace Tests\Knorke;
 
 use PHPUnit\Framework\TestCase;
+use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NodeFactoryImpl;
 use Saft\Rdf\NodeUtils;
 use Saft\Rdf\StatementFactoryImpl;
@@ -10,6 +11,8 @@ use Saft\Sparql\Result\SetResult;
 
 class UnitTestCase extends TestCase
 {
+    protected $commonNamespaces;
+
     /**
      * Contains an instance of the class to test.
      *
@@ -27,6 +30,7 @@ class UnitTestCase extends TestCase
     public function setUp()
     {
         parent::setUp();
+        $this->commonNamespaces = new CommonNamespaces();
         $this->nodeUtils = new NodeUtils();
         $this->nodeFactory = new NodeFactoryImpl($this->nodeUtils);
         $this->statementFactory = new StatementFactoryImpl();

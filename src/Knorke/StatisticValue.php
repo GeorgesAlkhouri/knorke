@@ -4,6 +4,7 @@ namespace Knorke;
 
 use Knorke\Exception\KnorkeException;
 use Saft\Rdf\CommonNamespaces;
+use Saft\Rdf\NodeUtils;
 use Saft\Store\Store;
 
 class StatisticValue
@@ -15,12 +16,18 @@ class StatisticValue
     /**
      * @param Store $store
      * @param CommonNamespaces $commonNamespaces
+     * @param NodeUtils $nodeUtils
      * @param array $mapping
      */
-    public function __construct(Store $store, CommonNamespaces $commonNamespaces, array $mapping)
-    {
+    public function __construct(
+        Store $store,
+        CommonNamespaces $commonNamespaces,
+        NodeUtils $nodeUtils,
+        array $mapping
+    ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->mapping = $mapping;
+        $this->nodeUtils = $nodeUtils;
         $this->store = $store;
     }
 
@@ -48,7 +55,7 @@ class StatisticValue
         foreach ($statisticValueResult as $entry) {
             $subjectUri = $entry['s']->getUri();
             if (false == isset($statisticValues[$subjectUri])) {
-                $statisticValues[$subjectUri] = new DataBlank($this->commonNamespaces);
+                $statisticValues[$subjectUri] = new DataBlank($this->commonNamespaces, $this->nodeUtils);
                 $statisticValues[$subjectUri]->initBySetResult($statisticValueResult, $subjectUri);
             }
         }
@@ -304,7 +311,13 @@ class StatisticValue
                 $result = $this->store->query(
                     'SELECT * WHERE {'. $value['kno:computationOrder'] .' ?p ?o.}'
                 );
-                $computationOrderBlank = new DataBlank($this->commonNamespaces);
+                $computationOrderBlank = new DataBlank(
+                    $this->commonNamespaces,
+                    $this->nodeUtils,
+                    array(
+                        'add_internal_data_fields' => false
+                    )
+                );
                 $computationOrderBlank->initBySetResult($result, $value['kno:computationOrder']);
 
                 // order entries by key

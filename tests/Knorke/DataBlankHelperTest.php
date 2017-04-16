@@ -24,17 +24,15 @@ class DataBlankHelperTest extends UnitTestCase
     {
         parent::setUp();
 
-        $this->commonNamespaces = new CommonNamespaces();
-
         $this->store = new InMemoryStore(
             $this->nodeFactory,
             $this->statementFactory,
             new QueryFactoryImpl($this->nodeUtils, new QueryUtils()),
             new StatementIteratorFactoryImpl(),
-            new CommonNamespaces()
+            $this->commonNamespaces
         );
         $this->fixture = new DataBlankHelper(
-            new CommonNamespaces(),
+            $this->commonNamespaces,
             $this->statementFactory,
             $this->nodeFactory,
             $this->nodeUtils,
@@ -132,7 +130,7 @@ class DataBlankHelperTest extends UnitTestCase
          */
         $blankCopy = $this->fixture->load($dataBlank['_idUri']);
 
-        $blankToCheckAgainst = new DataBlank($this->commonNamespaces);
+        $blankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->nodeUtils);
         $blankToCheckAgainst['_idUri'] = 'http://foobar/foaf-person/id/foobar';
         $blankToCheckAgainst['rdf:type'] = 'foaf:Person';
         $blankToCheckAgainst['rdfs:label'] = 'Geiles Label';

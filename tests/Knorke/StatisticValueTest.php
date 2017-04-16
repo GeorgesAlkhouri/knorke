@@ -24,9 +24,7 @@ class StatisticValueTest extends UnitTestCase
 
     public function setUp()
     {
-        $this->nodeUtils = new NodeUtils();
-
-        $this->commonNamespaces = new CommonNamespaces();
+        parent::setUp();
 
         $this->store = new InMemoryStore(
             new NodeFactoryImpl($this->nodeUtils),
@@ -39,7 +37,7 @@ class StatisticValueTest extends UnitTestCase
 
     protected function initFixture(array $mapping = array())
     {
-        $this->fixture = new StatisticValue($this->store, $this->commonNamespaces, $mapping);
+        $this->fixture = new StatisticValue($this->store, $this->commonNamespaces, $this->nodeUtils, $mapping);
         return $this->fixture;
     }
 

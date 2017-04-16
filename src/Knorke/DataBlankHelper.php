@@ -41,7 +41,7 @@ class DataBlankHelper
      */
     public function dispense(string $typeUri, string $hash = null, string $baseUri = null) : DataBlank
     {
-        $blank = new DataBlank($this->commonNamespaces);
+        $blank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
 
         // set type
         $blank['rdf:type'] = $typeUri;
@@ -92,7 +92,7 @@ class DataBlankHelper
         }');
 
 
-        $dataBlank = new DataBlank($this->commonNamespaces);
+        $dataBlank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
         $dataBlank->initBySetResult($result, $resourceUri);
 
         $dataBlank['_idUri'] = $resourceUri;

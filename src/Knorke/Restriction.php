@@ -3,6 +3,7 @@
 namespace Knorke;
 
 use Saft\Rdf\CommonNamespaces;
+use Saft\Rdf\NodeUtils;
 use Saft\Store\Store;
 
 /**
@@ -11,11 +12,13 @@ use Saft\Store\Store;
 class Restriction
 {
     protected $commonNamespaces;
+    protected $nodeUtils;
     protected $store;
 
-    public function __construct(Store $store, CommonNamespaces $commonNamespaces)
+    public function __construct(Store $store, CommonNamespaces $commonNamespaces, NodeUtils $nodeUtils)
     {
         $this->commonNamespaces = $commonNamespaces;
+        $this->nodeUtils = $nodeUtils;
         $this->store = $store;
     }
 
@@ -24,7 +27,7 @@ class Restriction
      */
     public function getRestrictionsForResource($resourceUri)
     {
-        $blank = new DataBlank($this->commonNamespaces);
+        $blank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
         $blank->initBySetResult($this->store->query('SELECT * WHERE {<'. $resourceUri .'> ?p ?o.}'), $resourceUri);
 
         /*
@@ -34,7 +37,7 @@ class Restriction
             // get infos from the other resource
             $foreignResourceUri = $blank->get('kno:inheritsAllPropertiesOf');
             $foreignResourceInfo = $this->store->query('SELECT * WHERE {<'. $foreignResourceUri .'> ?p ?o.}');
-            $foreignResourceBlank = new DataBlank($this->commonNamespaces);
+            $foreignResourceBlank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
             $foreignResourceBlank->initBySetResult($foreignResourceInfo, $foreignResourceUri);
             // copy property-value combination into blank instance
             foreach ($foreignResourceBlank as $property => $value) {
@@ -48,7 +51,7 @@ class Restriction
         if (null !== $blank->get('kno:restrictionOrder')) {
             $orderResource = $blank->get('kno:restrictionOrder');
             $orderInformation = $this->store->query('SELECT * WHERE {'. $orderResource .' ?p ?o.}');
-            $orderBlank = new DataBlank($this->commonNamespaces);
+            $orderBlank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
             $orderBlank->initBySetResult($orderInformation, $orderResource);
             $orderArray = $orderBlank->getArrayCopy();
             ksort($orderArray); // sort by key

@@ -514,7 +514,7 @@ class InMemoryStore implements Store
                 }
 
                 // 2. get all p and o for collected s
-                foreach ($this->statements[$this->defaultGraphUri] as $statement) {
+                foreach ($this->statements[$graphUri] as $statement) {
                     $s = $statement->getSubject();
                     $p = $statement->getPredicate();
                     $o = $statement->getObject();
@@ -584,6 +584,31 @@ class InMemoryStore implements Store
                             $setEntries[] = array(
                                 $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
                                 $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
+                            );
+                        }
+                    }
+                }
+
+            // handle ?s <http://...#type> <http://...Person>
+            } elseif (1 == count($triplePattern)
+                && 'var' == $triplePattern[0]['s_type']
+                && 'uri' == $triplePattern[0]['p_type']
+                && 'uri' == $triplePattern[0]['o_type']) {
+                // generate result
+                foreach ($this->statements[$graphUri] as $stmt) {
+                    // assuming predicate is named too
+                    if ($stmt->getObject()->isNamed()) {
+                        // predicate condition
+                        $condition1 = $stmt->getPredicate()->getUri() == $triplePattern[0]['p'];
+
+                        // object conditions
+                        $oUri = $triplePattern[0]['o'];
+                        $condition2 = $stmt->getObject()->getUri() == $oUri
+                            || $this->commonNamespaces->extendUri($oUri) == $stmt->getObject()->getUri();
+
+                        if ($condition1 && $condition2) {
+                            $setEntries[] = array(
+                                $triplePattern[0][$triplePattern[0]['s']] => $stmt->getSubject(),
                             );
                         }
                     }

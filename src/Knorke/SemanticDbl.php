@@ -744,6 +744,32 @@ class SemanticDbl implements Store
                        }
                    }
                }
+
+            // handle ?s <http://...#type> <http://...Person>
+            } elseif (1 == count($triplePattern)
+               && 'var' == $triplePattern[0]['s_type']
+               && 'uri' == $triplePattern[0]['p_type']
+               && 'uri' == $triplePattern[0]['o_type']) {
+               // generate result
+               foreach ($statements as $stmt) {
+                   // assuming predicate is named too
+                   if ($stmt->getObject()->isNamed()) {
+                       // predicate condition
+                       $condition1 = $stmt->getPredicate()->getUri() == $triplePattern[0]['p'];
+
+                       // object conditions
+                       $oUri = $triplePattern[0]['o'];
+                       $condition2 = $stmt->getObject()->getUri() == $oUri
+                           || $this->commonNamespaces->extendUri($oUri) == $stmt->getObject()->getUri();
+
+                       if ($condition1 && $condition2) {
+                           $setEntries[] = array(
+                               $triplePattern[0][$triplePattern[0]['s']] => $stmt->getSubject(),
+                           );
+                       }
+                   }
+               }
+
            // handle _:blankid ?p ?o
            } elseif (1 == count($triplePattern)
                && 'blanknode' == $triplePattern[0]['s_type']

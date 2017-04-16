@@ -189,6 +189,41 @@ class InMemoryStoreTest extends UnitTestCase
         );
     }
 
+    // test query if subject is variable, but predicate and object are set
+    public function testQuerySetPredicateObjectVariableSubject()
+    {
+        $this->fixture->addStatements(array(
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/o'),
+                $this->testGraph
+            ),
+            new StatementImpl(
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/s2'),
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
+                new NamedNodeImpl($this->nodeUtils, 'http://foo/o'),
+                $this->testGraph
+            ),
+        ));
+
+        $expectedResult = new SetResultImpl(array(
+            array(
+                's' => new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
+            ),
+            array(
+                's' => new NamedNodeImpl($this->nodeUtils, 'http://foo/s2'),
+            )
+        ));
+        $expectedResult->setVariables(array('s'));
+
+        // check for classic SPO
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {?s <http://foo/p> <http://foo/o>. }')
+        );
+    }
+
     // check super standard queries like ?s ?p ?o, nothing special.
     public function testQuerySPOQuery()
     {

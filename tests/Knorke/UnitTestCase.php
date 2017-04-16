@@ -5,6 +5,7 @@ namespace Tests\Knorke;
 use PHPUnit\Framework\TestCase;
 use Saft\Rdf\NodeFactoryImpl;
 use Saft\Rdf\NodeUtils;
+use Saft\Rdf\StatementFactoryImpl;
 use Saft\Sparql\Result\SetResult;
 
 class UnitTestCase extends TestCase
@@ -18,8 +19,9 @@ class UnitTestCase extends TestCase
 
     protected $nodeFactory;
     protected $nodeUtils;
+    protected $statementFactory;
 
-    protected $testGraphUri = 'http://semanticdbl/testgraph/';
+    protected $testGraphUri = 'http://knorke/testgraph/';
     protected $testGraph;
 
     public function setUp()
@@ -27,6 +29,7 @@ class UnitTestCase extends TestCase
         parent::setUp();
         $this->nodeUtils = new NodeUtils();
         $this->nodeFactory = new NodeFactoryImpl($this->nodeUtils);
+        $this->statementFactory = new StatementFactoryImpl();
         $this->testGraph = $this->nodeFactory->createNamedNode($this->testGraphUri);
     }
 
@@ -49,7 +52,7 @@ class UnitTestCase extends TestCase
             foreach ($entry as $key => $nodeInstance) {
                 if ($nodeInstance->isConcrete()) {
                     // build a string of all entries of $entry and generate a hash based on that later on.
-                    $entryString .= $nodeInstance->toNQuads();
+                    $entryString = $nodeInstance->toNQuads();
                 } else {
                     throw new \Exception('Non-concrete Node instance in SetResult instance found.');
                 }
@@ -59,12 +62,13 @@ class UnitTestCase extends TestCase
 
         // contains a list of all entries, which were not found in $expected.
         $actualEntriesNotFound = array();
+        $actualRealEntriesNotFound = array();
         foreach ($actual as $entry) {
             $entryString = '';
             foreach ($entry as $key => $nodeInstance) {
                 if ($nodeInstance->isConcrete()) {
                     // build a string of all entries of $entry and generate a hash based on that later on.
-                    $entryString .= $nodeInstance->toNQuads();
+                    $entryString = $nodeInstance->toNQuads();
                 } else {
                     throw new \Exception('Non-concrete Node instance in SetResult instance found.');
                 }
@@ -76,6 +80,7 @@ class UnitTestCase extends TestCase
             } else {
                 // entry was not found
                 $actualEntriesNotFound[] = $entryHash;
+                $actualRealEntriesNotFound[] = $entry;
             }
         }
         $notCheckedEntries = array();
@@ -89,7 +94,8 @@ class UnitTestCase extends TestCase
         if (!empty($actualEntriesNotFound) || !empty($notCheckedEntries)) {
             $message = 'The StatementIterators are not equal.';
             if (!empty($actualEntriesNotFound)) {
-                print_r($actualEntriesNotFound);
+                echo PHP_EOL . PHP_EOL . 'Not expected entries:' . PHP_EOL;
+                print_r($actualRealEntriesNotFound);
                 $message .= ' ' . count($actualEntriesNotFound) . ' Statements where not expected.';
             }
             if (!empty($notCheckedEntries)) {

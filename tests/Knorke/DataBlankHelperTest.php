@@ -68,6 +68,61 @@ class DataBlankHelperTest extends UnitTestCase
     }
 
     /*
+     * Tests for find
+     */
+
+    public function testFind()
+    {
+        $resourceUri = 'http://foobar/foaf-person/id/foobar';
+
+        $this->store->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://to-ignore'),
+                $this->nodeFactory->createNamedNode('http://this-stuff'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri.'/another-one'),
+                $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri.'/another-one'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('Another Person'),
+                $this->testGraph
+            )
+        ));
+
+        /*
+         * build data to check against
+         */
+        $expectedBlank1 = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $expectedBlank1['_idUri'] = 'http://foobar/foaf-person/id/foobar';
+        $expectedBlank1['rdf:type'] = 'foaf:Person';
+        $expectedBlank1['http://to-ignore'] = 'http://this-stuff';
+
+        $expectedBlank2 = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $expectedBlank2['_idUri'] = 'http://foobar/foaf-person/id/foobar/another-one';
+        $expectedBlank2['rdf:type'] = 'foaf:Person';
+        $expectedBlank2['rdfs:label'] = 'Another Person';
+
+        // compare
+        $this->assertEquals(
+            array($expectedBlank1, $expectedBlank2),
+            $this->fixture->find('foaf:Person')
+        );
+    }
+
+    /*
      * Tests for load
      */
 

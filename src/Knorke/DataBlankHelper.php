@@ -76,7 +76,17 @@ class DataBlankHelper
      */
     public function find(string $typeUri, string $wherePart = '') : array
     {
+        $result = $this->store->query('SELECT * FROM <'. $this->graph->getUri() .'> WHERE {
+            ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <'. $typeUri .'>.
+        }');
 
+        $blanks = array();
+        foreach ($result as $key => $entry) {
+            $blanks[$key] = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+            $blanks[$key]->initByStoreSearch($this->store, $this->graph, $entry['s']);
+        }
+
+        return $blanks;
     }
 
     /**
@@ -90,7 +100,6 @@ class DataBlankHelper
         $result = $this->store->query('SELECT * FROM <'. $this->graph->getUri() .'> WHERE {
             <'. $resourceUri .'> ?p ?o.
         }');
-
 
         $dataBlank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
         $dataBlank->initBySetResult($result, $resourceUri);

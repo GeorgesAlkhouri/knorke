@@ -203,7 +203,53 @@ class SemanticDbl implements Store
     */
     public function addStatements($statements, Node $graph = null, array $options = array())
     {
-        foreach ($statements as $statement) {
+        // adapt blank node ids to be fully random, so that they dont collide with already stored
+        // blank nodes are temporary and are only valid during a transaction, like adding statements.
+        $blankNodeRegistry = array();
+        $adaptedStatements = array();
+
+        foreach ($statements as $stmt) {
+            $s = $stmt->getSubject();
+            $p = $stmt->getPredicate();
+            $o = $stmt->getObject();
+            $g = $stmt->getGraph();
+
+            /*
+             * subject
+             */
+            // blank node ID is new
+            if ($s->isBlank() && false == isset($blankNodeRegistry[$s->getBlankId()])) {
+                $sHash = hash('sha512', microtime() . rand(0, time()));
+                $blankNodeRegistry[$s->getBlankId()] = $sHash;
+
+                // create new blank node with better ID
+                $s = $this->nodeFactory->createBlankNode($sHash);
+
+            // blank node ID is known
+            } elseif ($s->isBlank() && true == isset($blankNodeRegistry[$s->getBlankId()])) {
+                $s = $this->nodeFactory->createBlankNode($blankNodeRegistry[$s->getBlankId()]);
+            }
+
+            /*
+             * object
+             */
+            // blank node ID is new
+            if ($o->isBlank() && false == isset($blankNodeRegistry[$o->getBlankId()])) {
+                $oHash = hash('sha512', microtime() . rand(0, time()));
+                $blankNodeRegistry[$o->getBlankId()] = $oHash;
+
+                // create new blank node with better ID
+                $o = $this->nodeFactory->createBlankNode($oHash);
+
+            // blank node ID is known
+            } elseif ($o->isBlank() && true == isset($blankNodeRegistry[$o->getBlankId()])) {
+                $o = $this->nodeFactory->createBlankNode($blankNodeRegistry[$o->getBlankId()]);
+            }
+
+            $adaptedStatements[] = $this->statementFactory->createStatement($s, $p, $o, $g);
+        }
+
+        foreach ($adaptedStatements as $statement) {
             $this->addStatement($statement, $graph);
         }
     }

@@ -157,7 +157,11 @@ class SemanticDbl implements Store
         /*
          * graph
          */
-        $graphUri = $statement->getGraph()->getUri();
+        if (null !== $graph) {
+            $graphUri = $graph->getUri();
+        } else {
+            $graphUri = $statement->getGraph()->getUri();
+        }
 
         if (null == $this->pdo->row('SELECT uri FROM graph WHERE uri = ?', $graphUri)) {
             throw new \Exception('Target graph not available: '. $graphUri);

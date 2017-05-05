@@ -280,6 +280,25 @@ class SemanticDblTest extends UnitTestCase
 
         // check that test graph is available
         $this->fixture->createGraph($this->testGraph);
+
+        // add test data
+        $this->fixture->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo'),
+                $this->nodeFactory->createNamedNode('http://foo1'),
+                $this->nodeFactory->createNamedNode('http://foo2'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo2'),
+                $this->nodeFactory->createNamedNode('http://foo3'),
+                $this->nodeFactory->createNamedNode('http://foo4'),
+                $this->testGraph
+            )
+        ));
+        $rows = $db->run('SELECT graph FROM quad WHERE graph = ?', $this->testGraph->getUri());
+        $this->assertEquals(2, count($rows));
+
         $row = $db->row('SELECT uri FROM graph WHERE uri = ?', $this->testGraph->getUri());
         $this->assertTrue(null !== $row);
 
@@ -289,6 +308,10 @@ class SemanticDblTest extends UnitTestCase
         // check that it was removed
         $row = $db->row('SELECT uri FROM graph WHERE uri = ?', $this->testGraph->getUri());
         $this->assertNull($row);
+
+        // check that data of the graph was removed too
+        $rows = $db->run('SELECT graph FROM quad WHERE graph = ?', $this->testGraph->getUri());
+        $this->assertEquals(0, count($rows));
     }
 
     /*

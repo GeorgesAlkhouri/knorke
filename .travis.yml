@@ -27,7 +27,7 @@ sudo: true
 before_install:
     - mysql -e 'CREATE DATABASE IF NOT EXISTS knorke;'
     - composer require satooshi/php-coveralls:*
-    - travis_retry composer install --dev --no-interaction
+    - travis_retry composer install --dev --no-interaction --ignore-platform-reqs
 
 script: vendor/bin/phpunit --bootstrap tests/bootstrap-travis.php --coverage-clover gen/coverage/clover.xml
 

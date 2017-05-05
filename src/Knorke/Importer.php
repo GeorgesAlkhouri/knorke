@@ -4,7 +4,7 @@ namespace Knorke;
 
 use Knorke\Data\ParserFactory;
 use Saft\Rdf\NamedNode;
-use Saft\Rdf\NodeUtils;
+use Saft\Rdf\RdfHelpers;
 use Saft\Store\Store;
 
 /**

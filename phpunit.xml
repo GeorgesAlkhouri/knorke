@@ -2,12 +2,16 @@
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/4.1/phpunit.xsd"
     backupGlobals="false"
-    bootstrap="vendor/autoload.php"
+    backupStaticAttributes="false"
+    bootstrap="tests/bootstrap.php"
     colors="true"
+    convertErrorsToExceptions="true"
+    convertNoticesToExceptions="true"
+    convertWarningsToExceptions="true"
+    processIsolation="false"
+    stopOnFailure="false"
+    syntaxCheck="false"
     verbose="true"
-    beStrictAboutTestsThatDoNotTestAnything="true"
-    checkForUnintentionallyCoveredCode="true"
-    beStrictAboutChangesToGlobalState="true"
     >
     <php>
         <ini name="error_reporting" value="-1" />

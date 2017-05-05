@@ -48,6 +48,8 @@ class SemanticDblTest extends UnitTestCase
 
     protected function initFixture()
     {
+        global $dbConfig;
+
         $this->fixture = new SemanticDbl(
             $this->nodeFactory,
             $this->statementFactory,
@@ -57,7 +59,12 @@ class SemanticDblTest extends UnitTestCase
             $this->rdfHelpers
         );
 
-        $this->fixture->connect('root', 'Pass123', 'knorke', 'db');
+        $this->fixture->connect(
+            $dbConfig['user'],
+            $dbConfig['pass'],
+            $dbConfig['db'],
+            $dbConfig['host']
+        );
         return $this->fixture;
     }
 

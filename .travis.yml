@@ -1,0 +1,26 @@
+language: php
+
+php:
+    - '7.0'
+    - '7.1'
+    - nightly
+
+matrix:
+    fast_finish: true
+    include:
+        - php: hhvm
+
+cache:
+    directories:
+        - $HOME/.composer/cache
+
+sudo: true
+
+before_install:
+    - mysql -e 'CREATE DATABASE IF NOT EXISTS knorke;'
+    - composer require satooshi/php-coveralls:*
+    - travis_retry composer install --dev --no-interaction
+
+script: vendor/bin/phpunit --bootstrap tests/bootstrap-travis.php --coverage-clover gen/coverage/clover.xml
+
+after_script: php vendor/bin/coveralls -v

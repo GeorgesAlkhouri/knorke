@@ -17,7 +17,6 @@ matrix:
     fast_finish: true
     include:
         - php: hhvm
-          env: PHP_VERSION=7.0.0
 
 cache:
     directories:
@@ -30,6 +29,6 @@ before_install:
     - composer require satooshi/php-coveralls:* --ignore-platform-reqs
     - travis_retry composer install --dev --no-interaction --ignore-platform-reqs
 
-script: vendor/bin/phpunit --bootstrap tests/bootstrap-travis.php --coverage-clover gen/coverage/clover.xml
+script: PHP_VERSION=7.0.0 vendor/bin/phpunit --bootstrap tests/bootstrap-travis.php --coverage-clover gen/coverage/clover.xml
 
 after_script: php vendor/bin/coveralls -v

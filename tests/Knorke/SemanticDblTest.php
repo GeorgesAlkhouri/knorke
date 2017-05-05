@@ -469,6 +469,162 @@ class SemanticDblTest extends UnitTestCase
         );
     }
 
+    // check gathering from multiple graphs
+    public function testQueryGatheringFromMultipleGraphs()
+    {
+        $this->fixture->createGraph($this->testGraph);
+
+        // create second graph
+        $testGraph2 = $this->nodeFactory->createNamedNode($this->testGraph->getUri() . '2');
+        $this->fixture->createGraph($testGraph2);
+
+        $this->initFixture();
+
+        /*
+         * data for graph 1
+         */
+        $this->fixture->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo/s'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('Label of s from first graph'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo/s'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('foaf:Person-from-first-graph'),
+                $this->testGraph
+            ),
+        ));
+
+        /*
+         * data for graph 2
+         */
+        $this->fixture->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo/s'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('Label of s from second graph'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo/s'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('foaf:Person-from-second-graph'),
+                $this->testGraph
+            ),
+        ));
+
+        /*
+         * ?s ?p ?o
+         */
+        $expectedResult = new SetResultImpl(array(
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://foo/s'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+                'o' => $this->nodeFactory->createLiteral('Label of s from first graph'),
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://foo/s'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person-from-first-graph'),
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://foo/s'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+                'o' => $this->nodeFactory->createLiteral('Label of s from second graph'),
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://foo/s'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person-from-second-graph'),
+            )
+        ));
+        $expectedResult->setVariables(array('s', 'p', 'o'));
+
+        // compare actual and expected result
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query(
+                'SELECT *
+                   FROM <'. $this->testGraph->getUri() .'>
+                   FROM <'. $testGraph2->getUri() .'>
+                  WHERE {?s ?p ?o.}'
+            )
+        );
+
+        /*
+         * <http://...> ?p ?o
+         */
+        $expectedResult = new SetResultImpl(array(
+            array(
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+                'o' => $this->nodeFactory->createLiteral('Label of s from first graph'),
+            ),
+            array(
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person-from-first-graph'),
+            ),
+            array(
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+                'o' => $this->nodeFactory->createLiteral('Label of s from second graph'),
+            ),
+            array(
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person-from-second-graph'),
+            )
+        ));
+        $expectedResult->setVariables(array('p', 'o'));
+
+        // compare actual and expected result
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query(
+                'SELECT *
+                   FROM <'. $this->testGraph->getUri() .'>
+                   FROM <'. $testGraph2->getUri() .'>
+                  WHERE {<http://foo/s> ?p ?o.}'
+            )
+        );
+
+        /*
+         * ?s <http://...type> <http://...#Person>
+         */
+        $expectedResult = new SetResultImpl(array(
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://foo/s'),
+            )
+        ));
+        $expectedResult->setVariables(array('s'));
+
+        // compare actual and expected result
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query(
+                'SELECT *
+                   FROM <'. $this->testGraph->getUri() .'>
+                   FROM <'. $testGraph2->getUri() .'>
+                  WHERE {
+                      ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>
+                            <http://xmlns.com/foaf/0.1/Person-from-second-graph> .
+                  }'
+            )
+        );
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query(
+                'SELECT *
+                   FROM <'. $this->testGraph->getUri() .'>
+                   FROM <'. $testGraph2->getUri() .'>
+                  WHERE {
+                      ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>
+                            <http://xmlns.com/foaf/0.1/Person-from-first-graph> .
+                  }'
+            )
+        );
+    }
+
     // if we only stored full URI resources, test how the store reacts if we search for a prefixed one
     public function testQuerySearchForPrefixedResource()
     {

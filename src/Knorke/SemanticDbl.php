@@ -661,10 +661,15 @@ class SemanticDbl implements Store
         $queryParts = $queryObject->getQueryParts();
 
         // get graph from query
-        $graph = $queryParts['graphs'][0];
+        $graphs = $queryParts['graphs'];
 
         // get statements from graph
-        $statements = $this->getStatementsFromGraph($this->nodeFactory->createNamedNode($graph));
+        $statementsPerGraph = array();
+        foreach ($graphs as $graph) {
+            $statementsPerGraph[$graph] = $this->getStatementsFromGraph(
+                $this->nodeFactory->createNamedNode($graph)
+            );
+        }
 
         if ('selectQuery' == $this->rdfHelpers->getQueryType($query)) {
             $queryParts = $queryObject->getQueryParts();
@@ -699,30 +704,32 @@ class SemanticDbl implements Store
                 }
                 // ignore first pattern because it casts variables on s, p and o
                 // 1. check, which s has wanted p and o
-                foreach ($statements as $statement) {
-                    $s = $statement->getSubject();
-                    $p = $statement->getPredicate();
-                    $o = $statement->getObject();
-                    // standard check
-                    if ($p->getUri() == $triplePattern[1]['p']
-                        && $o->isNamed() && $o->getUri() == $triplePattern[1]['o']) {
-                        $relevantS[$s->getUri()] = $s;
-                    // also check, if extended versions of tripple pattern p and o lead to something
-                    } elseif (null !== $extendedTriplePatternPUri || null !== $extendedTriplePatternOUri) {
-                        // does predicate matches?
-                        $predicateMatches = false;
-                        if ($p->getUri() == $extendedTriplePatternPUri || $p->getUri() == $triplePattern[1]['p']) {
-                            $predicateMatches = true;
-                        }
-                        // does object matches?
-                        $objectMatches = false;
-                        if ($o->isNamed() &&
-                            ($o->getUri() == $extendedTriplePatternOUri || $o->getUri() == $triplePattern[1]['o'])) {
-                            $objectMatches = true;
-                        }
-                        // if both matches, add $s
-                        if ($predicateMatches && $objectMatches) {
+                foreach ($statementsPerGraph as $graph => $statements) {
+                    foreach ($statements as $statement) {
+                        $s = $statement->getSubject();
+                        $p = $statement->getPredicate();
+                        $o = $statement->getObject();
+                        // standard check
+                        if ($p->getUri() == $triplePattern[1]['p']
+                            && $o->isNamed() && $o->getUri() == $triplePattern[1]['o']) {
                             $relevantS[$s->getUri()] = $s;
+                        // also check, if extended versions of tripple pattern p and o lead to something
+                        } elseif (null !== $extendedTriplePatternPUri || null !== $extendedTriplePatternOUri) {
+                            // does predicate matches?
+                            $predicateMatches = false;
+                            if ($p->getUri() == $extendedTriplePatternPUri || $p->getUri() == $triplePattern[1]['p']) {
+                                $predicateMatches = true;
+                            }
+                            // does object matches?
+                            $objectMatches = false;
+                            if ($o->isNamed() &&
+                                ($o->getUri() == $extendedTriplePatternOUri || $o->getUri() == $triplePattern[1]['o'])) {
+                                $objectMatches = true;
+                            }
+                            // if both matches, add $s
+                            if ($predicateMatches && $objectMatches) {
+                                $relevantS[$s->getUri()] = $s;
+                            }
                         }
                     }
                 }
@@ -754,12 +761,23 @@ class SemanticDbl implements Store
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
                 // generate result
-                foreach ($statements as $stmt) {
-                    $setEntries[] = array(
-                        $triplePattern[0]['s'] => $stmt->getSubject(),
-                        $triplePattern[0]['p'] => $stmt->getPredicate(),
-                        $triplePattern[0]['o'] => $stmt->getObject()
-                    );
+                foreach ($statementsPerGraph as $graph => $statements) {
+                    foreach ($statements as $stmt) {
+                        // only add new statements to result list
+                        if (false === isset($addedStatementHashs[json_encode($stmt)])) {
+                            // get value of predicate and object
+                            $sValue = $this->getNodeValue($stmt->getSubject());
+                            $pValue = $this->getNodeValue($stmt->getPredicate());
+                            $oValue = $this->getNodeValue($stmt->getObject());
+
+                            // store subject-predicate-object triple
+                            $setEntries[$sValue . $pValue . $oValue] = array(
+                                $triplePattern[0]['s'] => $stmt->getSubject(),
+                                $triplePattern[0]['p'] => $stmt->getPredicate(),
+                                $triplePattern[0]['o'] => $stmt->getObject()
+                            );
+                        }
+                    }
                 }
             // handle foo:s ?p ?o
             } elseif (1 == count($triplePattern)
@@ -768,17 +786,24 @@ class SemanticDbl implements Store
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
                 // generate result
-                foreach ($statements as $stmt) {
-                    if ($stmt->getSubject()->isNamed()) {
-                        $fullUri = $this->commonNamespaces->extendUri($triplePattern[0]['s']);
-                        // check for subject with full URI
-                        // and check for subject with prefixed URI
-                        if ($stmt->getSubject()->getUri() == $triplePattern[0]['s']
-                            || $stmt->getSubject()->getUri() == $fullUri) {
-                            $setEntries[] = array(
-                                $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
-                                $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
-                            );
+                foreach ($statementsPerGraph as $graph => $statements) {
+                    foreach ($statements as $stmt) {
+                        if ($stmt->getSubject()->isNamed()) {
+                            $fullUri = $this->commonNamespaces->extendUri($triplePattern[0]['s']);
+                            // check for subject with full URI
+                            // and check for subject with prefixed URI
+                            if ($stmt->getSubject()->getUri() == $triplePattern[0]['s']
+                                || $stmt->getSubject()->getUri() == $fullUri) {
+                                // get value of predicate and object
+                                $pValue = $this->getNodeValue($stmt->getPredicate());
+                                $oValue = $this->getNodeValue($stmt->getObject());
+
+                                // store predicate-object-tuple
+                                $setEntries[$pValue . $oValue] = array(
+                                    $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
+                                    $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
+                                );
+                            }
                         }
                     }
                 }
@@ -788,21 +813,29 @@ class SemanticDbl implements Store
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
                 // generate result
-                foreach ($statements as $stmt) {
-                    if ($stmt->getSubject()->isNamed()) {
-                        $sUri = $stmt->getSubject()->getUri();
-                        // if subject matches directly
-                        $condition1 = $sUri == $triplePattern[0]['s'];
-                        // if subject is shortened but its extended version matches
-                        $condition2 = $this->commonNamespaces->isShortenedUri($sUri)
-                            && $this->commonNamespaces->extendUri($sUri) == $triplePattern[0]['s'];
-                        if ($condition1 || $condition2) {
-                            $setEntries[] = array(
-                                $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
-                                $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
-                            );
-                        }
-                     }
+                foreach ($statementsPerGraph as $graph => $statements) {
+                    foreach ($statements as $stmt) {
+                        if ($stmt->getSubject()->isNamed()) {
+                            $sUri = $stmt->getSubject()->getUri();
+                            // if subject matches directly
+                            $condition1 = $sUri == $triplePattern[0]['s'];
+                            // if subject is shortened but its extended version matches
+                            $condition2 = $this->commonNamespaces->isShortenedUri($sUri)
+                                          && $this->commonNamespaces->extendUri($sUri) == $triplePattern[0]['s'];
+
+                            if ($condition1 || $condition2) {
+                                // get value of predicate and object
+                                $pValue = $this->getNodeValue($stmt->getPredicate());
+                                $oValue = $this->getNodeValue($stmt->getObject());
+
+                                // add tuple
+                                $setEntries[$pValue . $oValue] = array(
+                                    $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
+                                    $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
+                                );
+                            }
+                         }
+                    }
                 }
 
             // handle ?s <http://...#type> <http://...Person>
@@ -811,21 +844,24 @@ class SemanticDbl implements Store
                 && 'uri' == $triplePattern[0]['p_type']
                 && 'uri' == $triplePattern[0]['o_type']) {
                 // generate result
-                foreach ($statements as $stmt) {
-                    // assuming predicate is named too
-                    if ($stmt->getObject()->isNamed()) {
-                        // predicate condition
-                        $condition1 = $stmt->getPredicate()->getUri() == $triplePattern[0]['p'];
+                foreach ($statementsPerGraph as $graph => $statements) {
+                    foreach ($statements as $stmt) {
+                        // assuming predicate is named too
+                        if ($stmt->getObject()->isNamed()) {
+                            // predicate condition
+                            $condition1 = $stmt->getPredicate()->getUri() == $triplePattern[0]['p'];
 
-                        // object conditions
-                        $oUri = $triplePattern[0]['o'];
-                        $condition2 = $stmt->getObject()->getUri() == $oUri
-                            || $this->commonNamespaces->extendUri($oUri) == $stmt->getObject()->getUri();
+                            // object conditions
+                            $oUri = $triplePattern[0]['o'];
+                            $condition2 = $stmt->getObject()->getUri() == $oUri
+                                || $this->commonNamespaces->extendUri($oUri) == $stmt->getObject()->getUri();
 
-                        if ($condition1 && $condition2) {
-                            $setEntries[] = array(
-                                $triplePattern[0][$triplePattern[0]['s']] => $stmt->getSubject(),
-                            );
+                            if ($condition1 && $condition2) {
+                                $sValue = $this->getNodeValue($stmt->getSubject());
+                                $setEntries[$sValue] = array(
+                                    $triplePattern[0][$triplePattern[0]['s']] => $stmt->getSubject(),
+                                );
+                            }
                         }
                     }
                 }

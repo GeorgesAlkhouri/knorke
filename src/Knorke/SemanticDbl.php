@@ -407,23 +407,16 @@ class SemanticDbl implements Store
         $this->pdo->run('DELETE FROM quad WHERE graph = ?', $graph->getUri());
 
         /*
-         * remove all values, if not in use anymore
+         * remove all values, if not in use anymore (because of removed quads)
          */
-        // subject and predicates
+        // gather values which are not in use anymore
         $valuesToRemove = $this->pdo->run(
             'SELECT id
                FROM value
-              WHERE (type = "blanknode" OR type = "uri")
-                    AND id NOT IN (SELECT subject_id FROM quad)
-                    AND id NOT IN (SELECT predicate_id FROM quad)'
+              WHERE id NOT IN (SELECT subject_id FROM quad)
+                    AND id NOT IN (SELECT predicate_id FROM quad)
+                    AND id NOT IN (SELECT object_id FROM quad)'
         );
-
-        // objects
-        $valuesToRemove = array_merge($valuesToRemove, $this->pdo->run(
-            'SELECT v.id
-               FROM value v LEFT JOIN quad q ON v.id = q.object_id
-              WHERE object_id IS NULL AND type = "literal"'
-        ));
 
         // remove all found values
         foreach ($valuesToRemove as $value) {

@@ -15,7 +15,7 @@ class Importer
     /**
      * @var NodeUtils
      */
-    protected $nodeUtils;
+    protected $rdfHelpers;
 
     /**
      * @var array of Parser
@@ -34,14 +34,16 @@ class Importer
 
     /**
      * @param Store $store
+     * @param ParserFactory $parserFactory
+     * @param RdfHelpers $rdfHelpers
      */
-    public function __construct(Store $store, ParserFactory $parserFactory, NodeUtils $nodeUtils)
+    public function __construct(Store $store, ParserFactory $parserFactory, RdfHelpers $rdfHelpers)
     {
         $this->store = $store;
 
         $this->parsers = array();
 
-        $this->nodeUtils = $nodeUtils;
+        $this->rdfHelpers = $rdfHelpers;
 
         $this->parserFactory = $parserFactory;
     }
@@ -64,7 +66,7 @@ class Importer
         // string given
         if (is_string($target)) {
             $short = $target;
-            return $this->nodeUtils->guessFormat($short);
+            return $this->rdfHelpers->guessFormat($short);
         } else {
             throw new \Exception('Parameter $file must be the string itself or a filename.');
         }

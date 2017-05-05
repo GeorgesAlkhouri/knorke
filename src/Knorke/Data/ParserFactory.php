@@ -6,7 +6,7 @@ use Saft\Data\NQuadsParser;
 use Saft\Data\RDFXMLParser;
 use Saft\Data\ParserFactory as ParserFactoryInterface;
 use Saft\Rdf\NodeFactory;
-use Saft\Rdf\NodeUtils;
+use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\StatementFactory;
 use Saft\Rdf\StatementIteratorFactory;
 
@@ -21,9 +21,9 @@ class ParserFactory implements ParserFactoryInterface
     protected $nodeFactory;
 
     /**
-     * @var NodeUtils
+     * @var RdfHelpers
      */
-    protected $nodeUtils;
+    protected $rdfHelpers;
 
     /**
      * @var StatementFactory
@@ -38,16 +38,16 @@ class ParserFactory implements ParserFactoryInterface
     /**
      * @param NodeFactory $nodeFactory
      * @param StatementFactory $statementFactory
-     * @param NodeUtils $nodeUtils
+     * @param RdfHelpers $rdfHelpers
      */
     public function __construct(
         NodeFactory $nodeFactory,
         StatementFactory $statementFactory,
         StatementIteratorFactory $statementIteratorFactory,
-        NodeUtils $nodeUtils
+        RdfHelpers $rdfHelpers
     ) {
         $this->nodeFactory = $nodeFactory;
-        $this->nodeUtils = $nodeUtils;
+        $this->rdfHelpers = $rdfHelpers;
         $this->statementFactory = $statementFactory;
         $this->statementIteratorFactory = $statementIteratorFactory;
     }
@@ -64,14 +64,14 @@ class ParserFactory implements ParserFactoryInterface
                 $this->nodeFactory,
                 $this->statementFactory,
                 $this->statementIteratorFactory,
-                $this->nodeUtils
+                $this->rdfHelpers
             );
         } elseif ('n-triples' == $serialization || 'n-quads' == $serialization) {
             return new NQuadsParser(
                 $this->nodeFactory,
                 $this->statementFactory,
                 $this->statementIteratorFactory,
-                $this->nodeUtils
+                $this->rdfHelpers
             );
         }
 

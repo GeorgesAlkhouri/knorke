@@ -19,25 +19,11 @@ use Saft\Sparql\Result\SetResultImpl;
 
 class RestrictionTest extends UnitTestCase
 {
-    protected $nodeUtils;
-
     public function setUp()
     {
         parent::setUp();
 
-        $this->store = new InMemoryStore(
-            new NodeFactoryImpl($this->nodeUtils),
-            new StatementFactoryImpl(),
-            new QueryFactoryImpl($this->nodeUtils, new QueryUtils()),
-            new StatementIteratorFactoryImpl(),
-            $this->commonNamespaces
-        );
-    }
-
-    protected function initFixture()
-    {
-        $this->fixture = new Restriction($this->store, $this->commonNamespaces, $this->nodeUtils);
-        return $this->fixture;
+        $this->fixture = new Restriction($this->store, $this->commonNamespaces, $this->rdfHelpers);
     }
 
     public function testNoPrefixedPredicateAndObject()
@@ -54,44 +40,44 @@ class RestrictionTest extends UnitTestCase
             ] .
         */
         $this->store->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://resourceWithRestrictions'),
-                new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
-                new LiteralImpl($this->nodeUtils, 'label')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('label')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://resourceWithRestrictions'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:restrictionOneOf'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
+                $this->nodeFactory->createNamedNode('kno:restrictionOneOf'),
+                $this->nodeFactory->createNamedNode('http://foo')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://resourceWithRestrictions'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:restrictionOneOf'),
-                new NamedNodeImpl($this->nodeUtils, 'http://bar')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
+                $this->nodeFactory->createNamedNode('kno:restrictionOneOf'),
+                $this->nodeFactory->createNamedNode('http://bar')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://resourceWithRestrictions'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:inheritsAllPropertiesOf'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foreign-resource')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
+                $this->nodeFactory->createNamedNode('kno:inheritsAllPropertiesOf'),
+                $this->nodeFactory->createNamedNode('http://foreign-resource')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://foreign-resource'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:restrictionOrder'),
-                new BlankNodeImpl('genid1')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foreign-resource'),
+                $this->nodeFactory->createNamedNode('kno:restrictionOrder'),
+                $this->nodeFactory->createBlankNode('genid1')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createNamedNode('http://foo')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_1'),
-                new NamedNodeImpl($this->nodeUtils, 'http://bar')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_1'),
+                $this->nodeFactory->createNamedNode('http://bar')
             ),
         ));
 
-        $restrictions = $this->initFixture()->getRestrictionsForResource('http://resourceWithRestrictions');
+        $restrictions = $this->fixture->getRestrictionsForResource('http://resourceWithRestrictions');
 
         $this->assertEquals(
             array(

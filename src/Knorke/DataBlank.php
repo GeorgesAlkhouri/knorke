@@ -5,7 +5,7 @@ namespace Knorke;
 use Knorke\Exception\KnorkeException;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NamedNode;
-use Saft\Rdf\NodeUtils;
+use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\StatementIterator;
 use Saft\Sparql\Result\SetResult;
 use Saft\Store\Store;
@@ -49,16 +49,16 @@ class DataBlank extends \ArrayObject
 
     /**
      * @param CommonNamespaces $commonNamespaces
-     * @param NodeUtils $nodeUtils
+     * @param RdfHelpers $rdfHelpers
      * @param array $options optional, default=array()
      */
     public function __construct(
         CommonNamespaces $commonNamespaces,
-        NodeUtils $nodeUtils,
+        RdfHelpers $rdfHelpers,
         array $options = array()
     ) {
         $this->commonNamespaces = $commonNamespaces;
-        $this->nodeUtils = $nodeUtils;
+        $this->rdfHelpers = $rdfHelpers;
         $this->options = array_merge(
             array(
                 'add_internal_data_fields' => true, // if set to true, fields like _idUri gets created
@@ -215,9 +215,9 @@ class DataBlank extends \ArrayObject
      */
     public function initByStoreSearch(Store $store, NamedNode $graph, string $resourceId)
     {
-        if ($this->nodeUtils->simpleCheckURI($resourceId)) {
+        if ($this->rdfHelpers->simpleCheckURI($resourceId)) {
             $resourceIdSubject = '<'. $resourceId .'>';
-        } elseif ($this->nodeUtils->simpleCheckBlankNodeId($resourceId)) {
+        } elseif ($this->rdfHelpers->simpleCheckBlankNodeId($resourceId)) {
             // leave it as it is
         } else {
             throw new \KnorkeException('Invalid $resourceId given (must be URI or blank node): '. $resourceId);
@@ -238,10 +238,10 @@ class DataBlank extends \ArrayObject
         // recursive init objects which are URIs and connections too
         foreach ($this as $key => $value) {
             // value is URI or blank node
-            if ($this->nodeUtils->simpleCheckURI($value)
-                || $this->nodeUtils->simpleCheckBlankNodeId($value)) {
+            if ($this->rdfHelpers->simpleCheckURI($value)
+                || $this->rdfHelpers->simpleCheckBlankNodeId($value)) {
 
-                $valueDataBlank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+                $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
                 // init value instance recursively
                 if ($value !== $resourceId) {
                     $valueDataBlank->initByStoreSearch($store, $graph, $value);

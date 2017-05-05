@@ -4,7 +4,7 @@ namespace Knorke;
 
 use Knorke\Exception\KnorkeException;
 use Saft\Rdf\CommonNamespaces;
-use Saft\Rdf\NodeUtils;
+use Saft\Rdf\RdfHelpers;
 use Saft\Store\Store;
 
 class StatisticValue
@@ -16,18 +16,18 @@ class StatisticValue
     /**
      * @param Store $store
      * @param CommonNamespaces $commonNamespaces
-     * @param NodeUtils $nodeUtils
+     * @param RdfHelpers $rdfHelpers
      * @param array $mapping
      */
     public function __construct(
         Store $store,
         CommonNamespaces $commonNamespaces,
-        NodeUtils $nodeUtils,
-        array $mapping
+        RdfHelpers $rdfHelpers,
+        array $mapping = array()
     ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->mapping = $mapping;
-        $this->nodeUtils = $nodeUtils;
+        $this->rdfHelpers = $rdfHelpers;
         $this->store = $store;
     }
 
@@ -35,10 +35,15 @@ class StatisticValue
      * Computes all depending values based on the given $mapping of non-depending values.
      *
      * @return array Complete mapping with computed values.
+     * @throws KnorkeException if mapping is empty
      * @throws KnorkeException if non-depending values have no mapping
      */
     public function compute()
     {
+        if (0 == count($this->mapping)) {
+            throw new KnorkeException('Parameter $mapping is empty.');
+        }
+
         $computedValues = array();
 
         // gather all SPO for StasticValue instances
@@ -55,7 +60,7 @@ class StatisticValue
         foreach ($statisticValueResult as $entry) {
             $subjectUri = $entry['s']->getUri();
             if (false == isset($statisticValues[$subjectUri])) {
-                $statisticValues[$subjectUri] = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+                $statisticValues[$subjectUri] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
                 $statisticValues[$subjectUri]->initBySetResult($statisticValueResult, $subjectUri);
             }
         }
@@ -313,7 +318,7 @@ class StatisticValue
                 );
                 $computationOrderBlank = new DataBlank(
                     $this->commonNamespaces,
-                    $this->nodeUtils,
+                    $this->rdfHelpers,
                     array(
                         'add_internal_data_fields' => false
                     )
@@ -335,5 +340,15 @@ class StatisticValue
         }
 
         return null;
+    }
+
+    /**
+     * Updates stored mapping.
+     *
+     * @param array $mapping
+     */
+    public function setMapping(array $mapping)
+    {
+        $this->mapping = $mapping;
     }
 }

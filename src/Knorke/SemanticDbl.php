@@ -8,12 +8,11 @@ use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\Node;
 use Saft\Rdf\NamedNode;
 use Saft\Rdf\NodeFactory;
-use Saft\Rdf\NodeUtils;
+use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\Statement;
 use Saft\Rdf\StatementFactory;
 use Saft\Rdf\StatementIteratorFactory;
 use Saft\Sparql\Query\QueryFactory;
-use Saft\Sparql\Query\QueryUtils;
 use Saft\Sparql\Result\SetResultImpl;
 use Saft\Store\Store;
 
@@ -21,9 +20,8 @@ class SemanticDbl implements Store
 {
     protected $commonNamespaces;
     protected $nodeFactory;
-    protected $nodeUtils;
     protected $queryFactory;
-    protected $queryUtils;
+    protected $rdfHelpers;
     protected $statementFactory;
     protected $statementIteratorFactory;
     protected $tables;
@@ -33,15 +31,15 @@ class SemanticDbl implements Store
         StatementFactory $statementFactory,
         QueryFactory $queryFactory,
         StatementIteratorFactory $statementIteratorFactory,
-        CommonNamespaces $commonNamespaces
+        CommonNamespaces $commonNamespaces,
+        RdfHelpers $rdfHelpers
     ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->nodeFactory = $nodeFactory;
         $this->queryFactory = $queryFactory;
         $this->statementFactory = $statementFactory;
         $this->statementIteratorFactory = $statementIteratorFactory;
-        $this->nodeUtils = new NodeUtils();
-        $this->queryUtils = new QueryUtils();
+        $this->rdfHelpers = $rdfHelpers;
     }
 
     /**
@@ -157,11 +155,7 @@ class SemanticDbl implements Store
         /*
          * graph
          */
-        if (null !== $graph) {
-            $graphUri = $graph->getUri();
-        } else {
-            $graphUri = $statement->getGraph()->getUri();
-        }
+        $graphUri = $this->retrieveGraphUri($graph, $statement);
 
         if (null == $this->pdo->row('SELECT uri FROM graph WHERE uri = ?', $graphUri)) {
             throw new \Exception('Target graph not available: '. $graphUri);
@@ -219,7 +213,7 @@ class SemanticDbl implements Store
              */
             // blank node ID is new
             if ($s->isBlank() && false == isset($blankNodeRegistry[$s->getBlankId()])) {
-                $sHash = hash('sha512', microtime() . rand(0, time()));
+                $sHash = $this->generateBlankIdHash();
                 $blankNodeRegistry[$s->getBlankId()] = $sHash;
 
                 // create new blank node with better ID
@@ -235,7 +229,7 @@ class SemanticDbl implements Store
              */
             // blank node ID is new
             if ($o->isBlank() && false == isset($blankNodeRegistry[$o->getBlankId()])) {
-                $oHash = hash('sha512', microtime() . rand(0, time()));
+                $oHash = $this->generateBlankIdHash();
                 $blankNodeRegistry[$o->getBlankId()] = $oHash;
 
                 // create new blank node with better ID
@@ -254,6 +248,13 @@ class SemanticDbl implements Store
         }
     }
 
+    /**
+     * @param string $value
+     * @param string $type
+     * @param string $language
+     * @param string $datatype
+     * @return int ID of the new entry.
+     */
     protected function addValue(
         string $value,
         string $type,
@@ -330,7 +331,7 @@ class SemanticDbl implements Store
         $subject = $this->getNodeValue($statement->getSubject());
         $predicate = $this->getNodeValue($statement->getPredicate());
         $object = $this->getNodeValue($statement->getObject());
-        $graph = null !== $graph ? $graph->getUri() : $statement->getGraph()->getUri();
+        $graph = $this->nodeFactory->createNamedNode($this->retrieveGraphUri($graph, $statement));
         $sOperator = $pOperator = $oOperator = '=';
 
         if ('ANY' == $subject) {
@@ -431,6 +432,14 @@ class SemanticDbl implements Store
 
         // remove graph itself
         $this->pdo->run('DELETE FROM graph WHERE uri = ?', $graph->getUri());
+    }
+
+    /**
+     * @return string Generated blank node ID hash.
+     */
+    public function generateBlankIdHash() : string
+    {
+        return hash('sha512', microtime() . rand(0, time()));
     }
 
     public function getDb() : EasyDB
@@ -555,7 +564,7 @@ class SemanticDbl implements Store
      * @param NamedNode $graph
      * @return array
      */
-    protected function getStatementsFromGraph(NamedNode $graph) : array
+    public function getStatementsFromGraph(NamedNode $graph) : array
     {
         $quads = $this->pdo->run(
             'SELECT v1.value as subject, v2.value as predicate, v3.value as object
@@ -571,7 +580,7 @@ class SemanticDbl implements Store
 
         foreach ($quads as $quad) {
             // subject
-            if (true === $this->nodeUtils->simpleCheckURI($quad['subject'])) {
+            if (true === $this->rdfHelpers->simpleCheckURI($quad['subject'])) {
                 $s = $this->nodeFactory->createNamedNode($quad['subject']);
             } else { // blanknode
                 $s = $this->nodeFactory->createBlankNode($quad['subject']);
@@ -581,9 +590,9 @@ class SemanticDbl implements Store
             $p = $this->nodeFactory->createNamedNode($quad['predicate']);
 
             // object
-            if (true === $this->nodeUtils->simpleCheckURI($quad['object'])) {
+            if (true === $this->rdfHelpers->simpleCheckURI($quad['object'])) {
                 $o = $this->nodeFactory->createNamedNode($quad['object']);
-            } elseif (true === $this->nodeUtils->simpleCheckBlankNodeId($quad['object'])) {
+            } elseif (true === $this->rdfHelpers->simpleCheckBlankNodeId($quad['object'])) {
                 $o = $this->nodeFactory->createBlankNode($quad['object']);
             } else {
                 $o = $this->nodeFactory->createLiteral($quad['object']);
@@ -657,7 +666,7 @@ class SemanticDbl implements Store
         // get statements from graph
         $statements = $this->getStatementsFromGraph($this->nodeFactory->createNamedNode($graph));
 
-        if ('selectQuery' == $this->queryUtils->getQueryType($query)) {
+        if ('selectQuery' == $this->rdfHelpers->getQueryType($query)) {
            $queryParts = $queryObject->getQueryParts();
            $triplePattern = $queryParts['triple_pattern'];
            $setEntries = array();
@@ -820,29 +829,6 @@ class SemanticDbl implements Store
                    }
                }
 
-           // handle _:blankid ?p ?o
-           } elseif (1 == count($triplePattern)
-               && 'blanknode' == $triplePattern[0]['s_type']
-               && 'var' == $triplePattern[0]['p_type']
-               && 'var' == $triplePattern[0]['o_type']) {
-               // generate result
-               foreach ($statements as $stmt) {
-                   $subject = $stmt->getSubject();
-                   if ($subject->isBlank()) {
-                       if ('_:' !== substr($subject->getBlankId(), 0, 2)) {
-                           $blankId = '_:'.$subject->getBlankId();
-                       } else {
-                           $blankId = $subject->getBlankId();
-                       }
-                       if (strtolower($blankId) == strtolower($triplePattern[0]['s'])) {
-                           $setEntries[] = array(
-                               $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
-                               $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
-                           );
-                       }
-                   }
-               }
-           }
            /*
             * apply filter like FILTER (?p = <http://...>) and remove statements which dont match
             */
@@ -866,6 +852,34 @@ class SemanticDbl implements Store
        throw new \Exception('Only select queries are supported for now.');
     }
 
+    /**
+     * @param NamedNode $graph optional
+     * @param Statement $statement optional
+     * @return string|null
+     */
+    protected function retrieveGraphUri(NamedNode $graph = null, Statement $statement = null)
+    {
+        if (null !== $graph) {
+            return $graph->getUri();
+
+        } elseif (null === $graph && null == $statement) {
+            return $this->defaultGraphUri;
+
+        // either graph nor statement given, therefore use default graph
+        } elseif (null === $graph && null === $statement->getGraph()) {
+            return $this->defaultGraphUri;
+
+        // no graph given, use graph information from $statement
+        } elseif (null === $graph && $statement->getGraph()->isNamed()) {
+            return $statement->getGraph()->getUri();
+        }
+
+        return null;
+    }
+
+    /**
+     * Setup database tables, if not they are not there yet.
+     */
     public function setup()
     {
         if ($this->isSetup()) {
@@ -915,6 +929,12 @@ class SemanticDbl implements Store
         }
     }
 
+    /**
+     * Checks if a SQL table exists.
+     *
+     * @param string $table
+     * @return boolean
+     */
     protected function tableExists($table)
     {
         foreach ($this->pdo->run('SHOW TABLES') as $value) {

@@ -9,7 +9,7 @@ use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\LiteralImpl;
 use Saft\Rdf\NamedNodeImpl;
 use Saft\Rdf\NodeFactoryImpl;
-use Saft\Rdf\NodeUtils;
+use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\StatementFactoryImpl;
 use Saft\Rdf\StatementImpl;
 use Saft\Rdf\StatementIteratorFactoryImpl;
@@ -23,23 +23,17 @@ class DataBlankTest extends UnitTestCase
     {
         parent::setUp();
 
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->nodeUtils);
-        $this->store = new InMemoryStore(
-            new NodeFactoryImpl($this->nodeUtils),
-            new StatementFactoryImpl(),
-            new QueryFactoryImpl($this->nodeUtils, new QueryUtils()),
-            new StatementIteratorFactoryImpl(),
-            $this->commonNamespaces
-        );
+        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
     }
 
+    // test that getting http://...#label results in rdfs:label property is set as well
     public function testGetterMagic()
     {
-        $blank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $blank['rdfs:label'] = 'label';
         $this->assertEquals($blank->get('http://www.w3.org/2000/01/rdf-schema#label'), 'label');
 
-        $blank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $blank['http://www.w3.org/2000/01/rdf-schema#label'] = 'label';
         $this->assertEquals($blank->get('rdfs:label'), 'label');
     }
@@ -53,24 +47,24 @@ class DataBlankTest extends UnitTestCase
     {
         $result = new SetResultImpl(array(
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'stat:1'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                'o' => new BlankNodeImpl('genid1')
+                's' => $this->nodeFactory->createNamedNode('stat:1'),
+                'p' => $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                'o' => $this->nodeFactory->createBlankNode('genid1')
             ),
             array(
-                's' => new BlankNodeImpl('genid1'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                'o' => new LiteralImpl($this->nodeUtils, '[stat:2]*2')
+                's' => $this->nodeFactory->createBlankNode('genid1'),
+                'p' => $this->nodeFactory->createNamedNode('kno:_0'),
+                'o' => $this->nodeFactory->createLiteral('[stat:2]*2')
             ),
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'stat:2'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+                's' => $this->nodeFactory->createNamedNode('stat:2'),
+                'p' => $this->nodeFactory->createNamedNode('rdf:type'),
+                'o' => $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'stat:2'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
-                'o' => new LiteralImpl($this->nodeUtils, 'Statistic Value 2')
+                's' => $this->nodeFactory->createNamedNode('stat:2'),
+                'p' => $this->nodeFactory->createNamedNode('rdfs:label'),
+                'o' => $this->nodeFactory->createLiteral('Statistic Value 2')
             ),
         ));
         $result->setVariables('s', 'p', 'o');
@@ -89,21 +83,21 @@ class DataBlankTest extends UnitTestCase
 
     public function testNoPrefixedPredicateAndObject()
     {
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->nodeUtils, array(
+        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
             'use_prefixed_predicates' => false,
             'use_prefixed_objects' => false,
         ));
 
         $result = new SetResultImpl(array(
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
-                'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+                'p' => $this->nodeFactory->createNamedNode('rdfs:label'),
+                'o' => $this->nodeFactory->createLiteral('Label for s'),
             ),
             array(
-                's' => new BlankNodeImpl('blank'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://xmlns.com/foaf/0.1/Person'),
+                's' => $this->nodeFactory->createBlankNode('blank'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
             )
         ));
 
@@ -120,21 +114,21 @@ class DataBlankTest extends UnitTestCase
 
     public function testPrefixedPredicate()
     {
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->nodeUtils, array(
+        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
             'use_prefixed_predicates' => true,
             'use_prefixed_objects' => false,
         ));
 
         $result = new SetResultImpl(array(
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
-                'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+                'p' => $this->nodeFactory->createNamedNode('rdfs:label'),
+                'o' => $this->nodeFactory->createLiteral('Label for s'),
             ),
             array(
-                's' => new BlankNodeImpl('blank'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://xmlns.com/foaf/0.1/Person'),
+                's' => $this->nodeFactory->createBlankNode('blank'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
             )
         ));
 
@@ -151,21 +145,21 @@ class DataBlankTest extends UnitTestCase
 
     public function testPrefixedPredicateAndObject()
     {
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->nodeUtils, array(
+        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
             'use_prefixed_predicates' => true,
             'use_prefixed_objects' => true,
         ));
 
         $result = new SetResultImpl(array(
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
-                'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+                'p' => $this->nodeFactory->createNamedNode('rdfs:label'),
+                'o' => $this->nodeFactory->createLiteral('Label for s'),
             ),
             array(
-                's' => new BlankNodeImpl('blank'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://xmlns.com/foaf/0.1/Person'),
+                's' => $this->nodeFactory->createBlankNode('blank'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
             )
         ));
 
@@ -187,7 +181,7 @@ class DataBlankTest extends UnitTestCase
     // tests usage of datablanks stored as object in a datablank
     public function testInitByStoreSearchAndRecursiveDataBlankUsage()
     {
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->nodeUtils, array(
+        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
             'use_prefixed_predicates' => true,
             'use_prefixed_objects' => true,
         ));
@@ -207,12 +201,12 @@ class DataBlankTest extends UnitTestCase
             )
         ));
 
-        $dataBlank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $dataBlank->initByStoreSearch($this->store, $this->testGraph, 'http://s');
 
-        $dataBlankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $dataBlankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $dataBlankToCheckAgainst['_idUri'] = 'http://s';
-        $dataBlankToCheckAgainst['http://p'] = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $dataBlankToCheckAgainst['http://p'] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $dataBlankToCheckAgainst['http://p']['_idUri'] = 'http://o';
         $dataBlankToCheckAgainst['http://p']['http://p2'] = 'http://o2';
 
@@ -221,7 +215,7 @@ class DataBlankTest extends UnitTestCase
 
     public function te1stInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode()
     {
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->nodeUtils, array(
+        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
             'use_prefixed_predicates' => true,
             'use_prefixed_objects' => true,
         ));
@@ -241,11 +235,11 @@ class DataBlankTest extends UnitTestCase
             )
         ));
 
-        $dataBlank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $dataBlank->initByStoreSearch($this->store, $this->testGraph, 'http://s');
 
-        $dataBlankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->nodeUtils);
-        $dataBlankToCheckAgainst['http://p'] = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $dataBlankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $dataBlankToCheckAgainst['http://p'] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $dataBlankToCheckAgainst['http://p']['http://p2'] = 'http://o2';
 
         $this->assertEquals($dataBlank, $dataBlankToCheckAgainst);

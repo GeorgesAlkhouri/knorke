@@ -5,7 +5,7 @@ namespace Knorke;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NamedNode;
 use Saft\Rdf\NodeFactory;
-use Saft\Rdf\NodeUtils;
+use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\StatementFactory;
 use Saft\Store\Store;
 
@@ -21,14 +21,14 @@ class DataBlankHelper
         CommonNamespaces $commonNamespaces,
         StatementFactory $statementFactory,
         NodeFactory $nodeFactory,
-        NodeUtils $nodeUtils,
+        RdfHelpers $rdfHelpers,
         Store $store,
         NamedNode $graph
     ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->graph = $graph;
         $this->nodeFactory = $nodeFactory;
-        $this->nodeUtils = $nodeUtils;
+        $this->rdfHelpers = $rdfHelpers;
         $this->statementFactory = $statementFactory;
         $this->store = $store;
     }
@@ -41,7 +41,7 @@ class DataBlankHelper
      */
     public function dispense(string $typeUri, string $hash = null, string $baseUri = null) : DataBlank
     {
-        $blank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
 
         // set type
         $blank['rdf:type'] = $typeUri;
@@ -82,7 +82,7 @@ class DataBlankHelper
 
         $blanks = array();
         foreach ($result as $key => $entry) {
-            $blanks[$key] = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+            $blanks[$key] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
             $blanks[$key]->initByStoreSearch($this->store, $this->graph, $entry['s']);
         }
 
@@ -101,7 +101,7 @@ class DataBlankHelper
             <'. $resourceUri .'> ?p ?o.
         }');
 
-        $dataBlank = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $dataBlank->initBySetResult($result, $resourceUri);
 
         $dataBlank['_idUri'] = $resourceUri;
@@ -125,7 +125,7 @@ class DataBlankHelper
 
             foreach (array_keys($blankCopy->getArrayCopy()) as $key) {
 
-                if (true === $this->nodeUtils->simpleCheckURI($blankCopy[$key])) {
+                if (true === $this->rdfHelpers->simpleCheckURI($blankCopy[$key])) {
                     $object = $this->nodeFactory->createNamedNode($blankCopy[$key]);
                 } else {
                     $object = $this->nodeFactory->createLiteral($blankCopy[$key]);

@@ -23,23 +23,16 @@ class InMemoryStoreTest extends UnitTestCase
 
     public function setUp()
     {
-        $this->commonNamespaces = new CommonNamespaces();
-        $this->nodeUtils = new NodeUtils();
+        parent::setUp();
 
-        $this->initFixture();
-    }
-
-    protected function initFixture()
-    {
         $this->fixture = new InMemoryStore(
-            new NodeFactoryImpl($this->nodeUtils),
-            new StatementFactoryImpl(),
-            new QueryFactoryImpl($this->nodeUtils, new QueryUtils()),
-            new StatementIteratorFactoryImpl(),
-            $this->commonNamespaces
+            $this->nodeFactory,
+            $this->statementFactory,
+            $this->queryFactory,
+            $this->statementIteratorFactory,
+            $this->commonNamespaces,
+            $this->rdfHelpers
         );
-
-        return $this->fixture;
     }
 
     /*
@@ -51,24 +44,22 @@ class InMemoryStoreTest extends UnitTestCase
     {
         $this->commonNamespaces->add('foo', 'http://foo/');
 
-        $this->initFixture();
-
         /*
          * check storing prefixed URIs
          */
         $this->fixture->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'foo:s'),
-                new NamedNodeImpl($this->nodeUtils, 'foo:p'),
-                new NamedNodeImpl($this->nodeUtils, 'foo:o')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('foo:s'),
+                $this->nodeFactory->createNamedNode('foo:p'),
+                $this->nodeFactory->createNamedNode('foo:o')
             ),
         ));
 
         $expectedResult = new SetResultImpl(array(
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://foo/o'),
+                's' => $this->nodeFactory->createNamedNode('http://foo/s'),
+                'p' => $this->nodeFactory->createNamedNode('http://foo/p'),
+                'o' => $this->nodeFactory->createNamedNode('http://foo/o'),
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
@@ -82,18 +73,18 @@ class InMemoryStoreTest extends UnitTestCase
          * check storing unprefixed URIs
          */
         $this->fixture->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/o')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo/s'),
+                $this->nodeFactory->createNamedNode('http://foo/p'),
+                $this->nodeFactory->createNamedNode('http://foo/o')
             ),
         ));
 
         $expectedResult = new SetResultImpl(array(
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://foo/o'),
+                's' => $this->nodeFactory->createNamedNode('http://foo/s'),
+                'p' => $this->nodeFactory->createNamedNode('http://foo/p'),
+                'o' => $this->nodeFactory->createNamedNode('http://foo/o'),
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
@@ -113,35 +104,33 @@ class InMemoryStoreTest extends UnitTestCase
     {
         $this->commonNamespaces->add('foo', 'http://foo/');
 
-        $this->initFixture();
-
         $this->fixture->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'foo:s'),
-                new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
-                new LiteralImpl($this->nodeUtils, 'Label for s')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('foo:s'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('Label for s')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo/s'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('foaf:Person')
             ),
             // has to be ignored
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/s-to-be-ignore'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/p-to-be-ignore'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/o-to-be-ignore')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo/s-to-be-ignore'),
+                $this->nodeFactory->createNamedNode('http://foo/p-to-be-ignore'),
+                $this->nodeFactory->createNamedNode('http://foo/o-to-be-ignore')
             ),
         ));
 
         $expectedResult = new SetResultImpl(array(
             array(
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/2000/01/rdf-schema#label'),
-                'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+                'o' => $this->nodeFactory->createLiteral('Label for s'),
             ),
             array(
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://xmlns.com/foaf/0.1/Person'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
             )
         ));
         $expectedResult->setVariables(array('p', 'o'));
@@ -164,20 +153,18 @@ class InMemoryStoreTest extends UnitTestCase
     {
         $this->commonNamespaces->add('foo', 'http://foo/');
 
-        $this->initFixture();
-
         $this->fixture->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/o')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo/s'),
+                $this->nodeFactory->createNamedNode('http://foo/p'),
+                $this->nodeFactory->createNamedNode('http://foo/o')
             )
         ));
 
         $expectedResult = new SetResultImpl(array(
             array(
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://foo/o'),
+                'p' => $this->nodeFactory->createNamedNode('http://foo/p'),
+                'o' => $this->nodeFactory->createNamedNode('http://foo/o'),
             )
         ));
         $expectedResult->setVariables(array('p', 'o'));
@@ -193,26 +180,26 @@ class InMemoryStoreTest extends UnitTestCase
     public function testQuerySetPredicateObjectVariableSubject()
     {
         $this->fixture->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/o'),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo/s'),
+                $this->nodeFactory->createNamedNode('http://foo/p'),
+                $this->nodeFactory->createNamedNode('http://foo/o'),
                 $this->testGraph
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/s2'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/p'),
-                new NamedNodeImpl($this->nodeUtils, 'http://foo/o'),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo/s2'),
+                $this->nodeFactory->createNamedNode('http://foo/p'),
+                $this->nodeFactory->createNamedNode('http://foo/o'),
                 $this->testGraph
             ),
         ));
 
         $expectedResult = new SetResultImpl(array(
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://foo/s'),
+                's' => $this->nodeFactory->createNamedNode('http://foo/s'),
             ),
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://foo/s2'),
+                's' => $this->nodeFactory->createNamedNode('http://foo/s2'),
             )
         ));
         $expectedResult->setVariables(array('s'));
@@ -220,7 +207,11 @@ class InMemoryStoreTest extends UnitTestCase
         // check for classic SPO
         $this->assertSetIteratorEquals(
             $expectedResult,
-            $this->fixture->query('SELECT * WHERE {?s <http://foo/p> <http://foo/o>. }')
+            $this->fixture->query(
+                'SELECT *
+                   FROM <'. $this->testGraph->getUri() .'>
+                  WHERE {?s <http://foo/p> <http://foo/o>. }'
+            )
         );
     }
 
@@ -228,18 +219,18 @@ class InMemoryStoreTest extends UnitTestCase
     public function testQuerySPOQuery()
     {
         $this->fixture->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                new NamedNodeImpl($this->nodeUtils, 'http://p'),
-                new NamedNodeImpl($this->nodeUtils, 'http://o')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('http://p'),
+                $this->nodeFactory->createNamedNode('http://o')
             )
         ));
 
         $expectedResult = new SetResultImpl(array(
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://p'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://o'),
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+                'p' => $this->nodeFactory->createNamedNode('http://p'),
+                'o' => $this->nodeFactory->createNamedNode('http://o'),
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
@@ -256,23 +247,23 @@ class InMemoryStoreTest extends UnitTestCase
     public function testQuerySPOQueryWithFilter()
     {
         $this->fixture->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                new NamedNodeImpl($this->nodeUtils, 'http://p'),
-                new NamedNodeImpl($this->nodeUtils, 'http://o')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('http://p'),
+                $this->nodeFactory->createNamedNode('http://o')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                new NamedNodeImpl($this->nodeUtils, 'http://p-not-this'),
-                new NamedNodeImpl($this->nodeUtils, 'http://o1')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('http://p-not-this'),
+                $this->nodeFactory->createNamedNode('http://o1')
             )
         ));
 
         $expectedResult = new SetResultImpl(array(
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://p'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://o'),
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+                'p' => $this->nodeFactory->createNamedNode('http://p'),
+                'o' => $this->nodeFactory->createNamedNode('http://o'),
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
@@ -306,22 +297,22 @@ class InMemoryStoreTest extends UnitTestCase
     public function testQuerySPOWithFixedBlankNodeSubject()
     {
         $this->fixture->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://s-to-be-ignored'),
-                new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
-                new LiteralImpl($this->nodeUtils, 'Label for s')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s-to-be-ignored'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('Label for s')
             ),
-            new StatementImpl(
+            $this->statementFactory->createStatement(
                 new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('foaf:Person')
             )
         ));
 
         $expectedResult = new SetResultImpl(array(
             array(
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://xmlns.com/foaf/0.1/Person'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
             )
         ));
         $expectedResult->setVariables(array('p', 'o'));
@@ -336,27 +327,27 @@ class InMemoryStoreTest extends UnitTestCase
     public function testQuerySPOWithFixedSubject()
     {
         $this->fixture->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
-                new LiteralImpl($this->nodeUtils, 'Label for s')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('Label for s')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://s-to-be-ignored'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s-to-be-ignored'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('foaf:Person')
             ),
-            new StatementImpl(
+            $this->statementFactory->createStatement(
                 new BlankNodeImpl('b123'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('foaf:Person')
             ),
         ));
 
         $expectedResult = new SetResultImpl(array(
             array(
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/2000/01/rdf-schema#label'),
-                'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+                'o' => $this->nodeFactory->createLiteral('Label for s'),
             )
         ));
         $expectedResult->setVariables(array('p', 'o'));
@@ -372,34 +363,34 @@ class InMemoryStoreTest extends UnitTestCase
     public function testQuerySPOWithTypedSQuery()
     {
         $this->fixture->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
-                new LiteralImpl($this->nodeUtils, 'Label for s')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('Label for s')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'foaf:Person')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('foaf:Person')
             ),
             // has to be ignored
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://s-to-be-ignore'),
-                new NamedNodeImpl($this->nodeUtils, 'http://p-to-be-ignore'),
-                new NamedNodeImpl($this->nodeUtils, 'http://o-to-be-ignore')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s-to-be-ignore'),
+                $this->nodeFactory->createNamedNode('http://p-to-be-ignore'),
+                $this->nodeFactory->createNamedNode('http://o-to-be-ignore')
             ),
         ));
 
         $expectedResult = new SetResultImpl(array(
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/2000/01/rdf-schema#label'),
-                'o' => new LiteralImpl($this->nodeUtils, 'Label for s'),
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+                'o' => $this->nodeFactory->createLiteral('Label for s'),
             ),
             array(
-                's' => new NamedNodeImpl($this->nodeUtils, 'http://s'),
-                'p' => new NamedNodeImpl($this->nodeUtils, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => new NamedNodeImpl($this->nodeUtils, 'http://xmlns.com/foaf/0.1/Person'),
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));

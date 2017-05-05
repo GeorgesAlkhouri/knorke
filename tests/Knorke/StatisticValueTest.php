@@ -20,25 +20,15 @@ use Saft\Sparql\Result\SetResultImpl;
 
 class StatisticValueTest extends UnitTestCase
 {
-    protected $nodeUtils;
-
     public function setUp()
     {
         parent::setUp();
 
-        $this->store = new InMemoryStore(
-            new NodeFactoryImpl($this->nodeUtils),
-            new StatementFactoryImpl(),
-            new QueryFactoryImpl($this->nodeUtils, new QueryUtils()),
-            new StatementIteratorFactoryImpl(),
-            new CommonNamespaces()
+        $this->fixture = new StatisticValue(
+            $this->store,
+            $this->commonNamespaces,
+            $this->rdfHelpers
         );
-    }
-
-    protected function initFixture(array $mapping = array())
-    {
-        $this->fixture = new StatisticValue($this->store, $this->commonNamespaces, $this->nodeUtils, $mapping);
-        return $this->fixture;
     }
 
     /*
@@ -51,75 +41,75 @@ class StatisticValueTest extends UnitTestCase
 
         $this->store->addStatements(array(
             // stat:1
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:1'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:1'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid1')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:1'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid1')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:2]*2')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:2]*2')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_1'),
-                new LiteralImpl($this->nodeUtils, '+4.5')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_1'),
+                $this->nodeFactory->createLiteral('+4.5')
             ),
             // stat:2
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:2'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:2'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:2'),
-                new NamedNodeImpl($this->nodeUtils, 'rdfs:label'),
-                new LiteralImpl($this->nodeUtils, 'Statistic Value 2')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:2'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('Statistic Value 2')
             ),
             // stat:date
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:date'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:date'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:date'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid2')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:date'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid2')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:startdate]-4')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid2'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:startdate]-4')
             ),
             // stat:days
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:days'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:days'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:days'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid3')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:days'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid3')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid3'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:startdate]-stat:date')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid3'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:startdate]-stat:date')
             ),
         ));
 
         /*
          * check with non-prefixed keys in mapping
          */
-        $this->initFixture(array(
+        $this->fixture->setMapping(array(
             'http://statValue/2' => 2,
             'http://statValue/startdate' => '2017-01-05'
         ));
@@ -137,7 +127,7 @@ class StatisticValueTest extends UnitTestCase
         /*
          * check with prefixed keys in mapping
          */
-        $this->initFixture(array(
+        $this->fixture->setMapping(array(
             'stat:2' => 2,
             'http://statValue/startdate' => '2017-01-05'
         ));
@@ -159,29 +149,29 @@ class StatisticValueTest extends UnitTestCase
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
         $this->store->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/1'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/1'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/2'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid1')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/2'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid1')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:1]*2')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:1]*2')
             ),
         ));
 
-        $this->initFixture(array(
+        $this->fixture->setMapping(array(
             'http://statValue/1' => 5
         ));
 
@@ -200,25 +190,25 @@ class StatisticValueTest extends UnitTestCase
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
         $this->store->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/2'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid1')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/2'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid1')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, 'IF([stat:1]>30, 1, 0)')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('IF([stat:1]>30, 1, 0)')
             ),
         ));
 
         // check for if option
-        $this->initFixture(array('http://statValue/1' => 31));
+        $this->fixture->setMapping(array('http://statValue/1' => 31));
 
         $this->assertEquals(
             array(
@@ -229,7 +219,7 @@ class StatisticValueTest extends UnitTestCase
         );
 
         // check for else option
-        $this->initFixture(array('http://statValue/1' => 20));
+        $this->fixture->setMapping(array('http://statValue/1' => 20));
 
         $this->assertEquals(
             array(
@@ -246,14 +236,14 @@ class StatisticValueTest extends UnitTestCase
         $this->expectException('Knorke\Exception\KnorkeException');
 
         $this->store->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:1'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:1'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
         ));
 
-        $this->initFixture(array());
+        $this->fixture->setMapping(array());
 
         $this->fixture->compute();
     }
@@ -263,30 +253,30 @@ class StatisticValueTest extends UnitTestCase
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
         $this->store->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/2'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid1')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/2'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid1')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:1]*2')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:1]*2')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_1'),
-                new LiteralImpl($this->nodeUtils, 'MAX(result,2)')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_1'),
+                $this->nodeFactory->createLiteral('MAX(result,2)')
             ),
         ));
 
         // check for result
-        $this->initFixture(array('http://statValue/1' => 2));
+        $this->fixture->setMapping(array('http://statValue/1' => 2));
 
         $this->assertEquals(
             array(
@@ -297,7 +287,7 @@ class StatisticValueTest extends UnitTestCase
         );
 
         // check for alternative
-        $this->initFixture(array('http://statValue/1' => 0.4));
+        $this->fixture->setMapping(array('http://statValue/1' => 0.4));
 
         $this->assertEquals(
             array(
@@ -313,30 +303,30 @@ class StatisticValueTest extends UnitTestCase
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
         $this->store->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/2'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid1')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/2'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid1')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:1]*2')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:1]*2')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_1'),
-                new LiteralImpl($this->nodeUtils, 'ROUNDUP')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_1'),
+                $this->nodeFactory->createLiteral('ROUNDUP')
             ),
         ));
 
         // round up with <0.5
-        $this->initFixture(array('http://statValue/1' => 0.2));
+        $this->fixture->setMapping(array('http://statValue/1' => 0.2));
 
         $this->assertEquals(
             array(
@@ -347,7 +337,7 @@ class StatisticValueTest extends UnitTestCase
         );
 
         // round up with >0.5
-        $this->initFixture(array('http://statValue/1' => 0.4));
+        $this->fixture->setMapping(array('http://statValue/1' => 0.4));
 
         $this->assertEquals(
             array(
@@ -363,24 +353,24 @@ class StatisticValueTest extends UnitTestCase
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
         $this->store->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/2'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'http://statValue/2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid1')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://statValue/2'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid1')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:1]')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:1]')
             )
         ));
 
-        $this->initFixture(array('http://statValue/1' => 0.2));
+        $this->fixture->setMapping(array('http://statValue/1' => 0.2));
 
         $this->assertEquals(
             array(
@@ -397,7 +387,7 @@ class StatisticValueTest extends UnitTestCase
 
     public function testComputeValue()
     {
-        $this->initFixture(array());
+        $this->fixture->setMapping(array());
 
         $this->assertEquals('2017-01-10', $this->fixture->computeValue('2017-01-05', '+', 5));
         $this->assertEquals('2017-01-01', $this->fixture->computeValue('2017-01-06', '-', 5));
@@ -413,7 +403,7 @@ class StatisticValueTest extends UnitTestCase
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
         $mapping = array('http://statValue/1' => 3);
-        $this->initFixture($mapping);
+        $this->fixture->setMapping($mapping);
 
         $this->assertEquals(
             6,
@@ -439,7 +429,7 @@ class StatisticValueTest extends UnitTestCase
 
         $mapping = array('http://statValue/1' => 3, 'http://statValue/2' => 3);
 
-        $this->initFixture($mapping);
+        $this->fixture->setMapping($mapping);
 
         // multiple
         $this->assertEquals(
@@ -480,39 +470,39 @@ class StatisticValueTest extends UnitTestCase
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
         $this->store->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:2'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:2'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid2')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:2'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid2')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:3]*2')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid2'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:3]*2')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:3'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:3'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:3'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid3')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:3'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid3')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid3'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:1]+4')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid3'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:1]+4')
             ),
         ));
 
-        $this->initFixture(array(/* doesnt matter */));
+        $this->fixture->setMapping(array(/* doesnt matter */));
         $this->assertEquals(
             14,
             $this->fixture->executeComputationOrder(
@@ -539,39 +529,39 @@ class StatisticValueTest extends UnitTestCase
     public function testGetComputationOrderFor()
     {
         $this->store->addStatements(array(
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:1'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:1'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid1')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:2'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid1')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid1'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:2]*2')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:2]*2')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:2'),
-                new NamedNodeImpl($this->nodeUtils, 'rdf:type'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:StatisticValue')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:2'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('kno:StatisticValue')
             ),
-            new StatementImpl(
-                new NamedNodeImpl($this->nodeUtils, 'stat:2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:computationOrder'),
-                new BlankNodeImpl('genid2')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('stat:2'),
+                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createBlankNode('genid2')
             ),
-            new StatementImpl(
-                new BlankNodeImpl('genid2'),
-                new NamedNodeImpl($this->nodeUtils, 'kno:_0'),
-                new LiteralImpl($this->nodeUtils, '[stat:0]+4')
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid2'),
+                $this->nodeFactory->createNamedNode('kno:_0'),
+                $this->nodeFactory->createLiteral('[stat:0]+4')
             ),
         ));
 
-        $this->initFixture(array());
+        $this->fixture->setMapping(array());
 
         $this->assertEquals(
             array(

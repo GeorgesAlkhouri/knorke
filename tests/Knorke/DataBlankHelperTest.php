@@ -17,25 +17,15 @@ use Saft\Sparql\Result\SetResultImpl;
 
 class DataBlankHelperTest extends UnitTestCase
 {
-    protected $commonNamespaces;
-    protected $store;
-
     public function setUp()
     {
         parent::setUp();
 
-        $this->store = new InMemoryStore(
-            $this->nodeFactory,
-            $this->statementFactory,
-            new QueryFactoryImpl($this->nodeUtils, new QueryUtils()),
-            new StatementIteratorFactoryImpl(),
-            $this->commonNamespaces
-        );
         $this->fixture = new DataBlankHelper(
             $this->commonNamespaces,
             $this->statementFactory,
             $this->nodeFactory,
-            $this->nodeUtils,
+            $this->rdfHelpers,
             $this->store,
             $this->testGraph
         );
@@ -105,12 +95,12 @@ class DataBlankHelperTest extends UnitTestCase
         /*
          * build data to check against
          */
-        $expectedBlank1 = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $expectedBlank1 = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $expectedBlank1['_idUri'] = 'http://foobar/foaf-person/id/foobar';
         $expectedBlank1['rdf:type'] = 'foaf:Person';
         $expectedBlank1['http://to-ignore'] = 'http://this-stuff';
 
-        $expectedBlank2 = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $expectedBlank2 = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $expectedBlank2['_idUri'] = 'http://foobar/foaf-person/id/foobar/another-one';
         $expectedBlank2['rdf:type'] = 'foaf:Person';
         $expectedBlank2['rdfs:label'] = 'Another Person';
@@ -185,7 +175,7 @@ class DataBlankHelperTest extends UnitTestCase
          */
         $blankCopy = $this->fixture->load($dataBlank['_idUri']);
 
-        $blankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->nodeUtils);
+        $blankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $blankToCheckAgainst['_idUri'] = 'http://foobar/foaf-person/id/foobar';
         $blankToCheckAgainst['rdf:type'] = 'foaf:Person';
         $blankToCheckAgainst['rdfs:label'] = 'Geiles Label';

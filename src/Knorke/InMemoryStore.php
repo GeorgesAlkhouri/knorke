@@ -6,6 +6,7 @@ use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NamedNode;
 use Saft\Rdf\Node;
 use Saft\Rdf\NodeFactory;
+use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\Statement;
 use Saft\Rdf\StatementFactory;
 use Saft\Rdf\StatementIteratorFactory;
@@ -22,14 +23,14 @@ class InMemoryStore implements Store
     protected $commonNamespaces;
 
     /**
+     * @var string
+     */
+    protected $defaultGraphUri = 'http://knorke/defaultGraph/';
+
+    /**
      * @var NodeFactory
      */
     protected $nodeFactory;
-
-    /**
-     * @var NodeUtils
-     */
-    protected $nodeUtils;
 
     /**
      * @var QueryFactory
@@ -37,9 +38,9 @@ class InMemoryStore implements Store
     protected $queryFactory;
 
     /**
-     * @var string
+     * @var RdfHelpers
      */
-    protected $defaultGraphUri = 'http://knorke/defaultGraph/';
+    protected $rdfHelpers;
 
     /**
      * @var StatementFactory
@@ -58,20 +59,23 @@ class InMemoryStore implements Store
      * @param StatementFactory         $statementFactory Instance of StatementFactory.
      * @param QueryFactory             $queryFactory Instance of QueryFactory.
      * @param StatementIteratorFactory $statementIteratorFactory Instance of StatementIteratorFactory.
+     * @param CommonNamespaces         $commonNamespaces
+     * @param RdfHelpers               $rdfHelpers
      */
     public function __construct(
         NodeFactory $nodeFactory,
         StatementFactory $statementFactory,
         QueryFactory $queryFactory,
         StatementIteratorFactory $statementIteratorFactory,
-        CommonNamespaces $commonNamespaces
+        CommonNamespaces $commonNamespaces,
+        RdfHelpers $rdfHelpers
     ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->nodeFactory = $nodeFactory;
         $this->queryFactory = $queryFactory;
         $this->statementFactory = $statementFactory;
         $this->statementIteratorFactory = $statementIteratorFactory;
-        $this->queryUtils = new QueryUtils();
+        $this->rdfHelpers = $rdfHelpers;
     }
 
     /**
@@ -117,18 +121,8 @@ class InMemoryStore implements Store
         }
 
         foreach ($checkedStatements as $statement) {
-            if (null !== $graph) {
-                $graphUri = $graph->getUri();
-            // no graph information given, use default graph
-            } elseif (null === $graph && null === $statement->getGraph()) {
-                $graphUri = $this->defaultGraphUri;
-            // no graph given, use graph information from $statement
-            } elseif (null === $graph && $statement->getGraph()->isNamed()) {
-                $graphUri = $statement->getGraph()->getUri();
-            // no graph given, use graph information from $statement
-            } elseif (null === $graph && false == $statement->getGraph()->isNamed()) {
-                $graphUri = $this->defaultGraphUri;
-            }
+            $graphUri = $this->retrieveGraphUri($graph, $statement);
+
             // use hash to differenciate between statements (no doublings allowed)
             $statementHash = hash('sha256', serialize($statement));
             // add it
@@ -443,9 +437,12 @@ class InMemoryStore implements Store
             $graphUri = $queryParts['graphs'][0];
         } else {
             $graphUri = $this->defaultGraphUri;
+            if (false === isset($this->statements[$graphUri])) {
+                $this->statements[$graphUri] = array();
+            }
         }
 
-        if ('selectQuery' == $this->queryUtils->getQueryType($query)) {
+        if ('selectQuery' == $this->rdfHelpers->getQueryType($query)) {
             $queryParts = $queryObject->getQueryParts();
             $triplePattern = $queryParts['triple_pattern'];
             $setEntries = array();
@@ -659,5 +656,30 @@ class InMemoryStore implements Store
             return $result;
         }
         return parent::query($query, $options);
+    }
+
+    /**
+     * @param NamedNode $graph optional
+     * @param Statement $statement optional
+     * @return string|null
+     */
+    protected function retrieveGraphUri(NamedNode $graph = null, Statement $statement = null)
+    {
+        if (null !== $graph) {
+            return $graph->getUri();
+
+        } elseif (null === $graph && null == $statement) {
+            return $this->defaultGraphUri;
+
+        // either graph nor statement given, therefore use default graph
+        } elseif (null === $graph && null === $statement->getGraph()) {
+            return $this->defaultGraphUri;
+
+        // no graph given, use graph information from $statement
+        } elseif (null === $graph && $statement->getGraph()->isNamed()) {
+            return $statement->getGraph()->getUri();
+        }
+
+        return null;
     }
 }

@@ -2,11 +2,14 @@
 
 namespace Tests\Knorke;
 
+use Knorke\InMemoryStore;
 use PHPUnit\Framework\TestCase;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NodeFactoryImpl;
-use Saft\Rdf\NodeUtils;
+use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\StatementFactoryImpl;
+use Saft\Rdf\StatementIteratorFactoryImpl;
+use Saft\Sparql\Query\QueryFactoryImpl;
 use Saft\Sparql\Result\SetResult;
 
 class UnitTestCase extends TestCase
@@ -21,20 +24,32 @@ class UnitTestCase extends TestCase
     protected $fixture;
 
     protected $nodeFactory;
-    protected $nodeUtils;
+    protected $rdfHelpers;
     protected $statementFactory;
 
-    protected $testGraphUri = 'http://knorke/testgraph/';
     protected $testGraph;
 
     public function setUp()
     {
         parent::setUp();
+
         $this->commonNamespaces = new CommonNamespaces();
-        $this->nodeUtils = new NodeUtils();
-        $this->nodeFactory = new NodeFactoryImpl($this->nodeUtils);
+        $this->rdfHelpers = new RdfHelpers();
+        $this->nodeFactory = new NodeFactoryImpl($this->rdfHelpers);
+        $this->queryFactory = new QueryFactoryImpl($this->rdfHelpers);
         $this->statementFactory = new StatementFactoryImpl();
-        $this->testGraph = $this->nodeFactory->createNamedNode($this->testGraphUri);
+        $this->statementIteratorFactory = new StatementIteratorFactoryImpl();
+        $this->testGraph = $this->nodeFactory->createNamedNode('http://knorke/testgraph/');
+
+        // basic in memory store
+        $this->store = new InMemoryStore(
+            $this->nodeFactory,
+            $this->statementFactory,
+            $this->queryFactory,
+            $this->statementIteratorFactory,
+            $this->commonNamespaces,
+            $this->rdfHelpers
+        );
     }
 
     /**
@@ -61,7 +76,7 @@ class UnitTestCase extends TestCase
                     throw new \Exception('Non-concrete Node instance in SetResult instance found.');
                 }
             }
-            $entriesToCheck[hash('sha256', $entryString)] = false;
+            $entriesToCheck[hash('sha256', $entryString)] = $entry;
         }
 
         // contains a list of all entries, which were not found in $expected.
@@ -90,8 +105,8 @@ class UnitTestCase extends TestCase
         $notCheckedEntries = array();
         // check that all entries from $expected were checked
         foreach ($entriesToCheck as $key => $value) {
-            if (!$value) {
-                $notCheckedEntries[] = $key;
+            if (true !== $value) {
+                $notCheckedEntries[] = $value;
             }
         }
 
@@ -103,6 +118,7 @@ class UnitTestCase extends TestCase
                 $message .= ' ' . count($actualEntriesNotFound) . ' Statements where not expected.';
             }
             if (!empty($notCheckedEntries)) {
+                echo PHP_EOL . PHP_EOL . 'Not present entries:' . PHP_EOL;
                 print_r($notCheckedEntries);
                 $message .= ' ' . count($notCheckedEntries) . ' Statements where not present but expected.';
             }

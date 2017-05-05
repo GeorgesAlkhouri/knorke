@@ -2,7 +2,7 @@
     "name": "k00ni/knorke",
     "license": "MIT",
     "require": {
-        "php": ">=7.0.17",
+        "php": ">=7.0",
         "paragonie/easydb": "2.*",
         "saft/saft-data": ">=0.9",
         "saft/saft-rdf": ">=0.9",

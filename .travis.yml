@@ -17,6 +17,7 @@ matrix:
     fast_finish: true
     include:
         - php: hhvm
+          env: PHP_VERSION: '7.0.0'
 
 cache:
     directories:

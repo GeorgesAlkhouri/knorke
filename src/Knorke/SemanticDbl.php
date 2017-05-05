@@ -667,189 +667,194 @@ class SemanticDbl implements Store
         $statements = $this->getStatementsFromGraph($this->nodeFactory->createNamedNode($graph));
 
         if ('selectQuery' == $this->rdfHelpers->getQueryType($query)) {
-           $queryParts = $queryObject->getQueryParts();
-           $triplePattern = $queryParts['triple_pattern'];
-           $setEntries = array();
-           // handle ?s ?p ?o
-           //        ?s rdf:type foaf:Person
-           if (2 <= count($triplePattern)
-               // ?s ?p ?o.
-               && 'var' == $triplePattern[0]['s_type']
-               && 'var' == $triplePattern[0]['p_type']
-               && 'var' == $triplePattern[0]['o_type']
-               // ?s rdf:type foaf:Person.
-               && 'var' == $triplePattern[1]['s_type']
-               && 'uri' == $triplePattern[1]['p_type']
-               && 'uri' == $triplePattern[1]['o_type']) {
-               $relevantS = array();
-               // extend triple pattern for S, P and O, if a prefixed URL was used
-               // we already know, that p and o are URIs!
-               if ($this->commonNamespaces->isShortenedUri($triplePattern[1]['p'])) {
-                   $extendedTriplePatternPUri = $this->commonNamespaces->extendUri($triplePattern[1]['p']);
-               } else {
-                   // set null because there is nothing to extend here
-                   $extendedTriplePatternPUri = null;
-               }
-               if ($this->commonNamespaces->isShortenedUri($triplePattern[1]['o'])) {
-                   $extendedTriplePatternOUri = $this->commonNamespaces->extendUri($triplePattern[1]['o']);
-               } else {
-                   // set null because there is nothing to extend here
-                   $extendedTriplePatternOUri = null;
-               }
-               // ignore first pattern because it casts variables on s, p and o
-               // 1. check, which s has wanted p and o
-               foreach ($statements as $statement) {
-                   $s = $statement->getSubject();
-                   $p = $statement->getPredicate();
-                   $o = $statement->getObject();
-                   // standard check
-                   if ($p->getUri() == $triplePattern[1]['p']
-                       && $o->isNamed() && $o->getUri() == $triplePattern[1]['o']) {
-                       $relevantS[$s->getUri()] = $s;
-                   // also check, if extended versions of tripple pattern p and o lead to something
-                   } elseif (null !== $extendedTriplePatternPUri || null !== $extendedTriplePatternOUri) {
-                       // does predicate matches?
-                       $predicateMatches = false;
-                       if ($p->getUri() == $extendedTriplePatternPUri || $p->getUri() == $triplePattern[1]['p']) {
-                           $predicateMatches = true;
-                       }
-                       // does object matches?
-                       $objectMatches = false;
-                       if ($o->isNamed() &&
-                           ($o->getUri() == $extendedTriplePatternOUri || $o->getUri() == $triplePattern[1]['o'])) {
-                           $objectMatches = true;
-                       }
-                       // if both matches, add $s
-                       if ($predicateMatches && $objectMatches) {
-                           $relevantS[$s->getUri()] = $s;
-                       }
-                   }
-               }
-               // 2. get all p and o for collected s
-               foreach ($statements as $statement) {
-                   $s = $statement->getSubject();
-                   $p = $statement->getPredicate();
-                   $o = $statement->getObject();
+            $queryParts = $queryObject->getQueryParts();
+            $triplePattern = $queryParts['triple_pattern'];
+            $setEntries = array();
+            // handle ?s ?p ?o
+            //        ?s rdf:type foaf:Person
+            if (2 <= count($triplePattern)
+                // ?s ?p ?o.
+                && 'var' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']
+                // ?s rdf:type foaf:Person.
+                && 'var' == $triplePattern[1]['s_type']
+                && 'uri' == $triplePattern[1]['p_type']
+                && 'uri' == $triplePattern[1]['o_type']) {
 
-                   // if statement object is shortened, extend it before put to result
-                   if ($statement->getObject()->isNamed()
-                        && $this->commonNamespaces->isShortenedUri($statement->getObject())) {
-                       $o = $this->nodeFactory->createNamedNode(
-                           $this->commonNamespaces->extendUri($statement->getObject()->getUri())
-                       );
-                   }
+                $relevantS = array();
+                // extend triple pattern for S, P and O, if a prefixed URL was used
+                // we already know, that p and o are URIs!
+                if ($this->commonNamespaces->isShortenedUri($triplePattern[1]['p'])) {
+                    $extendedTriplePatternPUri = $this->commonNamespaces->extendUri($triplePattern[1]['p']);
+                } else {
+                    // set null because there is nothing to extend here
+                    $extendedTriplePatternPUri = null;
+                }
+                if ($this->commonNamespaces->isShortenedUri($triplePattern[1]['o'])) {
+                    $extendedTriplePatternOUri = $this->commonNamespaces->extendUri($triplePattern[1]['o']);
+                } else {
+                    // set null because there is nothing to extend here
+                    $extendedTriplePatternOUri = null;
+                }
+                // ignore first pattern because it casts variables on s, p and o
+                // 1. check, which s has wanted p and o
+                foreach ($statements as $statement) {
+                    $s = $statement->getSubject();
+                    $p = $statement->getPredicate();
+                    $o = $statement->getObject();
+                    // standard check
+                    if ($p->getUri() == $triplePattern[1]['p']
+                        && $o->isNamed() && $o->getUri() == $triplePattern[1]['o']) {
+                        $relevantS[$s->getUri()] = $s;
+                    // also check, if extended versions of tripple pattern p and o lead to something
+                    } elseif (null !== $extendedTriplePatternPUri || null !== $extendedTriplePatternOUri) {
+                        // does predicate matches?
+                        $predicateMatches = false;
+                        if ($p->getUri() == $extendedTriplePatternPUri || $p->getUri() == $triplePattern[1]['p']) {
+                            $predicateMatches = true;
+                        }
+                        // does object matches?
+                        $objectMatches = false;
+                        if ($o->isNamed() &&
+                            ($o->getUri() == $extendedTriplePatternOUri || $o->getUri() == $triplePattern[1]['o'])) {
+                            $objectMatches = true;
+                        }
+                        // if both matches, add $s
+                        if ($predicateMatches && $objectMatches) {
+                            $relevantS[$s->getUri()] = $s;
+                        }
+                    }
+                }
+                // 2. get all p and o for collected s
+                foreach ($statements as $statement) {
+                    $s = $statement->getSubject();
+                    $p = $statement->getPredicate();
+                    $o = $statement->getObject();
 
-                   if ($s->isNamed() && isset($relevantS[$s->getUri()])) {
-                       $setEntries[] = array(
-                           $triplePattern[0]['s'] => $s,
-                           $triplePattern[0]['p'] => $p,
-                           $triplePattern[0]['o'] => $o
-                       );
-                   }
-               }
-           // handle ?s ?p ?o
-           } elseif (0 < count($triplePattern)
-               && 'var' == $triplePattern[0]['s_type']
-               && 'var' == $triplePattern[0]['p_type']
-               && 'var' == $triplePattern[0]['o_type']) {
-               // generate result
-               foreach ($statements as $stmt) {
-                   $setEntries[] = array(
-                       $triplePattern[0]['s'] => $stmt->getSubject(),
-                       $triplePattern[0]['p'] => $stmt->getPredicate(),
-                       $triplePattern[0]['o'] => $stmt->getObject()
-                   );
-               }
-           // handle foo:s ?p ?o
-           } elseif (1 == count($triplePattern)
-               && false === strpos($triplePattern[0]['s'], 'http://')
-               && 'uri' == $triplePattern[0]['s_type']
-               && 'var' == $triplePattern[0]['p_type']
-               && 'var' == $triplePattern[0]['o_type']) {
-               // generate result
-               foreach ($statements as $stmt) {
-                   if ($stmt->getSubject()->isNamed()) {
-                       $fullUri = $this->commonNamespaces->extendUri($triplePattern[0]['s']);
-                       // check for subject with full URI
-                       // and check for subject with prefixed URI
-                       if ($stmt->getSubject()->getUri() == $triplePattern[0]['s']
-                           || $stmt->getSubject()->getUri() == $fullUri) {
-                           $setEntries[] = array(
-                               $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
-                               $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
-                           );
-                       }
-                   }
-               }
-           // handle <http://> ?p ?o
-           } elseif (1 == count($triplePattern)
-               && 'uri' == $triplePattern[0]['s_type']
-               && 'var' == $triplePattern[0]['p_type']
-               && 'var' == $triplePattern[0]['o_type']) {
-               // generate result
-               foreach ($statements as $stmt) {
-                   if ($stmt->getSubject()->isNamed()) {
-                       $sUri = $stmt->getSubject()->getUri();
-                       // if subject matches directly
-                       $condition1 = $sUri == $triplePattern[0]['s'];
-                       // if subject is shortened but its extended version matches
-                       $condition2 = $this->commonNamespaces->isShortenedUri($sUri)
-                           && $this->commonNamespaces->extendUri($sUri) == $triplePattern[0]['s'];
-                       if ($condition1 || $condition2) {
-                           $setEntries[] = array(
-                               $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
-                               $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
-                           );
-                       }
-                   }
-               }
+                    // if statement object is shortened, extend it before put to result
+                    if ($statement->getObject()->isNamed()
+                         && $this->commonNamespaces->isShortenedUri($statement->getObject())) {
+                        $o = $this->nodeFactory->createNamedNode(
+                            $this->commonNamespaces->extendUri($statement->getObject()->getUri())
+                        );
+                    }
+
+                    if ($s->isNamed() && isset($relevantS[$s->getUri()])) {
+                        $setEntries[] = array(
+                            $triplePattern[0]['s'] => $s,
+                            $triplePattern[0]['p'] => $p,
+                            $triplePattern[0]['o'] => $o
+                        );
+                    }
+                }
+            // handle ?s ?p ?o
+            } elseif (0 < count($triplePattern)
+                && 'var' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']) {
+                // generate result
+                foreach ($statements as $stmt) {
+                    $setEntries[] = array(
+                        $triplePattern[0]['s'] => $stmt->getSubject(),
+                        $triplePattern[0]['p'] => $stmt->getPredicate(),
+                        $triplePattern[0]['o'] => $stmt->getObject()
+                    );
+                }
+            // handle foo:s ?p ?o
+            } elseif (1 == count($triplePattern)
+                && false === strpos($triplePattern[0]['s'], 'http://')
+                && 'uri' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']) {
+                // generate result
+                foreach ($statements as $stmt) {
+                    if ($stmt->getSubject()->isNamed()) {
+                        $fullUri = $this->commonNamespaces->extendUri($triplePattern[0]['s']);
+                        // check for subject with full URI
+                        // and check for subject with prefixed URI
+                        if ($stmt->getSubject()->getUri() == $triplePattern[0]['s']
+                            || $stmt->getSubject()->getUri() == $fullUri) {
+                            $setEntries[] = array(
+                                $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
+                                $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
+                            );
+                        }
+                    }
+                }
+            // handle <http://> ?p ?o
+            } elseif (1 == count($triplePattern)
+                && 'uri' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']) {
+                // generate result
+                foreach ($statements as $stmt) {
+                    if ($stmt->getSubject()->isNamed()) {
+                        $sUri = $stmt->getSubject()->getUri();
+                        // if subject matches directly
+                        $condition1 = $sUri == $triplePattern[0]['s'];
+                        // if subject is shortened but its extended version matches
+                        $condition2 = $this->commonNamespaces->isShortenedUri($sUri)
+                            && $this->commonNamespaces->extendUri($sUri) == $triplePattern[0]['s'];
+                        if ($condition1 || $condition2) {
+                            $setEntries[] = array(
+                                $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
+                                $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
+                            );
+                        }
+                     }
+                }
 
             // handle ?s <http://...#type> <http://...Person>
             } elseif (1 == count($triplePattern)
-               && 'var' == $triplePattern[0]['s_type']
-               && 'uri' == $triplePattern[0]['p_type']
-               && 'uri' == $triplePattern[0]['o_type']) {
-               // generate result
-               foreach ($statements as $stmt) {
-                   // assuming predicate is named too
-                   if ($stmt->getObject()->isNamed()) {
-                       // predicate condition
-                       $condition1 = $stmt->getPredicate()->getUri() == $triplePattern[0]['p'];
+                && 'var' == $triplePattern[0]['s_type']
+                && 'uri' == $triplePattern[0]['p_type']
+                && 'uri' == $triplePattern[0]['o_type']) {
+                // generate result
+                foreach ($statements as $stmt) {
+                    // assuming predicate is named too
+                    if ($stmt->getObject()->isNamed()) {
+                        // predicate condition
+                        $condition1 = $stmt->getPredicate()->getUri() == $triplePattern[0]['p'];
 
-                       // object conditions
-                       $oUri = $triplePattern[0]['o'];
-                       $condition2 = $stmt->getObject()->getUri() == $oUri
-                           || $this->commonNamespaces->extendUri($oUri) == $stmt->getObject()->getUri();
+                        // object conditions
+                        $oUri = $triplePattern[0]['o'];
+                        $condition2 = $stmt->getObject()->getUri() == $oUri
+                            || $this->commonNamespaces->extendUri($oUri) == $stmt->getObject()->getUri();
 
-                       if ($condition1 && $condition2) {
-                           $setEntries[] = array(
-                               $triplePattern[0][$triplePattern[0]['s']] => $stmt->getSubject(),
-                           );
-                       }
-                   }
-               }
+                        if ($condition1 && $condition2) {
+                            $setEntries[] = array(
+                                $triplePattern[0][$triplePattern[0]['s']] => $stmt->getSubject(),
+                            );
+                        }
+                    }
+                }
+            }
 
-           /*
+            /*
             * apply filter like FILTER (?p = <http://...>) and remove statements which dont match
             */
-           $filterInformation = $this->getFiltersIfAvailable($queryParts);
-           if (null !== $filterInformation) {
-               foreach ($setEntries as $key => $stmtArray) {
-                   // remove entries which are not fit the given filters
-                   $relatedNode = $stmtArray[$filterInformation['variable_letter']];
-                   // we assume that the node is a named node
-                   if (false == isset($filterInformation['possible_values'][$relatedNode->getUri()])) {
-                       // if its node does not match with the filter requirements, remove the statement from the result
-                       unset($setEntries[$key]);
-                   }
-               }
-           }
-           $result = new SetResultImpl($setEntries);
-           $result->setVariables($queryParts['variables']);
-           return $result;
-       }
+            $filterInformation = $this->getFiltersIfAvailable($queryParts);
+            if (null !== $filterInformation) {
+                foreach ($setEntries as $key => $stmtArray) {
+                    // remove entries which are not fit the given filters
+                    $relatedNode = $stmtArray[$filterInformation['variable_letter']];
+                    $relatedNodeUri = $relatedNode->getUri();
+                    // we assume that the node is a named node
+                    if (false == isset($filterInformation['possible_values'][$relatedNodeUri])) {
+                        // if its node does not match with the filter requirements,
+                        // remove the statement from the result
+                        unset($setEntries[$key]);
+                    }
+                }
+            }
 
-       throw new \Exception('Only select queries are supported for now.');
+            $result = new SetResultImpl($setEntries);
+            $result->setVariables($queryParts['variables']);
+            return $result;
+        }
+
+        throw new \Exception('Only select queries are supported for now.');
     }
 
     /**

@@ -33,12 +33,9 @@ before_install:
     # hack to tell HHVM to act like PHP 7
     # - https://github.com/sebastianbergmann/phpunit/issues/2581#issuecomment-299598923
     # - https://docs.travis-ci.com/user/languages/php/ (see custom PHP configuration)
-    - echo "hhvm.php7.all=1" >> /tmp/hhvm.php.ini
-    - ls /home/travis/.phpenv/
-    - ls /home/travis/.phpenv/versions/
-    - ls /home/travis/.phpenv/versions/hhvm/
-    - ls /home/travis/.phpenv/versions/hhvm/etc/
+    - mkdir /home/travis/.phpenv/versions/hhvm/etc/
     - mkdir /home/travis/.phpenv/versions/hhvm/etc/conf.d
+    - echo "hhvm.php7.all=1" >> /tmp/hhvm.php.ini
     - phpenv config-add /tmp/hhvm.php.ini
 
 script: vendor/bin/phpunit --bootstrap tests/bootstrap-travis.php --coverage-clover gen/coverage/clover.xml

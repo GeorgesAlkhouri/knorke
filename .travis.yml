@@ -11,13 +11,13 @@ addons:
 php:
     - '7.0'
     - '7.1'
+    - nightly
 
 matrix:
     fast_finish: true
     include:
         - php: hhvm
     allow_failures:
-        - php: nightly
         - php: hhvm
 
 cache:
@@ -30,13 +30,6 @@ before_install:
     - mysql -e 'CREATE DATABASE IF NOT EXISTS knorke;'
     - composer require satooshi/php-coveralls:* --ignore-platform-reqs
     - travis_retry composer install --dev --no-interaction --ignore-platform-reqs
-    # hack to tell HHVM to act like PHP 7
-    # - https://github.com/sebastianbergmann/phpunit/issues/2581#issuecomment-299598923
-    # - https://docs.travis-ci.com/user/languages/php/ (see custom PHP configuration)
-    - mkdir /home/travis/.phpenv/versions/hhvm/etc/
-    - mkdir /home/travis/.phpenv/versions/hhvm/etc/conf.d
-    - echo "hhvm.php7.all=1" >> /tmp/hhvm.php.ini
-    - phpenv config-add /tmp/hhvm.php.ini
 
 script: vendor/bin/phpunit --bootstrap tests/bootstrap-travis.php --coverage-clover gen/coverage/clover.xml
 

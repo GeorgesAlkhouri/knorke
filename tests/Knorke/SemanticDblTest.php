@@ -364,6 +364,54 @@ class SemanticDblTest extends UnitTestCase
     }
 
     /*
+     * Tests for getStatementsFromGraph
+     */
+
+    public function testGetStatementsFromGraph()
+    {
+        $this->initFixture();
+
+        $this->fixture->createGraph($this->testGraph);
+        /*
+        $statement1 = $this->statementFactory->createStatement(
+            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'1'),
+            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'),
+            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'3'),
+            $this->testGraph
+        );
+
+        $statement2 = $this->statementFactory->createStatement(
+            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'1'),
+            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'),
+            $this->nodeFactory->createLiteral($this->testGraph->getUri() . ' content'),
+            $this->testGraph
+        );*/
+
+        $statement3 = $this->statementFactory->createStatement(
+            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'1'),
+            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'),
+            $this->nodeFactory->createBlankNode('foobar'),
+            $this->testGraph
+        );
+
+        // add test statements to store
+        $this->fixture->addStatements(array(/*$statement1, $statement2, */$statement3));
+
+        // build expected result
+        $expectedResult = $this->statementIteratorFactory->createStatementIteratorFromArray(array(
+            /*$statement1,
+            $statement2,*/
+            $statement3,
+        ));
+
+        $this->assertStatementIteratorEquals(
+            $expectedResult,
+            $this->fixture->getStatementsFromGraph($this->testGraph),
+            true
+        );
+    }
+
+    /*
      * Tests for hasMatchingStatement
      */
 

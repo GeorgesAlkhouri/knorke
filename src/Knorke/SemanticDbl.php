@@ -11,6 +11,7 @@ use Saft\Rdf\NodeFactory;
 use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\Statement;
 use Saft\Rdf\StatementFactory;
+use Saft\Rdf\StatementIterator;
 use Saft\Rdf\StatementIteratorFactory;
 use Saft\Sparql\Query\QueryFactory;
 use Saft\Sparql\Result\SetResultImpl;
@@ -48,7 +49,7 @@ class SemanticDbl implements Store
      * @param int $p
      * @param int $o
      */
-    protected function addQuad(string $graphUri, int $s, int $p, int $o)
+    protected function addQuad(string $graphUri, int $s, int $p, int $o) : bool
     {
         // is quad already available?
         $quad = $this->pdo->row(
@@ -557,10 +558,13 @@ class SemanticDbl implements Store
      * @param NamedNode $graph
      * @return array
      */
-    public function getStatementsFromGraph(NamedNode $graph) : array
+    public function getStatementsFromGraph(NamedNode $graph) : StatementIterator
     {
         $quads = $this->pdo->run(
-            'SELECT v1.value as subject, v2.value as predicate, v3.value as object
+            'SELECT v1.value as subject,
+                    v2.value as predicate,
+                    v3.value as object,
+                    v3.type as objecttype
                FROM quad q
                     LEFT JOIN value v1 ON q.subject_id = v1.id
                     LEFT JOIN value v2 ON q.predicate_id = v2.id
@@ -583,18 +587,26 @@ class SemanticDbl implements Store
             $p = $this->nodeFactory->createNamedNode($quad['predicate']);
 
             // object
-            if (true === $this->rdfHelpers->simpleCheckURI($quad['object'])) {
-                $o = $this->nodeFactory->createNamedNode($quad['object']);
-            } elseif (true === $this->rdfHelpers->simpleCheckBlankNodeId($quad['object'])) {
-                $o = $this->nodeFactory->createBlankNode($quad['object']);
-            } else {
-                $o = $this->nodeFactory->createLiteral($quad['object']);
+            switch ($quad['objecttype']) {
+                case 'uri':
+                    $o = $this->nodeFactory->createNamedNode($quad['object']);
+                    break;
+                case 'blanknode':
+                    $o = $this->nodeFactory->createBlankNode($quad['object']);
+                    break;
+                case 'literal':
+                    $o = $this->nodeFactory->createLiteral($quad['object']);
+                    break;
+
+                default:
+                    throw new KnorkeException('Unknown object type found: '. $quad['object-value']);
+                    break;
             }
 
             $statements[] = $this->statementFactory->createStatement($s, $p, $o, $graph);
         }
 
-        return $statements;
+        return $this->statementIteratorFactory->createStatementIteratorFromArray($statements);
     }
 
     /**

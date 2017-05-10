@@ -372,7 +372,7 @@ class SemanticDblTest extends UnitTestCase
         $this->initFixture();
 
         $this->fixture->createGraph($this->testGraph);
-        /*
+
         $statement1 = $this->statementFactory->createStatement(
             $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'1'),
             $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'),
@@ -385,7 +385,7 @@ class SemanticDblTest extends UnitTestCase
             $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'),
             $this->nodeFactory->createLiteral($this->testGraph->getUri() . ' content'),
             $this->testGraph
-        );*/
+        );
 
         $statement3 = $this->statementFactory->createStatement(
             $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'1'),
@@ -395,12 +395,12 @@ class SemanticDblTest extends UnitTestCase
         );
 
         // add test statements to store
-        $this->fixture->addStatements(array(/*$statement1, $statement2, */$statement3));
+        $this->fixture->addStatements(array($statement1, $statement2, $statement3));
 
         // build expected result
         $expectedResult = $this->statementIteratorFactory->createStatementIteratorFromArray(array(
-            /*$statement1,
-            $statement2,*/
+            $statement1,
+            $statement2,
             $statement3,
         ));
 

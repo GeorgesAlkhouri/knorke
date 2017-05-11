@@ -2,7 +2,7 @@
 
 namespace Tests\Knorke;
 
-use Knorke\DataValidator\DataValidator;
+use Knorke\DataValidator;
 use Knorke\Exception\DataValidatorException;
 
 class DataValidatorTest extends UnitTestCase
@@ -125,6 +125,29 @@ class DataValidatorTest extends UnitTestCase
         try {
             $this->fixture->checkIfRestrictionIsApplied(
                 $knoNs .'restrictionMaximumNumber', 0, 1000
+            );
+            // not good
+            $this->fail('Expected an instance of Exception\DataValidatorException thrown.');
+        } catch(DataValidatorException $e) {
+            // good
+            $this->assertTrue(true);
+        } catch (\Exception $e) {
+            // not good
+            $this->fail('Expected an instance of Exception\DataValidatorException thrown.');
+        }
+    }
+
+    public function testCheckIfRestrictionIsAppliedRegex()
+    {
+        $knoNs = $this->commonNamespaces->getUri('kno');
+
+        $this->assertTrue($this->fixture->checkIfRestrictionIsApplied(
+            $knoNs .'restrictionRegexMatch', '/\d/', '12'
+        ));
+
+        try {
+            $this->fixture->checkIfRestrictionIsApplied(
+                $knoNs .'restrictionRegexMatch', '/\d/', 'aa'
             );
             // not good
             $this->fail('Expected an instance of Exception\DataValidatorException thrown.');

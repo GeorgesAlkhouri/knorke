@@ -104,7 +104,7 @@ class DataValidator
             case 'kno:restrictionRegexMatch':
 
                 $regex = $restrictionValue;
-                if (preg_match($regex, $dataValueToCheck)) {
+                if (0 < preg_match($regex, $dataValueToCheck)) {
                     return true;
                 }
 

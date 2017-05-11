@@ -1,6 +1,6 @@
 <?php
 
-namespace Knorke\DataValidator;
+namespace Knorke;
 
 use Knorke\DataBlank;
 use Knorke\Data\ParserFactory;

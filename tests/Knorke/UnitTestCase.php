@@ -3,6 +3,7 @@
 namespace Tests\Knorke;
 
 use Knorke\InMemoryStore;
+use Knorke\Data\ParserFactory;
 use PHPUnit\Framework\TestCase;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NodeFactoryImpl;
@@ -35,12 +36,21 @@ class UnitTestCase extends TestCase
     {
         parent::setUp();
 
+        $statementIteratorFactory = new StatementIteratorFactoryImpl();
+        $statementFactory = new StatementFactoryImpl();
+
         $this->commonNamespaces = new CommonNamespaces();
         $this->rdfHelpers = new RdfHelpers();
         $this->nodeFactory = new NodeFactoryImpl($this->rdfHelpers);
         $this->queryFactory = new QueryFactoryImpl($this->rdfHelpers);
-        $this->statementFactory = new StatementFactoryImpl();
-        $this->statementIteratorFactory = new StatementIteratorFactoryImpl();
+        $this->parserFactory = new ParserFactory(
+            $this->nodeFactory,
+            $statementFactory,
+            $statementIteratorFactory,
+            $this->rdfHelpers
+        );
+        $this->statementFactory = $statementFactory;
+        $this->statementIteratorFactory = $statementIteratorFactory;
         $this->testGraph = $this->nodeFactory->createNamedNode('http://knorke/testgraph/');
 
         // basic in memory store

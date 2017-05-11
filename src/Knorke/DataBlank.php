@@ -5,6 +5,7 @@ namespace Knorke;
 use Knorke\Exception\KnorkeException;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NamedNode;
+use Saft\Rdf\Node;
 use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\StatementIterator;
 use Saft\Sparql\Result\SetResult;
@@ -46,6 +47,16 @@ class DataBlank extends \ArrayObject
      * @var CommonNamespaces
      */
     protected $commonNamespaces;
+
+    /**
+     * @var array
+     */
+    protected $options;
+
+    /**
+     * @var RdfHelpers
+     */
+    protected $rdfHelpers;
 
     /**
      * @param CommonNamespaces $commonNamespaces
@@ -166,7 +177,7 @@ class DataBlank extends \ArrayObject
                 $value = $entry[$object]->getValue();
             // blank node
             } elseif ($entry[$object]->isBlank()) {
-                $value = '_:' . $entry[$object]->getBlankId();
+                $value = $entry[$object]->toNQuads();
             }
 
             // prefix predicates if wanted
@@ -210,7 +221,7 @@ class DataBlank extends \ArrayObject
     {
         $entries = array();
         foreach ($iterator as $statement) {
-            if ($statement->getSubject() == $resourceUri) {
+            if ($statement->getSubject()->getUri() == $resourceUri) {
                 $entries[] = array(
                     'p' => $statement->getPredicate(),
                     'o' => $statement->getObject()
@@ -232,6 +243,7 @@ class DataBlank extends \ArrayObject
             $resourceIdSubject = '<'. $resourceId .'>';
         } elseif ($this->rdfHelpers->simpleCheckBlankNodeId($resourceId)) {
             // leave it as it is
+            $resourceIdSubject = $resourceId;
         } else {
             throw new \KnorkeException('Invalid $resourceId given (must be URI or blank node): '. $resourceId);
         }
@@ -250,8 +262,26 @@ class DataBlank extends \ArrayObject
 
         // recursive init objects which are URIs and connections too
         foreach ($this as $key => $value) {
-            // value is URI or blank node
-            if ($this->rdfHelpers->simpleCheckURI($value)
+            // value is an array of values
+            if (is_array($value)) {
+                // multiple objects for one property
+                foreach ($value as $entry) {
+                    $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+                    // init value instance recursively
+                    if ($value !== $resourceId) {
+                        $valueDataBlank->initByStoreSearch($store, $graph, $entry);
+                        if (1 < count($valueDataBlank)) {
+                            $this[$entry] = $valueDataBlank;
+                        }
+                    }
+                }
+
+            // value is an instance of DataBlank
+            } elseif ($value instanceof DataBlank) {
+                $this[$key] = $value;
+
+            // value is a string
+            } elseif ($this->rdfHelpers->simpleCheckURI($value)
                 || $this->rdfHelpers->simpleCheckBlankNodeId($value)) {
 
                 $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);

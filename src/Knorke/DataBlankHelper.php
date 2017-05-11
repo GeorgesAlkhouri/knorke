@@ -4,6 +4,7 @@ namespace Knorke;
 
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NamedNode;
+use Saft\Rdf\Node;
 use Saft\Rdf\NodeFactory;
 use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\StatementFactory;
@@ -70,11 +71,38 @@ class DataBlankHelper
     }
 
     /**
+     * @param Node $node
+     * @throws \Exception on unknown Node type
+     */
+    protected function getNodeValue(Node $node)
+    {
+        if ($node->isConcrete()) {
+            // uri
+            if ($node->isNamed()) {
+                $value = $node->getUri();
+            // literal
+            } elseif ($node->isLiteral()) {
+                $value = $node->getValue();
+            // blanknode
+            } elseif ($node->isBlank()) {
+                $value = $node->toNQuads();
+            } else {
+                throw new \Exception('Unknown Node type given');
+            }
+
+        } else { // anypattern
+            $value = (string)$node;
+        }
+
+        return $value;
+    }
+
+    /**
      * @param string $typeUri
      * @param string $wherePart Optional, default: ''
      * @return array
      */
-    public function find(string $typeUri, string $wherePart = '') : array
+    public function find(string $typeUri) : array
     {
         $result = $this->store->query('SELECT * FROM <'. $this->graph->getUri() .'> WHERE {
             ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <'. $typeUri .'>.
@@ -83,7 +111,14 @@ class DataBlankHelper
         $blanks = array();
         foreach ($result as $key => $entry) {
             $blanks[$key] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-            $blanks[$key]->initByStoreSearch($this->store, $this->graph, $entry['s']);
+
+            if ($entry['s'] instanceof Node) {
+                $resourceId = $this->getNodeValue($entry['s']);
+            } else {
+                $resourceId = $entry['s'];
+            }
+
+            $blanks[$key]->initByStoreSearch($this->store, $this->graph, $resourceId);
         }
 
         return $blanks;

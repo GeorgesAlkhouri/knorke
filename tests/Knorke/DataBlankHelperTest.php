@@ -66,6 +66,9 @@ class DataBlankHelperTest extends UnitTestCase
         $resourceUri = 'http://foobar/foaf-person/id/foobar';
 
         $this->store->addStatements(array(
+            /*
+             * resource 1
+             */
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode($resourceUri),
                 $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
@@ -74,10 +77,25 @@ class DataBlankHelperTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode($resourceUri),
-                $this->nodeFactory->createNamedNode('http://to-ignore'),
-                $this->nodeFactory->createNamedNode('http://this-stuff'),
+                $this->nodeFactory->createNamedNode('http://foo'),
+                $this->nodeFactory->createNamedNode('http://bar'),
                 $this->testGraph
             ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://foo'),
+                $this->nodeFactory->createBlankNode('bn1'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('bn1'),
+                $this->nodeFactory->createNamedNode('http://foobar'),
+                $this->nodeFactory->createNamedNode('http://baz'),
+                $this->testGraph
+            ),
+            /*
+             * resource 2
+             */
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode($resourceUri.'/another-one'),
                 $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
@@ -92,13 +110,20 @@ class DataBlankHelperTest extends UnitTestCase
             )
         ));
 
+        // get blank node ID
+        $result = $this->store->query('SELECT * WHERE { ?s <http://foobar> <http://baz> . }');
+        $blankNodeId = array_values($result->getArrayCopy())[0]['s']->toNQuads();
+
         /*
          * build data to check against
          */
         $expectedBlank1 = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $expectedBlank1['_idUri'] = 'http://foobar/foaf-person/id/foobar';
         $expectedBlank1['rdf:type'] = 'foaf:Person';
-        $expectedBlank1['http://to-ignore'] = 'http://this-stuff';
+        $expectedBlank1['http://foo'] = array('http://bar', $blankNodeId);
+        $expectedBlank1[$blankNodeId] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $expectedBlank1[$blankNodeId]['_idUri'] = $blankNodeId;
+        $expectedBlank1[$blankNodeId]['http://foobar'] = 'http://baz';
 
         $expectedBlank2 = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $expectedBlank2['_idUri'] = 'http://foobar/foaf-person/id/foobar/another-one';

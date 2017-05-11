@@ -207,6 +207,7 @@ class DataBlankTest extends UnitTestCase
         $dataBlankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $dataBlankToCheckAgainst['_idUri'] = 'http://s';
         $dataBlankToCheckAgainst['http://p'] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        // sub datablank
         $dataBlankToCheckAgainst['http://p']['_idUri'] = 'http://o';
         $dataBlankToCheckAgainst['http://p']['http://p2'] = 'http://o2';
 

@@ -77,6 +77,18 @@ class RestrictionTest extends UnitTestCase
             ),
         ));
 
+        // get namespace URI shortcuts
+        $nsKno = $this->commonNamespaces->getUri('kno');
+        $nsRdf = $this->commonNamespaces->getUri('rdf');
+
+        // get blank node ID, because blank nodes gets stored with a random ID to avoid collissions
+        $result = $this->store->query(
+            'SELECT * WHERE {
+                ?s <'. $nsKno .'_0> <http://foo> .
+            }'
+        );
+        $blankNodeId = array_keys($result->getArrayCopy())[0];
+
         $restrictions = $this->fixture->getRestrictionsForResource('http://resourceWithRestrictions');
 
         $this->assertEquals(
@@ -90,7 +102,7 @@ class RestrictionTest extends UnitTestCase
                 'kno:restrictionOrder' => array(
                     'kno:_0' => 'http://foo',
                     'kno:_1' => 'http://bar',
-                    '_idUri' => '_:genid1'
+                    '_idUri' => '_:'.$blankNodeId
                 ),
                 '_idUri' => 'http://foreign-resource'
             ),

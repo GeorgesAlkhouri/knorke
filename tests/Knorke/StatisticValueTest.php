@@ -110,16 +110,16 @@ class StatisticValueTest extends UnitTestCase
          * check with non-prefixed keys in mapping
          */
         $this->fixture->setMapping(array(
-            'http://statValue/2' => 2,
-            'http://statValue/startdate' => '2017-01-05'
+            'stat:2' => 2,
+            'stat:startdate' => '2017-01-05'
         ));
         $this->assertEquals(
             array(
-                'http://statValue/1' => 8.5,
-                'http://statValue/2' => 2,
-                'http://statValue/date' => '2017-01-01',
-                'http://statValue/days' => 4.0,
-                'http://statValue/startdate' => '2017-01-05'
+                'stat:1' => 8.5,
+                'stat:2' => 2,
+                'stat:date' => '2017-01-01',
+                'stat:days' => 4.0,
+                'stat:startdate' => '2017-01-05'
             ),
             $this->fixture->compute()
         );
@@ -129,15 +129,15 @@ class StatisticValueTest extends UnitTestCase
          */
         $this->fixture->setMapping(array(
             'stat:2' => 2,
-            'http://statValue/startdate' => '2017-01-05'
+            'stat:startdate' => '2017-01-05'
         ));
         $this->assertEquals(
             array(
-                'http://statValue/1' => 8.5,
-                'http://statValue/2' => 2,
-                'http://statValue/date' => '2017-01-01',
-                'http://statValue/days' => 4.0,
-                'http://statValue/startdate' => '2017-01-05'
+                'stat:1' => 8.5,
+                'stat:2' => 2,
+                'stat:date' => '2017-01-01',
+                'stat:days' => 4.0,
+                'stat:startdate' => '2017-01-05'
             ),
             $this->fixture->compute()
         );
@@ -172,13 +172,13 @@ class StatisticValueTest extends UnitTestCase
         ));
 
         $this->fixture->setMapping(array(
-            'http://statValue/1' => 5
+            'stat:1' => 5
         ));
 
         $this->assertEquals(
             array(
-                'http://statValue/1' => 5,
-                'http://statValue/2' => 10
+                'stat:1' => 5,
+                'stat:2' => 10
             ),
             $this->fixture->compute()
         );
@@ -208,23 +208,23 @@ class StatisticValueTest extends UnitTestCase
         ));
 
         // check for if option
-        $this->fixture->setMapping(array('http://statValue/1' => 31));
+        $this->fixture->setMapping(array('stat:1' => 31));
 
         $this->assertEquals(
             array(
-                'http://statValue/1' => 31,
-                'http://statValue/2' => 1
+                'stat:1' => 31,
+                'stat:2' => 1
             ),
             $this->fixture->compute()
         );
 
         // check for else option
-        $this->fixture->setMapping(array('http://statValue/1' => 20));
+        $this->fixture->setMapping(array('stat:1' => 20));
 
         $this->assertEquals(
             array(
-                'http://statValue/1' => 20,
-                'http://statValue/2' => 0
+                'stat:1' => 20,
+                'stat:2' => 0
             ),
             $this->fixture->compute()
         );
@@ -276,23 +276,23 @@ class StatisticValueTest extends UnitTestCase
         ));
 
         // check for result
-        $this->fixture->setMapping(array('http://statValue/1' => 2));
+        $this->fixture->setMapping(array('stat:1' => 2));
 
         $this->assertEquals(
             array(
-                'http://statValue/1' => 2,
-                'http://statValue/2' => 4
+                'stat:1' => 2,
+                'stat:2' => 4
             ),
             $this->fixture->compute()
         );
 
         // check for alternative
-        $this->fixture->setMapping(array('http://statValue/1' => 0.4));
+        $this->fixture->setMapping(array('stat:1' => 0.4));
 
         $this->assertEquals(
             array(
-                'http://statValue/1' => 0.4,
-                'http://statValue/2' => 2
+                'stat:1' => 0.4,
+                'stat:2' => 2
             ),
             $this->fixture->compute()
         );
@@ -326,23 +326,23 @@ class StatisticValueTest extends UnitTestCase
         ));
 
         // round up with <0.5
-        $this->fixture->setMapping(array('http://statValue/1' => 0.2));
+        $this->fixture->setMapping(array('stat:1' => 0.2));
 
         $this->assertEquals(
             array(
-                'http://statValue/1' => 0.2,
-                'http://statValue/2' => 1
+                'stat:1' => 0.2,
+                'stat:2' => 1
             ),
             $this->fixture->compute()
         );
 
         // round up with >0.5
-        $this->fixture->setMapping(array('http://statValue/1' => 0.4));
+        $this->fixture->setMapping(array('stat:1' => 0.4));
 
         $this->assertEquals(
             array(
-                'http://statValue/1' => 0.4,
-                'http://statValue/2' => 1
+                'stat:1' => 0.4,
+                'stat:2' => 1
             ),
             $this->fixture->compute()
         );
@@ -370,12 +370,12 @@ class StatisticValueTest extends UnitTestCase
             )
         ));
 
-        $this->fixture->setMapping(array('http://statValue/1' => 0.2));
+        $this->fixture->setMapping(array('stat:1' => 0.2));
 
         $this->assertEquals(
             array(
-                'http://statValue/1' => 0.2,
-                'http://statValue/2' => 0.2
+                'stat:1' => 0.2,
+                'stat:2' => 0.2
             ),
             $this->fixture->compute()
         );
@@ -402,7 +402,7 @@ class StatisticValueTest extends UnitTestCase
     {
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
-        $mapping = array('http://statValue/1' => 3);
+        $mapping = array('stat:1' => 3);
         $this->fixture->setMapping($mapping);
 
         $this->assertEquals(
@@ -427,7 +427,7 @@ class StatisticValueTest extends UnitTestCase
     {
         $this->commonNamespaces->add('stat', 'http://statValue/');
 
-        $mapping = array('http://statValue/1' => 3, 'http://statValue/2' => 3);
+        $mapping = array('stat:1' => 3, 'stat:2' => 3);
 
         $this->fixture->setMapping($mapping);
 
@@ -436,7 +436,7 @@ class StatisticValueTest extends UnitTestCase
             9, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]*stat:2'), $mapping, array())
         );
         $this->assertEquals(
-            9, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]*http://statValue/2'), $mapping, array())
+            9, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]*stat:2'), $mapping, array())
         );
 
         // plus
@@ -444,7 +444,7 @@ class StatisticValueTest extends UnitTestCase
             6, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]+stat:2'), $mapping, array())
         );
         $this->assertEquals(
-            6, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]+http://statValue/2'), $mapping, array())
+            6, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]+stat:2'), $mapping, array())
         );
 
         // minus
@@ -452,7 +452,7 @@ class StatisticValueTest extends UnitTestCase
             0, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]-stat:2'), $mapping, array())
         );
         $this->assertEquals(
-            0, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]-http://statValue/2'), $mapping, array())
+            0, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]-stat:2'), $mapping, array())
         );
 
         // division
@@ -460,7 +460,7 @@ class StatisticValueTest extends UnitTestCase
             1, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]/stat:2'), $mapping, array())
         );
         $this->assertEquals(
-            1, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]/http://statValue/2'), $mapping, array())
+            1, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]/stat:2'), $mapping, array())
         );
     }
 
@@ -509,12 +509,12 @@ class StatisticValueTest extends UnitTestCase
                 array(
                     'kno:_0' => '[stat:3]*2'
                 ),
-                array('http://statValue/1' => 3),
+                array('stat:1' => 3),
                 array(
-                    'http://statValue/2' => array(
+                    'stat:2' => array(
                         'kno:_0' => '[stat:3]*2'
                     ),
-                    'http://statValue/3' => array(
+                    'stat:3' => array(
                         'kno:_0' => '[stat:1]+4'
                     ),
                 )
@@ -528,6 +528,8 @@ class StatisticValueTest extends UnitTestCase
 
     public function testGetComputationOrderFor()
     {
+        $this->commonNamespaces->add('stat', 'http://statValue/');
+
         $this->store->addStatements(array(
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('stat:1'),
@@ -561,7 +563,21 @@ class StatisticValueTest extends UnitTestCase
             ),
         ));
 
-        $this->fixture->setMapping(array());
+        // get namespace URI shortcuts
+        $nsKno = $this->commonNamespaces->getUri('kno');
+        $nsRdf = $this->commonNamespaces->getUri('rdf');
+
+        // get blank nodes or StatisticValue instances
+        $result = $this->store->query(
+            'SELECT * WHERE {
+                ?s ?p ?o.
+                ?s <'. $nsRdf .'type> <'. $nsKno .'StatisticValue> .
+            }'
+        );
+        $stat2Blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $stat2Blank->initBySetResult($result, 'stat:2');
+
+        // now we know the exact ID of the blank nodes which represent the computation orders
 
         $this->assertEquals(
             array(
@@ -572,11 +588,11 @@ class StatisticValueTest extends UnitTestCase
                 array(
                     'stat:1' => array(
                         'rdf:type' => 'kno:StatisticValue',
-                        'kno:computationOrder' => '_:genId1'
+                        'kno:computationOrder' => $stat2Blank['kno:computationOrder'][0]
                     ),
                     'stat:2' => array(
                         'rdf:type' => 'kno:StatisticValue',
-                        'kno:computationOrder' => '_:genId2'
+                        'kno:computationOrder' => $stat2Blank['kno:computationOrder'][1]
                     ),
                 )
             )

@@ -81,7 +81,7 @@ class StatisticValue
         $statisticalValuesWithCompOrder = array();
         foreach ($statisticValues as $uri => $statisticValue) {
             if (isset($statisticValue['kno:computationOrder'])) {
-                $statisticalValuesWithCompOrder[$this->commonNamespaces->extendUri($uri)] =
+                $statisticalValuesWithCompOrder[$this->commonNamespaces->shortenUri($uri)] =
                     $this->getComputationOrderFor($uri, $statisticValues);
             }
         }
@@ -89,14 +89,14 @@ class StatisticValue
         // extend all URI keys if neccessary
         $computedValues = array();
         foreach ($this->mapping as $uri => $value) {
-            $computedValues[$this->commonNamespaces->extendUri($uri)] = $value;
+            $computedValues[$this->commonNamespaces->shortenUri($uri)] = $value;
         }
 
         // go through all statistic value instances with computationOrder property and compute related values
         foreach ($statisticalValuesWithCompOrder as $uri => $computationOrder) {
             // assumption: properties are something like "kno:_1" and ordered, therefore we ignore properties later on
             // store computed value for statisticValue instance
-            $computedValues[$this->commonNamespaces->extendUri($uri)] = $this->executeComputationOrder(
+            $computedValues[$this->commonNamespaces->shortenUri($uri)] = $this->executeComputationOrder(
                 $computationOrder,              // rule how to compute
                 $computedValues,                // already computed stuff from before
                 $statisticalValuesWithCompOrder // computation order per statistical value URI
@@ -197,11 +197,11 @@ class StatisticValue
             // TODO implement gathering referenced value, if not computed yet
             } elseif (preg_match('/IF\(\[(.*)\]\s*([>|<])\s*([0-9]+),\s*([0-9]+),\s*([0-9]+)\)/', $computationRule, $ifMatch)
                 && isset($ifMatch[1])) {
-                $statisticValueUri = $this->commonNamespaces->extendUri($ifMatch[1]); // e.g. stat:2
-                $ifOperation = $ifMatch[2];                                           // e.g. >
-                $ifConstraintValue = (float)$ifMatch[3];                              // e.g. 0
-                $ifValueOdd = $ifMatch[4];                                            // e.g. 1 (if true)
-                $ifValueEven = $ifMatch[5];                                           // e.g. 0 (if false)
+                $statisticValueUri = $this->commonNamespaces->shortenUri($ifMatch[1]); // e.g. stat:2
+                $ifOperation = $ifMatch[2];                                            // e.g. >
+                $ifConstraintValue = (float)$ifMatch[3];                               // e.g. 0
+                $ifValueOdd = $ifMatch[4];                                             // e.g. 1 (if true)
+                $ifValueEven = $ifMatch[5];                                            // e.g. 0 (if false)
 
                 // <
                 if ('<' == $ifOperation && $computedValues[$statisticValueUri] < $ifConstraintValue) {
@@ -228,7 +228,7 @@ class StatisticValue
                  * found match for 2 values with an operation to compute (like a+1). can only be as the first entry
                  */
                 if (isset($doubleValueMatch[1]) && null == $lastComputedValue) {
-                    $statisticValue1Uri = $this->commonNamespaces->extendUri($doubleValueMatch[1]);
+                    $statisticValue1Uri = $this->commonNamespaces->shortenUri($doubleValueMatch[1]);
 
                     if (isset($computedValues[$statisticValue1Uri])) {
                         $value1 = $computedValues[$statisticValue1Uri];
@@ -263,7 +263,7 @@ class StatisticValue
 
                 // if value2 is not a number, assume its an URI
                 if (false === is_numeric($value2) && null !== $value2) {
-                    $value2 = $this->commonNamespaces->extendUri($value2);
+                    $value2 = $this->commonNamespaces->shortenUri($value2);
 
                     // get value because it wasn't computed yet
                     if (false == isset($computedValues[$value2])) {
@@ -306,16 +306,20 @@ class StatisticValue
 
     /**
      * @param string $statisticValueUri
-     * @param array $statisticValues Array of arrays which container references (kno:computationOrder) to blank nodes.
+     * @param array $statisticValues Array of arrays which contains references (kno:computationOrder) to blank nodes.
      * @return null|array Array if an order was found, null otherwise.
      */
     public function getComputationOrderFor($statisticValueUri, array $statisticValues)
     {
+        $statisticValueUri = $this->commonNamespaces->shortenUri($statisticValueUri);
+
         foreach ($statisticValues as $uri => $value) {
+            $uri = $this->commonNamespaces->shortenUri($uri);
             if ($uri == $statisticValueUri) {
                 $result = $this->store->query(
                     'SELECT * WHERE {'. $value['kno:computationOrder'] .' ?p ?o.}'
                 );
+
                 $computationOrderBlank = new DataBlank(
                     $this->commonNamespaces,
                     $this->rdfHelpers,
@@ -332,7 +336,7 @@ class StatisticValue
                 // extend all URIs used
                 foreach ($computationOrder as $key => $string) {
                     unset($computationOrder[$key]);
-                    $computationOrder[$key] = $this->commonNamespaces->extendUri($string);
+                    $computationOrder[$key] = $this->commonNamespaces->shortenUri($string);
                 }
 
                 return $computationOrder;

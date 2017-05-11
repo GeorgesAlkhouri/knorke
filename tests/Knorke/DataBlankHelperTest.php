@@ -107,7 +107,10 @@ class DataBlankHelperTest extends UnitTestCase
 
         // compare
         $this->assertEquals(
-            array($expectedBlank1, $expectedBlank2),
+            array(
+                $resourceUri => $expectedBlank1,
+                $resourceUri . '/another-one' => $expectedBlank2
+            ),
             $this->fixture->find('foaf:Person')
         );
     }

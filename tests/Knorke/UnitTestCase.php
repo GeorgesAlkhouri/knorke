@@ -2,7 +2,7 @@
 
 namespace Tests\Knorke;
 
-use Knorke\InMemoryStore;
+use Knorke\Store\InMemoryStore;
 use Knorke\Data\ParserFactory;
 use PHPUnit\Framework\TestCase;
 use Saft\Rdf\CommonNamespaces;

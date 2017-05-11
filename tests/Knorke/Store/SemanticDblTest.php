@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Knorke;
+namespace Tests\Knorke\Store;
 
-use Knorke\SemanticDbl;
+use Knorke\Store\SemanticDbl;
 use Saft\Rdf\BlankNodeImpl;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\LiteralImpl;
@@ -16,22 +16,18 @@ use Saft\Sparql\Query\QueryFactoryImpl;
 use Saft\Sparql\Result\ResultFactoryImpl;
 use Saft\Sparql\Result\SetResultImpl;
 use Saft\Sparql\SparqlUtils;
+use Tests\Knorke\UnitTestCase;
 
-class SemanticDblTest extends UnitTestCase
+class SemanticDblTest extends AbstractStatementStoreTest
 {
     public function setUp()
     {
         parent::setUp();
 
-        $this->initFixture();
-        $this->fixture->setup();
-
         $this->fixture->getDb()->q(
             'DELETE FROM graph WHERE uri LIKE ?',
             $this->testGraph->getUri() . '%'
         );
-
-        $this->fixture->dropGraph($this->testGraph);
     }
 
     public function tearDown()
@@ -40,8 +36,6 @@ class SemanticDblTest extends UnitTestCase
             'DELETE FROM graph WHERE uri LIKE ?',
             $this->testGraph->getUri() . '%'
         );
-
-        $this->fixture->dropGraph($this->testGraph);
 
         parent::tearDown();
     }
@@ -65,6 +59,9 @@ class SemanticDblTest extends UnitTestCase
             $dbConfig['db'],
             $dbConfig['host']
         );
+
+        $this->fixture->setup();
+
         return $this->fixture;
     }
 
@@ -322,32 +319,6 @@ class SemanticDblTest extends UnitTestCase
     }
 
     /*
-     * Tests for getGraphs
-     */
-
-    public function testGetGraphs()
-    {
-        $this->initFixture();
-        $db = $this->fixture->getDb();
-
-        // add test graphs
-        $this->fixture->createGraph($this->nodeFactory->createNamedNode($this->testGraph->getUri() .'1'));
-        $this->fixture->createGraph($this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'));
-
-        $graphs = $this->fixture->getGraphs();
-
-        $this->assertTrue(2 <= count($graphs));
-
-        foreach ($graphs as $key => $graph) {
-            if (0 == $key) {
-                $this->assertEquals($this->testGraph->getUri() .'1', $graph->getUri());
-            } elseif (1 == $key) {
-                $this->assertEquals($this->testGraph->getUri() .'2', $graph->getUri());
-            }
-        }
-    }
-
-    /*
      * Tests for getMatchingStatements
      */
 
@@ -443,7 +414,7 @@ class SemanticDblTest extends UnitTestCase
     }
 
     /*
-     * Tests for deleteMatchingStatements
+     * Tests for query
      */
 
     public function testQuerySPO()

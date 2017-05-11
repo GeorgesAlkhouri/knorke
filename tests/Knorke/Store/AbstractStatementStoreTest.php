@@ -1,8 +1,9 @@
 <?php
 
-namespace Tests\Knorke;
+namespace Tests\Knorke\Store;
 
-use Knorke\InMemoryStore;
+use Knorke\DataBlank;
+use Knorke\Store\SemanticDbl;
 use Saft\Rdf\BlankNodeImpl;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\LiteralImpl;
@@ -13,37 +14,46 @@ use Saft\Rdf\StatementFactoryImpl;
 use Saft\Rdf\StatementImpl;
 use Saft\Rdf\StatementIteratorFactoryImpl;
 use Saft\Sparql\Query\QueryFactoryImpl;
-use Saft\Sparql\Query\QueryUtils;
+use Saft\Sparql\Result\ResultFactoryImpl;
 use Saft\Sparql\Result\SetResultImpl;
+use Saft\Sparql\SparqlUtils;
+use Tests\Knorke\UnitTestCase;
 
-class InMemoryStoreTest extends UnitTestCase
+abstract class AbstractStatementStoreTest extends UnitTestCase
 {
-    protected $commonNamespaces;
-    protected $nodeUtils;
-
     public function setUp()
     {
         parent::setUp();
 
-        $this->fixture = new InMemoryStore(
-            $this->nodeFactory,
-            $this->statementFactory,
-            $this->queryFactory,
-            $this->statementIteratorFactory,
-            $this->commonNamespaces,
-            $this->rdfHelpers
+        $this->initFixture();
+
+        $this->fixture->dropGraph($this->testGraph);
+    }
+
+    public function tearDown()
+    {
+        $this->fixture->dropGraph($this->testGraph);
+        $this->fixture->dropGraph(
+            $this->nodeFactory->createNamedNode('http://knorke/defaultGraph/')
         );
+
+        parent::tearDown();
+    }
+
+    abstract protected function initFixture();
+
+    public function testInit()
+    {
+        $this->assertTrue(is_object($this->initFixture()));
     }
 
     /*
      * Tests for addStatements
      */
-
     // checks, that prefixed and unprefixed URIs stored as unprefixed ones
     public function testAddStatementsIfPrefixedAndUnprefixedURIsAreStoredCorrectly()
     {
         $this->commonNamespaces->add('foo', 'http://foo/');
-
         /*
          * check storing prefixed URIs
          */
@@ -63,12 +73,10 @@ class InMemoryStoreTest extends UnitTestCase
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
-
         $this->assertSetIteratorEquals(
             $expectedResult,
             $this->fixture->query('SELECT * WHERE {?s ?p ?o.}')
         );
-
         /*
          * check storing unprefixed URIs
          */
@@ -79,7 +87,6 @@ class InMemoryStoreTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('http://foo/o')
             ),
         ));
-
         $expectedResult = new SetResultImpl(array(
             array(
                 's' => $this->nodeFactory->createNamedNode('http://foo/s'),
@@ -88,7 +95,6 @@ class InMemoryStoreTest extends UnitTestCase
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
-
         $this->assertSetIteratorEquals(
             $expectedResult,
             $this->fixture->query('SELECT * WHERE {?s ?p ?o.}')
@@ -96,14 +102,42 @@ class InMemoryStoreTest extends UnitTestCase
     }
 
     /*
-     * Tests for query
+     * Tests for getGraphs
      */
 
+    public function testGetGraphs()
+    {
+        $this->initFixture();
+
+        // add test graphs
+        $this->fixture->createGraph($this->nodeFactory->createNamedNode($this->testGraph->getUri() .'1'));
+        $this->fixture->createGraph($this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'));
+
+        $graphs = $this->fixture->getGraphs();
+
+        $this->assertTrue(2 <= count($graphs));
+        $foundTestGraph1 = false;
+        $foundTestGraph2 = false;
+
+        foreach ($graphs as $key => $graph) {
+            if ($graph->getUri() == $this->testGraph->getUri() .'1') {
+                $foundTestGraph1 = true;
+            } elseif ($graph->getUri() == $this->testGraph->getUri() .'2') {
+                $foundTestGraph2 = true;
+            }
+        }
+
+        $this->assertTrue($foundTestGraph1, 'Test graph 1 not found.');
+        $this->assertTrue($foundTestGraph2, 'Test graph 2 not found.');
+    }
+
+    /*
+     * Tests for query
+     */
     // check if query method handles prefixed and non-prefixed URIs well
     public function testQueryIfQueryHandlesPrefixedAndNonPrefixedUrisWell()
     {
         $this->commonNamespaces->add('foo', 'http://foo/');
-
         $this->fixture->addStatements(array(
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('foo:s'),
@@ -122,7 +156,6 @@ class InMemoryStoreTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('http://foo/o-to-be-ignore')
             ),
         ));
-
         $expectedResult = new SetResultImpl(array(
             array(
                 'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
@@ -134,13 +167,11 @@ class InMemoryStoreTest extends UnitTestCase
             )
         ));
         $expectedResult->setVariables(array('p', 'o'));
-
         // case 1
         $this->assertSetIteratorEquals(
             $expectedResult,
             $this->fixture->query('SELECT * WHERE {foo:s ?p ?o.}')
         );
-
         // case 2
         $this->assertSetIteratorEquals(
             $expectedResult,
@@ -152,7 +183,6 @@ class InMemoryStoreTest extends UnitTestCase
     public function testQuerySearchForPrefixedResource()
     {
         $this->commonNamespaces->add('foo', 'http://foo/');
-
         $this->fixture->addStatements(array(
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://foo/s'),
@@ -160,7 +190,6 @@ class InMemoryStoreTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('http://foo/o')
             )
         ));
-
         $expectedResult = new SetResultImpl(array(
             array(
                 'p' => $this->nodeFactory->createNamedNode('http://foo/p'),
@@ -168,7 +197,6 @@ class InMemoryStoreTest extends UnitTestCase
             )
         ));
         $expectedResult->setVariables(array('p', 'o'));
-
         // check for classic SPO
         $this->assertSetIteratorEquals(
             $expectedResult,
@@ -193,7 +221,6 @@ class InMemoryStoreTest extends UnitTestCase
                 $this->testGraph
             ),
         ));
-
         $expectedResult = new SetResultImpl(array(
             array(
                 's' => $this->nodeFactory->createNamedNode('http://foo/s'),
@@ -203,7 +230,6 @@ class InMemoryStoreTest extends UnitTestCase
             )
         ));
         $expectedResult->setVariables(array('s'));
-
         // check for classic SPO
         $this->assertSetIteratorEquals(
             $expectedResult,
@@ -225,7 +251,6 @@ class InMemoryStoreTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('http://o')
             )
         ));
-
         $expectedResult = new SetResultImpl(array(
             array(
                 's' => $this->nodeFactory->createNamedNode('http://s'),
@@ -234,7 +259,6 @@ class InMemoryStoreTest extends UnitTestCase
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
-
         // check for classic SPO
         $this->assertSetIteratorEquals(
             $expectedResult,
@@ -258,7 +282,6 @@ class InMemoryStoreTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('http://o1')
             )
         ));
-
         $expectedResult = new SetResultImpl(array(
             array(
                 's' => $this->nodeFactory->createNamedNode('http://s'),
@@ -267,7 +290,6 @@ class InMemoryStoreTest extends UnitTestCase
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
-
         // check for classic SPO
         $this->assertSetIteratorEquals(
             $expectedResult,
@@ -279,7 +301,6 @@ class InMemoryStoreTest extends UnitTestCase
                 }'
             )
         );
-
         // check for classic SPO (2)
         $this->assertSetIteratorEquals(
             $expectedResult,
@@ -303,23 +324,35 @@ class InMemoryStoreTest extends UnitTestCase
                 $this->nodeFactory->createLiteral('Label for s')
             ),
             $this->statementFactory->createStatement(
-                new BlankNodeImpl('genid1'),
+                $this->nodeFactory->createBlankNode('genid1'),
                 $this->nodeFactory->createNamedNode('rdf:type'),
                 $this->nodeFactory->createNamedNode('foaf:Person')
             )
         ));
 
+        // get generated blank node ID
+        $nsFoaf = $this->commonNamespaces->getUri('foaf');
+        $nsRdf = $this->commonNamespaces->getUri('rdf');
+        $result = $this->fixture->query(
+            'SELECT * WHERE {
+                ?s ?p ?o.
+                ?s <'. $nsRdf .'type> <'. $nsFoaf .'Person> .
+            }'
+        );
+        $generatedBlankNodeId = $result[0]['s']->getBlankId();
+
+        // expected result
         $expectedResult = new SetResultImpl(array(
             array(
                 'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
                 'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
             )
         ));
-        $expectedResult->setVariables(array('p', 'o'));
 
+        $expectedResult->setVariables(array('p', 'o'));
         $this->assertSetIteratorEquals(
             $expectedResult,
-            $this->fixture->query('SELECT * WHERE {_:genid1 ?p ?o.}')
+            $this->fixture->query('SELECT * WHERE {_:'. $generatedBlankNodeId .' ?p ?o.}')
         );
     }
 
@@ -338,12 +371,11 @@ class InMemoryStoreTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('foaf:Person')
             ),
             $this->statementFactory->createStatement(
-                new BlankNodeImpl('b123'),
+                $this->nodeFactory->createBlankNode('b123'),
                 $this->nodeFactory->createNamedNode('rdf:type'),
                 $this->nodeFactory->createNamedNode('foaf:Person')
             ),
         ));
-
         $expectedResult = new SetResultImpl(array(
             array(
                 'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
@@ -351,7 +383,6 @@ class InMemoryStoreTest extends UnitTestCase
             )
         ));
         $expectedResult->setVariables(array('p', 'o'));
-
         $this->assertSetIteratorEquals(
             $expectedResult,
             $this->fixture->query('SELECT * WHERE {<http://s> ?p ?o.}')
@@ -380,7 +411,6 @@ class InMemoryStoreTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('http://o-to-be-ignore')
             ),
         ));
-
         $expectedResult = new SetResultImpl(array(
             array(
                 's' => $this->nodeFactory->createNamedNode('http://s'),
@@ -394,7 +424,6 @@ class InMemoryStoreTest extends UnitTestCase
             )
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
-
         // check for classic SPO
         $this->assertSetIteratorEquals(
             $expectedResult,

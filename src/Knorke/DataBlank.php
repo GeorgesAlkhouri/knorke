@@ -143,6 +143,8 @@ class DataBlank extends \ArrayObject
         string $predicate = 'p',
         string $object = 'o'
     ) {
+        $subjectUri = $this->commonNamespaces->extendUri($subjectUri);
+
         foreach ($result as $entry) {
             // ignore entry if its subject is not relevant
             if (isset($entry[$subject])) {
@@ -155,6 +157,7 @@ class DataBlank extends \ArrayObject
             }
 
             $predicateValue = $entry[$predicate]->getUri();
+
             // named node
             if ($entry[$object]->isNamed()) {
                 $value = $entry[$object]->getUri();

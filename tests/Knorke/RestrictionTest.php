@@ -2,20 +2,7 @@
 
 namespace Tests\Knorke;
 
-use Knorke\InMemoryStore;
 use Knorke\Restriction;
-use Saft\Rdf\BlankNodeImpl;
-use Saft\Rdf\CommonNamespaces;
-use Saft\Rdf\LiteralImpl;
-use Saft\Rdf\NamedNodeImpl;
-use Saft\Rdf\NodeFactoryImpl;
-use Saft\Rdf\NodeUtils;
-use Saft\Rdf\StatementFactoryImpl;
-use Saft\Rdf\StatementImpl;
-use Saft\Rdf\StatementIteratorFactoryImpl;
-use Saft\Sparql\Query\QueryFactoryImpl;
-use Saft\Sparql\Query\QueryUtils;
-use Saft\Sparql\Result\SetResultImpl;
 
 class RestrictionTest extends UnitTestCase
 {
@@ -23,7 +10,12 @@ class RestrictionTest extends UnitTestCase
     {
         parent::setUp();
 
-        $this->fixture = new Restriction($this->store, $this->commonNamespaces, $this->rdfHelpers);
+        $this->fixture = new Restriction(
+            $this->store,
+            $this->testGraph,
+            $this->commonNamespaces,
+            $this->rdfHelpers
+        );
     }
 
     public function testNoPrefixedPredicateAndObject()
@@ -43,23 +35,30 @@ class RestrictionTest extends UnitTestCase
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
                 $this->nodeFactory->createNamedNode('rdfs:label'),
-                $this->nodeFactory->createLiteral('label')
+                $this->nodeFactory->createLiteral('label'),
+                $this->testGraph
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
                 $this->nodeFactory->createNamedNode('kno:restrictionOneOf'),
-                $this->nodeFactory->createNamedNode('http://foo')
+                $this->nodeFactory->createNamedNode('http://foo'),
+                $this->testGraph
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
                 $this->nodeFactory->createNamedNode('kno:restrictionOneOf'),
-                $this->nodeFactory->createNamedNode('http://bar')
+                $this->nodeFactory->createNamedNode('http://bar'),
+                $this->testGraph
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
                 $this->nodeFactory->createNamedNode('kno:inheritsAllPropertiesOf'),
-                $this->nodeFactory->createNamedNode('http://foreign-resource')
+                $this->nodeFactory->createNamedNode('http://foreign-resource'),
+                $this->testGraph
             ),
+            /*
+             * http://foreign-resource
+             */
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://foreign-resource'),
                 $this->nodeFactory->createNamedNode('kno:restrictionOrder'),
@@ -82,11 +81,7 @@ class RestrictionTest extends UnitTestCase
         $nsRdf = $this->commonNamespaces->getUri('rdf');
 
         // get blank node ID, because blank nodes gets stored with a random ID to avoid collissions
-        $result = $this->store->query(
-            'SELECT * WHERE {
-                ?s <'. $nsKno .'_0> <http://foo> .
-            }'
-        );
+        $result = $this->store->query('SELECT * WHERE { ?s <'. $nsKno .'_0> <http://foo> . }');
         $blankNodeId = array_keys($result->getArrayCopy())[0];
 
         $restrictions = $this->fixture->getRestrictionsForResource('http://resourceWithRestrictions');
@@ -95,16 +90,15 @@ class RestrictionTest extends UnitTestCase
             array(
                 'rdfs:label' => 'label',
                 'kno:restrictionOneOf' => array(
-                    'http://foo',
-                    'http://bar',
+                    0 => 'http://foo',
+                    1 => 'http://bar',
                 ),
                 'kno:inheritsAllPropertiesOf' => 'http://foreign-resource',
                 'kno:restrictionOrder' => array(
                     'kno:_0' => 'http://foo',
                     'kno:_1' => 'http://bar',
-                    '_idUri' => '_:'.$blankNodeId
                 ),
-                '_idUri' => 'http://foreign-resource'
+                '_idUri' => 'http://resourceWithRestrictions'
             ),
             $restrictions->getArrayCopy()
         );

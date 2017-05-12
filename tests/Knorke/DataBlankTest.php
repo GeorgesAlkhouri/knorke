@@ -175,6 +175,30 @@ class DataBlankTest extends UnitTestCase
     }
 
     /*
+     * Tests for getArrayCopy
+     */
+
+    public function testGetArrayCopy()
+    {
+        $this->fixture['http://foo'] = 'bar';
+        $this->fixture['http://foo2'] = array(0, 2);
+
+        $this->fixture['http://foo3'] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $this->fixture['http://foo3']['http://foo4'] = 4;
+
+        $this->assertEquals(
+            array(
+                'http://foo' => 'bar',
+                'http://foo2' => array(0, 2),
+                'http://foo3' => array(
+                    'http://foo4' => 4,
+                )
+            ),
+            $this->fixture->getArrayCopy()
+        );
+    }
+
+    /*
      * Tests for initByStoreQuery
      */
 
@@ -214,13 +238,8 @@ class DataBlankTest extends UnitTestCase
         $this->assertEquals($dataBlank, $dataBlankToCheckAgainst);
     }
 
-    public function te1stInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode()
+    public function testInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode()
     {
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
-            'use_prefixed_predicates' => true,
-            'use_prefixed_objects' => true,
-        ));
-
         $this->store->addStatements(array(
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://s'),
@@ -229,20 +248,69 @@ class DataBlankTest extends UnitTestCase
                 $this->testGraph
             ),
             $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('http://p'),
+                $this->nodeFactory->createNamedNode('http://o'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('http://p'),
+                $this->nodeFactory->createNamedNode('http://o-standalone'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('http://p'),
+                $this->nodeFactory->createLiteral('o-standalone'),
+                $this->testGraph
+            ),
+            // sub datablank 1 (blanknode as subject)
+            $this->statementFactory->createStatement(
                 $this->nodeFactory->createBlankNode('genid1'),
                 $this->nodeFactory->createNamedNode('http://p2'),
                 $this->nodeFactory->createNamedNode('http://o2'),
                 $this->testGraph
+            ),
+            // sub datablank 2 (namednode as subject)
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://o'),
+                $this->nodeFactory->createNamedNode('http://p3'),
+                $this->nodeFactory->createNamedNode('http://o3'),
+                $this->testGraph
             )
         ));
 
-        $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $dataBlank->initByStoreSearch($this->store, $this->testGraph, 'http://s');
+        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
+            'use_prefixed_predicates' => true,
+            'use_prefixed_objects' => true,
+        ));
 
-        $dataBlankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $dataBlankToCheckAgainst['http://p'] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $dataBlankToCheckAgainst['http://p']['http://p2'] = 'http://o2';
+        $this->fixture->initByStoreSearch($this->store, $this->testGraph, 'http://s');
 
-        $this->assertEquals($dataBlank, $dataBlankToCheckAgainst);
+        // get blank node id
+        $result = $this->store->query('SELECT * WHERE { ?s <http://p2> <http://o2>. }');
+        foreach ($result as $value) { $blankNodeId = $value['s']->toNQuads(); break; }
+
+        $this->assertEquals(
+            array(
+                '_idUri' => 'http://s',
+                'http://p' => array(
+                    // sub datablank 1
+                    array(
+                        '_idUri' => $blankNodeId,
+                        'http://p2' => 'http://o2'
+                    ),
+                    // sub datablank 2
+                    array(
+                        '_idUri' => 'http://o',
+                        'http://p3'=> 'http://o3'
+                    ),
+                    'http://o-standalone',
+                    'o-standalone'
+                )
+            ),
+            $this->fixture->getArrayCopy()
+        );
     }
 }

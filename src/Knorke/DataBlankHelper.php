@@ -110,14 +110,13 @@ class DataBlankHelper
 
         $blanks = array();
         foreach ($result as $key => $entry) {
-            $blanks[$key] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-
             if ($entry['s'] instanceof Node) {
                 $resourceId = $this->getNodeValue($entry['s']);
             } else {
                 $resourceId = $entry['s'];
             }
 
+            $blanks[$key] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
             $blanks[$key]->initByStoreSearch($this->store, $this->graph, $resourceId);
         }
 

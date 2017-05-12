@@ -3,6 +3,7 @@
 namespace Knorke;
 
 use Saft\Rdf\CommonNamespaces;
+use Saft\Rdf\NamedNode;
 use Saft\Rdf\RdfHelpers;
 use Saft\Store\Store;
 
@@ -12,12 +13,18 @@ use Saft\Store\Store;
 class Restriction
 {
     protected $commonNamespaces;
+    protected $graph;
     protected $rdfHelpers;
     protected $store;
 
-    public function __construct(Store $store, CommonNamespaces $commonNamespaces, RdfHelpers $rdfHelpers)
-    {
+    public function __construct(
+        Store $store,
+        NamedNode $graph,
+        CommonNamespaces $commonNamespaces,
+        RdfHelpers $rdfHelpers
+    ) {
         $this->commonNamespaces = $commonNamespaces;
+        $this->graph = $graph;
         $this->rdfHelpers = $rdfHelpers;
         $this->store = $store;
     }
@@ -25,7 +32,7 @@ class Restriction
     /**
      * @param string $resourceUri
      */
-    public function getRestrictionsForResource($resourceUri)
+    public function getRestrictionsForResource(string $resourceUri) : DataBlank
     {
         $blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $blank->initBySetResult($this->store->query('SELECT * WHERE {<'. $resourceUri .'> ?p ?o.}'), $resourceUri);
@@ -35,27 +42,15 @@ class Restriction
          */
         if (null !== $blank->get('kno:inheritsAllPropertiesOf')) {
             // get infos from the other resource
-            $foreignResourceUri = $blank->get('kno:inheritsAllPropertiesOf');
-            $foreignResourceInfo = $this->store->query('SELECT * WHERE {<'. $foreignResourceUri .'> ?p ?o.}');
-            $foreignResourceBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-            $foreignResourceBlank->initBySetResult($foreignResourceInfo, $foreignResourceUri);
+            $foreignResource = $blank->get('kno:inheritsAllPropertiesOf');
+            $foreignBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
+                'add_internal_data_fields' => false
+            ));
+            $foreignBlank->initByStoreSearch($this->store, $this->graph, $foreignResource);
             // copy property-value combination into blank instance
-            foreach ($foreignResourceBlank as $property => $value) {
+            foreach ($foreignBlank as $property => $value) {
                 $blank[$property] = $value;
             }
-        }
-
-        /*
-         * if its a list and the order of elements is fixed
-         */
-        if (null !== $blank->get('kno:restrictionOrder')) {
-            $orderResource = $blank->get('kno:restrictionOrder');
-            $orderInformation = $this->store->query('SELECT * WHERE {'. $orderResource .' ?p ?o.}');
-            $orderBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-            $orderBlank->initBySetResult($orderInformation, $orderResource);
-            $orderArray = $orderBlank->getArrayCopy();
-            ksort($orderArray); // sort by key
-            $blank['kno:restrictionOrder'] = $orderArray;
         }
 
         return $blank;

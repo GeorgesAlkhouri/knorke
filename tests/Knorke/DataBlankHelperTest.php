@@ -66,9 +66,6 @@ class DataBlankHelperTest extends UnitTestCase
         $resourceUri = 'http://foobar/foaf-person/id/foobar';
 
         $this->store->addStatements(array(
-            /*
-             * resource 1
-             */
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode($resourceUri),
                 $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
@@ -90,11 +87,65 @@ class DataBlankHelperTest extends UnitTestCase
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createBlankNode('bn1'),
                 $this->nodeFactory->createNamedNode('http://foobar'),
-                $this->nodeFactory->createNamedNode('http://baz'),
+                $this->nodeFactory->createNamedNode('http://baz')
+            )
+        ));
+
+        // get blank node ID
+        $result = $this->store->query('SELECT * WHERE { ?s <http://foobar> <http://baz> . }');
+        $blankNodeId = array_values($result->getArrayCopy())[0]['s']->toNQuads();
+
+        // compare
+        $this->assertEquals(
+            array(
+                $resourceUri => array(
+                    '_idUri' => $resourceUri,
+                    'rdf:type' => 'foaf:Person',
+                    'http://foo' => array(
+                        'http://bar',
+                        array(
+                            '_idUri' => $blankNodeId,
+                            'http://foobar' => 'http://baz'
+                        )
+                    )
+                )
+            ),
+            array(
+                $resourceUri => array_values($this->fixture->find('foaf:Person'))[0]->getArrayCopy()
+            )
+        );
+    }
+
+    public function testFindComplex()
+    {
+        $resourceUri = 'http://foobar/foaf-person/id/foobar';
+
+        $this->store->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
                 $this->testGraph
             ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://foo'),
+                $this->nodeFactory->createNamedNode('http://bar'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://foo'),
+                $this->nodeFactory->createBlankNode('bn1'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('bn1'),
+                $this->nodeFactory->createNamedNode('http://foobar'),
+                $this->nodeFactory->createNamedNode('http://baz')
+            ),
             /*
-             * resource 2
+             * another resource
              */
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode($resourceUri.'/another-one'),
@@ -114,29 +165,32 @@ class DataBlankHelperTest extends UnitTestCase
         $result = $this->store->query('SELECT * WHERE { ?s <http://foobar> <http://baz> . }');
         $blankNodeId = array_values($result->getArrayCopy())[0]['s']->toNQuads();
 
-        /*
-         * build data to check against
-         */
-        $expectedBlank1 = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $expectedBlank1['_idUri'] = 'http://foobar/foaf-person/id/foobar';
-        $expectedBlank1['rdf:type'] = 'foaf:Person';
-        $expectedBlank1['http://foo'] = array('http://bar', $blankNodeId);
-        $expectedBlank1[$blankNodeId] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $expectedBlank1[$blankNodeId]['_idUri'] = $blankNodeId;
-        $expectedBlank1[$blankNodeId]['http://foobar'] = 'http://baz';
-
-        $expectedBlank2 = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $expectedBlank2['_idUri'] = 'http://foobar/foaf-person/id/foobar/another-one';
-        $expectedBlank2['rdf:type'] = 'foaf:Person';
-        $expectedBlank2['rdfs:label'] = 'Another Person';
+        $persons = array_values($this->fixture->find('foaf:Person'));
 
         // compare
         $this->assertEquals(
             array(
-                $resourceUri => $expectedBlank1,
-                $resourceUri . '/another-one' => $expectedBlank2
+                $resourceUri => array(
+                    '_idUri' => $resourceUri,
+                    'rdf:type' => 'foaf:Person',
+                    'http://foo' => array(
+                        'http://bar',
+                        array(
+                            '_idUri' => $blankNodeId,
+                            'http://foobar' => 'http://baz'
+                        )
+                    )
+                ),
+                $resourceUri . '/another-one' => array(
+                    '_idUri' => $resourceUri . '/another-one',
+                    'rdf:type' => 'foaf:Person',
+                    'rdfs:label' => 'Another Person'
+                )
             ),
-            $this->fixture->find('foaf:Person')
+            array(
+                $resourceUri                    => $persons[0]->getArrayCopy(),
+                $resourceUri . '/another-one'   => $persons[1]->getArrayCopy()
+            )
         );
     }
 

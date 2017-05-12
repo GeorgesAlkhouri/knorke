@@ -81,8 +81,8 @@ class DataBlank extends \ArrayObject
     }
 
     /**
-     * Helper function to allow content gathering by using full URIs or prefixed ones. If the indirect way worked, the
-     * previously try $property will be applied to.
+     * Helper function to allow content gathering by using full URIs or prefixed ones.
+     * If the indirect way worked, the previously try $property will be applied to.
      *
      * @param string|number $property
      * @return mixed
@@ -113,9 +113,82 @@ class DataBlank extends \ArrayObject
     }
 
     /**
+     * @return array Array copy of this instance.
+     */
+    public function getArrayCopy() : array
+    {
+        $copy = array();
+
+        foreach ($this as $key => $value) {
+            if (is_array($value) || $value instanceof DataBlank) {
+                $copy[$key] = $this->getArrayCopyRecursive($value);
+            } elseif (is_string($key) && $key !== $value) {
+                $copy[$key] = $value;
+            } else {
+                echo '
+
+                '. $value;
+                $copy[] = $value;
+            }
+        }
+
+        return $copy;
+    }
+
+    /**
+     * @param mixed $value
+     * @return mixed
+     */
+    protected function getArrayCopyRecursive($value)
+    {
+        // sub array found
+        if (is_array($value)) {
+            $copy = array();
+            foreach ($value as $subkey => $entry) {
+                if (is_array($entry) || $entry instanceof DataBlank) {
+                    // $copy[$subkey] = $this->getArrayCopyRecursive($entry);
+                    $entry = $this->getArrayCopyRecursive($entry);
+                } elseif (is_string($subkey) && $subkey !== $entry) {
+                    $copy[$subkey] = $entry;
+                } else {
+                }
+                $copy[] = $entry;
+            }
+            return $copy;
+
+        // datablank found
+        } elseif ($value instanceof DataBlank) {
+            return $value->getArrayCopy();
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param Node $node
+     * @return mixed
+     */
+    protected function getNodeValue(Node $node)
+    {
+        // named node
+        if ($node->isNamed()) {
+            return $node->getUri();
+        // literal
+        } elseif ($node->isLiteral()) {
+            return $node->getValue();
+        // blank node
+        } elseif ($node->isBlank()) {
+            return $node->toNQuads();
+        }
+
+        return null;
+    }
+
+    /**
      * Init instance by a simple array with properties as keys and according values.
      *
      * @param array $array
+     * @todo implement a way to handle different $value data types
      */
     public function initByArray(array $array)
     {
@@ -139,13 +212,15 @@ class DataBlank extends \ArrayObject
     }
 
     /**
-     * Init instance by a given SetResult instance.
+     * Init instance by a given SetResult instance. It only set properties and values of the
+     * given subject. If for instance an object has also more properties, they will be ignored.
+     * For such cases, use initByStoreSearch.
      *
      * @param SetResult $result
      * @param string $subjectUri
+     * @param string $subject Default: s (optional)
      * @param string $predicate Default: p (optional)
      * @param string $object Default: o (optional)
-     * @todo support blank nodes
      */
     public function initBySetResult(
         SetResult $result,
@@ -157,46 +232,34 @@ class DataBlank extends \ArrayObject
         $subjectUri = $this->commonNamespaces->extendUri($subjectUri);
 
         foreach ($result as $entry) {
-            // ignore entry if its subject is not relevant
+            // ignore entry if its subject is set but is not relevant
             if (isset($entry[$subject])) {
-                $subjectValue = $entry[$subject]->isNamed()
-                    ? $entry[$subject]->getUri()
-                    : $entry[$subject]->getBlankId();
+                $s = $entry[$subject];
+                $subjectValue = $s->isNamed() ? $s->getUri() : $s->getBlankId();
                 if ($subjectValue !== $subjectUri) {
                     continue;
                 }
             }
 
-            $predicateValue = $entry[$predicate]->getUri();
+            $p = $entry[$predicate];
+            $o = $entry[$object];
 
-            // named node
-            if ($entry[$object]->isNamed()) {
-                $value = $entry[$object]->getUri();
-            // literal
-            } elseif ($entry[$object]->isLiteral()) {
-                $value = $entry[$object]->getValue();
-            // blank node
-            } elseif ($entry[$object]->isBlank()) {
-                $value = $entry[$object]->toNQuads();
-            }
+            /*
+             * predicate value
+             */
+            $predicateValue = $this->options['use_prefixed_predicates']
+                ? $this->commonNamespaces->shortenUri($p->getUri())
+                : $this->commonNamespaces->extendUri($p->getUri());
 
-            // prefix predicates if wanted
-            if ($this->options['use_prefixed_predicates']) {
-                $predicateValue = $this->transformPrefixToFullVersionOrBack($entry[$predicate]->getUri());
-
-            // or transform all predicates back to their full length, if possible
+            /*
+             * object value
+             */
+            if ($o->isNamed()) {
+                $value = $this->options['use_prefixed_objects']
+                    ? $this->commonNamespaces->shortenUri($o->getUri())
+                    : $this->commonNamespaces->extendUri($o->getUri());
             } else {
-                $predicateValue = $this->transformPrefixToFullVersionOrBack($entry[$predicate]->getUri(), 'not_prefixed');
-            }
-
-            if ($entry[$object]->isNamed()) {
-                // prefix objects if wanted
-                if ($this->options['use_prefixed_objects']) {
-                    $value = $this->transformPrefixToFullVersionOrBack($entry[$object]->getUri());
-                // or transform all objects back to their full length, if possible
-                } else {
-                    $value = $this->transformPrefixToFullVersionOrBack($entry[$object]->getUri(), 'not_prefixed');
-                }
+                $value = $this->getNodeValue($o);
             }
 
             // set property key and object value
@@ -260,38 +323,35 @@ class DataBlank extends \ArrayObject
         // init direct connections of the subject
         $this->initBySetResult($setResult, $resourceId);
 
-        // recursive init objects which are URIs and connections too
+        /*
+         * recursive initiation of already stored objects, which are URIs or blank nodes
+         */
         foreach ($this as $key => $value) {
-            // value is an array of values
+            // to avoid infinite recursion
+            if ($value == $resourceId) {
+                continue;
+            }
+
+            // value is an array
             if (is_array($value)) {
-                // multiple objects for one property
-                foreach ($value as $entry) {
-                    $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-                    // init value instance recursively
-                    if ($value !== $resourceId) {
-                        $valueDataBlank->initByStoreSearch($store, $graph, $entry);
+                foreach ($value as $subKey => $subValue) {
+                    if ($this->rdfHelpers->simpleCheckURI($subValue) || $this->rdfHelpers->simpleCheckBlankNodeId($subValue)) {
+                        $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->options);
+                        $valueDataBlank->initByStoreSearch($store, $graph, $subValue);
                         if (1 < count($valueDataBlank)) {
-                            $this[$entry] = $valueDataBlank;
+                            $this[$key][$subKey] = $valueDataBlank;
                         }
                     }
                 }
 
-            // value is an instance of DataBlank
-            } elseif ($value instanceof DataBlank) {
-                $this[$key] = $value;
-
-            // value is a string
-            } elseif ($this->rdfHelpers->simpleCheckURI($value)
-                || $this->rdfHelpers->simpleCheckBlankNodeId($value)) {
-
-                $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-                // init value instance recursively
-                if ($value !== $resourceId) {
-                    $valueDataBlank->initByStoreSearch($store, $graph, $value);
-                    if (1 < count($valueDataBlank)) {
-                        $this[$key] = $valueDataBlank;
-                    }
+            // value is resource (try to load further information)
+            } elseif ($this->rdfHelpers->simpleCheckURI($value) || $this->rdfHelpers->simpleCheckBlankNodeId($value)) {
+                $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->options);
+                $valueDataBlank->initByStoreSearch($store, $graph, $value);
+                if (1 < count($valueDataBlank)) {
+                    $this[$key] = $valueDataBlank;
                 }
+                // if nothing is in $valueDataBlank, the current value remains untouched
             }
         }
     }
@@ -306,42 +366,16 @@ class DataBlank extends \ArrayObject
         if (isset($this[$key]) && $this[$key] !== $value) {
             // is already an array, add further item
             if (is_array($this[$key])) {
+                // $this[$key][$value] = $value;
                 $this[$key][] = $value;
             // is a string, make it to array
             } else {
-                $this[$key] = array($this[$key], $value);
+                // $this[$key] = array($this[$key] => $this[$key], $value => $value);
+                $this[$key] = array(0 => $this[$key], 1 => $value);
             }
         // value not set already
         } else {
             $this[$key] = $value;
         }
-    }
-
-    /**
-     * Transforms a given URI to a prefixed version or back.
-     *
-     * @param string $uri
-     * @param string $mode possible values: prefixed, not_prefixed. default: prefixed
-     * @return string
-     */
-    protected function transformPrefixToFullVersionOrBack($uri, $mode = 'prefixed')
-    {
-        if ('prefixed' == $mode) {
-            foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
-                if (false !== strpos($uri, $nsUri)) {
-                    return str_replace($nsUri, $ns .':', $uri);
-                }
-            }
-
-        // replace prefix with full URI if possible
-        } else { // = not_prefixed
-            foreach ($this->commonNamespaces->getNamespaces() as $ns => $nsUri) {
-                if (false !== strpos($uri, $ns .':')) {
-                    return str_replace($ns .':', $nsUri, $uri);
-                }
-            }
-        }
-
-        return $uri;
     }
 }

@@ -430,4 +430,57 @@ abstract class AbstractStatementStoreTest extends UnitTestCase
             $this->fixture->query('SELECT * WHERE {?s ?p ?o. ?s rdf:type foaf:Person.}')
         );
     }
+
+    // check ?s ?p ?o
+    //       ?s rdf:type foaf:Person
+    //       ?s foo:bar "baz"
+    public function testQuerySPOWithTypedSAndUriLiteral2()
+    {
+        $this->fixture->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('Label for s')
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('foaf:Person')
+            ),
+            // has to be ignored
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s2'),
+                $this->nodeFactory->createNamedNode('rdf:type'),
+                $this->nodeFactory->createNamedNode('foaf:Person')
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s2'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('to be ignored')
+            ),
+        ));
+        $expectedResult = new SetResultImpl(array(
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+                'o' => $this->nodeFactory->createLiteral('Label for s'),
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
+            )
+        ));
+        $expectedResult->setVariables(array('s', 'p', 'o'));
+
+        // check for classic SPO
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {
+                ?s ?p ?o.
+                ?s rdf:type foaf:Person.
+                ?s rdfs:label "Label for s".
+            }')
+        );
+    }
 }

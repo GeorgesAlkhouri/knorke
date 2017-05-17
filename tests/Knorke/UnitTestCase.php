@@ -73,7 +73,7 @@ class UnitTestCase extends TestCase
      */
     public function assertSetIteratorEquals(SetResult $expected, SetResult $actual)
     {
-        $entriesToCheck = array();
+        $expectedEntries = array();
         foreach ($expected as $entry) {
             // serialize entry and hash it afterwards to use it as key for $entriesToCheck array.
             // later on we only check the other list that each entry, serialized and hashed, has
@@ -83,60 +83,67 @@ class UnitTestCase extends TestCase
             foreach ($entry as $key => $nodeInstance) {
                 if ($nodeInstance->isConcrete()) {
                     // build a string of all entries of $entry and generate a hash based on that later on.
-                    $entryString = $nodeInstance->toNQuads();
+                    $entryString .= $nodeInstance->toNQuads() . ' ';
                 } else {
                     throw new \Exception('Non-concrete Node instance in SetResult instance found.');
                 }
             }
-            $entriesToCheck[hash('sha256', $entryString)] = $entry;
+            $expectedEntries[$entryString] = $entry;
         }
 
-        // contains a list of all entries, which were not found in $expected.
-        $actualEntriesNotFound = array();
-        $actualRealEntriesNotFound = array();
+        $actualEntries = array();
         foreach ($actual as $entry) {
             $entryString = '';
             foreach ($entry as $key => $nodeInstance) {
                 if ($nodeInstance->isConcrete()) {
                     // build a string of all entries of $entry and generate a hash based on that later on.
-                    $entryString = $nodeInstance->toNQuads();
+                    $entryString .= $nodeInstance->toNQuads() . ' ';
                 } else {
                     throw new \Exception('Non-concrete Node instance in SetResult instance found.');
                 }
             }
-            $entryHash = hash('sha256', $entryString);
-            if (isset($entriesToCheck[$entryHash])) {
-                // if entry was found, mark it.
-                $entriesToCheck[$entryHash] = true;
-            } else {
-                // entry was not found
-                $actualEntriesNotFound[] = $entryHash;
-                $actualRealEntriesNotFound[] = $entry;
-            }
+            $actualEntries[$entryString] = $entry;
         }
-        $notCheckedEntries = array();
-        // check that all entries from $expected were checked
-        foreach ($entriesToCheck as $key => $value) {
-            if (true !== $value) {
-                $notCheckedEntries[] = $value;
+
+        $notFoundEntries = array();
+        foreach ($expectedEntries as $expectedEntry) {
+            $foundExpectedEntry = false;
+
+            // 1. generate a string which represents all nodes of an expected set entry
+            $expectedEntryString = '';
+            foreach ($expectedEntry as $nodeInstance) {
+                $expectedEntryString .= $nodeInstance->toNQuads() . ' ';
+            }
+
+            // 2. for each actual entry check their generated string against the expected one
+            foreach ($actualEntries as $actualEntry) {
+                $actualEntryString = '';
+                foreach ($actualEntry as $nodeInstance) {
+                    $actualEntryString .= $nodeInstance->toNQuads() . ' ';
+                }
+                if ($actualEntryString == $expectedEntryString) {
+                    $foundExpectedEntry = true;
+                    break;
+                }
+            }
+
+            if (false == $foundExpectedEntry) {
+                $notFoundEntries[] = $expectedEntryString;
             }
         }
 
-        if (!empty($actualEntriesNotFound) || !empty($notCheckedEntries)) {
-            $message = 'The StatementIterators are not equal.';
-            if (!empty($actualEntriesNotFound)) {
-                echo PHP_EOL . PHP_EOL . 'Not expected entries:' . PHP_EOL;
-                print_r($actualRealEntriesNotFound);
-                $message .= ' ' . count($actualEntriesNotFound) . ' Statements where not expected.';
-            }
-            if (!empty($notCheckedEntries)) {
-                echo PHP_EOL . PHP_EOL . 'Not present entries:' . PHP_EOL;
-                print_r($notCheckedEntries);
-                $message .= ' ' . count($notCheckedEntries) . ' Statements where not present but expected.';
-            }
-            $this->fail($message);
+        // first simply check of the number of given actual entries and expected
+        if (count($actualEntries) != count($expectedEntries)) {
+            $this->fail('Expected '. count($expectedEntries) . ' entries, but got '. count($actualEntries));
+        }
 
-        } elseif (0 == count($actualEntriesNotFound) && 0 == count($notCheckedEntries)) {
+        if (!empty($notFoundEntries)) {
+            echo PHP_EOL . PHP_EOL . 'Not found entries:' . PHP_EOL;
+            var_dump($notFoundEntries);
+
+            $this->fail(count($notFoundEntries) .' entries where not found.');
+
+        } elseif (0 == count($notFoundEntries)) {
             $this->assertEquals($expected->getVariables(), $actual->getVariables());
         }
     }

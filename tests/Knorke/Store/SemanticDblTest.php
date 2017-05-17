@@ -772,60 +772,6 @@ class SemanticDblTest extends AbstractStatementStoreTest
         );
     }
 
-    // check ?s ?p ?o.
-    //       FILTER (?p = <http://p> || ?p = <http://p1>)
-    public function testQuerySPOQueryWithFilter()
-    {
-        $this->fixture->createGraph($this->testGraph);
-
-        $this->fixture->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://s'),
-                $this->nodeFactory->createNamedNode('http://p'),
-                $this->nodeFactory->createNamedNode('http://o'),
-                $this->testGraph
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://s'),
-                $this->nodeFactory->createNamedNode('http://p-not-this'),
-                $this->nodeFactory->createNamedNode('http://o1'),
-                $this->testGraph
-            )
-        ));
-        $expectedResult = new SetResultImpl(array(
-            array(
-                's' => $this->nodeFactory->createNamedNode('http://s'),
-                'p' => $this->nodeFactory->createNamedNode('http://p'),
-                'o' => $this->nodeFactory->createNamedNode('http://o'),
-            )
-        ));
-        $expectedResult->setVariables(array('s', 'p', 'o'));
-        // check for classic SPO
-        $this->assertSetIteratorEquals(
-            $expectedResult,
-            $this->fixture->query(
-                'SELECT *
-                   FROM <'. $this->testGraph->getUri() .'>
-                  WHERE {
-                    ?s ?p ?o.
-                    FILTER (?p = <http://p> || ?p = <http://p1>)
-                }'
-            )
-        );
-        // check for classic SPO (2)
-        $this->assertSetIteratorEquals(
-            $expectedResult,
-            $this->fixture->query(
-                'SELECT *
-                   FROM <'. $this->testGraph->getUri() .'>
-                  WHERE {
-                    ?s ?p ?o.
-                    FILTER (?p = <http://p>)
-                }'
-            )
-        );
-    }
-
     // check <http://> ?p ?o.
     public function testQuerySPOWithFixedSubject()
     {

@@ -445,6 +445,33 @@ class SemanticDbl extends AbstractStatementStore
     }
 
     /**
+     * @param Node $node
+     * @throws \Exception on unknown Node type
+     */
+    protected function getNodeValue(Node $node)
+    {
+        if ($node->isConcrete()) {
+            // uri
+            if ($node->isNamed()) {
+                $value = $node->getUri();
+            // literal
+            } elseif ($node->isLiteral()) {
+                $value = $node->getValue();
+            // blanknode
+            } elseif ($node->isBlank()) {
+                $value = $node->getBlankId();
+            } else {
+                throw new \Exception('Unknown Node type given');
+            }
+
+        } else { // anypattern
+            $value = (string)$node;
+        }
+
+        return $value;
+    }
+
+    /**
      * Loads quads from a graph and transforms them to a statement list.
      *
      * @param NamedNode $graph

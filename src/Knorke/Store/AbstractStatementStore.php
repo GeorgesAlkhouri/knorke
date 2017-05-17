@@ -2,6 +2,12 @@
 
 namespace Knorke\Store;
 
+use Knorke\Store\QueryHandler\BlankVarVar;
+use Knorke\Store\QueryHandler\UriVarVar;
+use Knorke\Store\QueryHandler\VarUriUri;
+use Knorke\Store\QueryHandler\VarVarVar_VarUriUri;
+use Knorke\Store\QueryHandler\VarVarVar_VarUriUri_VarUriLiteral;
+use Knorke\Store\QueryHandler\VarVarVar;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NamedNode;
 use Saft\Rdf\Node;
@@ -149,33 +155,6 @@ abstract class AbstractStatementStore implements Store
     }
 
     /**
-     * @param Node $node
-     * @throws \Exception on unknown Node type
-     */
-    protected function getNodeValue(Node $node)
-    {
-        if ($node->isConcrete()) {
-            // uri
-            if ($node->isNamed()) {
-                $value = $node->getUri();
-            // literal
-            } elseif ($node->isLiteral()) {
-                $value = $node->getValue();
-            // blanknode
-            } elseif ($node->isBlank()) {
-                $value = $node->getBlankId();
-            } else {
-                throw new \Exception('Unknown Node type given');
-            }
-
-        } else { // anypattern
-            $value = (string)$node;
-        }
-
-        return $value;
-    }
-
-    /**
      * Has no function and returns an empty array.
      *
      * @return array Empty array
@@ -202,10 +181,41 @@ abstract class AbstractStatementStore implements Store
         if ('selectQuery' == $this->rdfHelpers->getQueryType($query)) {
             $queryParts = $queryObject->getQueryParts();
             $triplePattern = $queryParts['triple_pattern'];
-            $setEntries = array();
-            // handle ?s ?p ?o
-            //        ?s rdf:type foaf:Person
-            if (2 <= count($triplePattern)
+
+            /*
+             * handle ?s ?p ?o .
+             *      ?s <http://...#type> <http://...Person> .
+             *      ?s <http:// ..> "literal" .
+             */
+            if (3 == count($triplePattern)
+                // ?s ?p ?o.
+                && 'var' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']
+                // ?s <http://...#type> <http://...Person> .
+                && 'var' == $triplePattern[1]['s_type']
+                && 'uri' == $triplePattern[1]['p_type']
+                && 'uri' == $triplePattern[1]['o_type']
+                // ?s <http:// ..> "literal" .
+                && 'var' == $triplePattern[2]['s_type']
+                && 'uri' == $triplePattern[2]['p_type']
+                && 'typed-literal' == $triplePattern[2]['o_type']) {
+
+                $queryHandler = new VarVarVar_VarUriUri_VarUriLiteral(
+                    $this->commonNamespaces,
+                    $this->nodeFactory
+                );
+                $result = $queryHandler->handle(
+                    $this->statementsPerGraph,
+                    $triplePattern,
+                    $this->getFiltersIfAvailable($queryParts)
+                );
+
+            /*
+             * handle ?s ?p ?o
+             *        ?s rdf:type foaf:Person
+             */
+            } elseif (2 == count($triplePattern)
                 // ?s ?p ?o.
                 && 'var' == $triplePattern[0]['s_type']
                 && 'var' == $triplePattern[0]['p_type']
@@ -215,232 +225,111 @@ abstract class AbstractStatementStore implements Store
                 && 'uri' == $triplePattern[1]['p_type']
                 && 'uri' == $triplePattern[1]['o_type']) {
 
-                $relevantS = array();
-                // extend triple pattern for S, P and O, if a prefixed URL was used
-                // we already know, that p and o are URIs!
-                if ($this->commonNamespaces->isShortenedUri($triplePattern[1]['p'])) {
-                    $extendedTriplePatternPUri = $this->commonNamespaces->extendUri($triplePattern[1]['p']);
-                } else {
-                    // set null because there is nothing to extend here
-                    $extendedTriplePatternPUri = null;
-                }
-                if ($this->commonNamespaces->isShortenedUri($triplePattern[1]['o'])) {
-                    $extendedTriplePatternOUri = $this->commonNamespaces->extendUri($triplePattern[1]['o']);
-                } else {
-                    // set null because there is nothing to extend here
-                    $extendedTriplePatternOUri = null;
-                }
-                // ignore first pattern because it casts variables on s, p and o
-                // 1. check, which s has wanted p and o
-                foreach ($this->statementsPerGraph as $graph => $statements) {
-                    foreach ($statements as $statement) {
-                        $s = $statement->getSubject();
-                        $p = $statement->getPredicate();
-                        $o = $statement->getObject();
-                        // standard check
-                        if ($p->getUri() == $triplePattern[1]['p']
-                            && $o->isNamed() && $o->getUri() == $triplePattern[1]['o']) {
-                            $relevantS[$s->isNamed() ? $s->getUri() : $s->getBlankId()] = $s;
-                        // also check, if extended versions of tripple pattern p and o lead to something
-                        } elseif (null !== $extendedTriplePatternPUri || null !== $extendedTriplePatternOUri) {
-                            // does predicate matches?
-                            $predicateMatches = false;
-                            if ($p->getUri() == $extendedTriplePatternPUri || $p->getUri() == $triplePattern[1]['p']) {
-                                $predicateMatches = true;
-                            }
-                            // does object matches?
-                            $objectMatches = false;
-                            if ($o->isNamed() &&
-                                ($o->getUri() == $extendedTriplePatternOUri || $o->getUri() == $triplePattern[1]['o'])) {
-                                $objectMatches = true;
-                            }
-                            // if both matches, add $s
-                            if ($predicateMatches && $objectMatches) {
-                                $relevantS[$s->getUri()] = $s;
-                            }
-                        }
-                    }
-                }
+                $queryHandler = new VarVarVar_VarUriUri(
+                    $this->commonNamespaces,
+                    $this->nodeFactory
+                );
+                $result = $queryHandler->handle(
+                    $this->statementsPerGraph,
+                    $triplePattern,
+                    $this->getFiltersIfAvailable($queryParts)
+                );
 
-                // 2. get all p and o for collected s
-                foreach ($statements as $statement) {
-                    $s = $statement->getSubject();
-                    $p = $statement->getPredicate();
-                    $o = $statement->getObject();
-
-                    // if statement object is shortened, extend it before put to result
-                    if ($statement->getObject()->isNamed()
-                         && $this->commonNamespaces->isShortenedUri($statement->getObject())) {
-                        $o = $this->nodeFactory->createNamedNode(
-                            $this->commonNamespaces->extendUri($statement->getObject()->getUri())
-                        );
-                    }
-
-                    if ($s->isNamed() && isset($relevantS[$s->getUri()])
-                        || $s->isBlank() && isset($relevantS[$s->getBlankId()])) {
-                        $setEntries[] = array(
-                            $triplePattern[0]['s'] => $s,
-                            $triplePattern[0]['p'] => $p,
-                            $triplePattern[0]['o'] => $o
-                        );
-                    }
-                }
-            // handle ?s ?p ?o
-            } elseif (0 < count($triplePattern)
-                && 'var' == $triplePattern[0]['s_type']
-                && 'var' == $triplePattern[0]['p_type']
-                && 'var' == $triplePattern[0]['o_type']) {
-                // generate result
-                foreach ($this->statementsPerGraph as $graph => $statements) {
-                    foreach ($statements as $stmt) {
-                        // only add new statements to result list
-                        if (false === isset($addedStatementHashs[json_encode($stmt)])) {
-                            // get value of predicate and object
-                            $sValue = $this->getNodeValue($stmt->getSubject());
-                            $pValue = $this->getNodeValue($stmt->getPredicate());
-                            $oValue = $this->getNodeValue($stmt->getObject());
-
-                            // store subject-predicate-object triple
-                            $setEntries[$sValue . $pValue . $oValue] = array(
-                                $triplePattern[0]['s'] => $stmt->getSubject(),
-                                $triplePattern[0]['p'] => $stmt->getPredicate(),
-                                $triplePattern[0]['o'] => $stmt->getObject()
-                            );
-                        }
-                    }
-                }
-            // handle foo:s ?p ?o
+            /*
+             * handle foo:s ?p ?o
+             */
             } elseif (1 == count($triplePattern)
                 && false === strpos($triplePattern[0]['s'], 'http://')
                 && 'uri' == $triplePattern[0]['s_type']
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
-                // generate result
-                foreach ($this->statementsPerGraph as $graph => $statements) {
-                    foreach ($statements as $stmt) {
-                        if ($stmt->getSubject()->isNamed()) {
-                            $fullUri = $this->commonNamespaces->extendUri($triplePattern[0]['s']);
-                            // check for subject with full URI
-                            // and check for subject with prefixed URI
-                            if ($stmt->getSubject()->getUri() == $triplePattern[0]['s']
-                                || $stmt->getSubject()->getUri() == $fullUri) {
-                                // get value of predicate and object
-                                $pValue = $this->getNodeValue($stmt->getPredicate());
-                                $oValue = $this->getNodeValue($stmt->getObject());
 
-                                // store predicate-object-tuple
-                                $setEntries[$pValue . $oValue] = array(
-                                    $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
-                                    $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
-                                );
-                            }
-                        }
-                    }
-                }
-            // handle <http://> ?p ?o
+                $queryHandler = new UriVarVar(
+                    $this->commonNamespaces,
+                    $this->nodeFactory
+                );
+                $result = $queryHandler->handle(
+                    $this->statementsPerGraph,
+                    $triplePattern,
+                    $this->getFiltersIfAvailable($queryParts)
+                );
+
+            /*
+             * handle <http://> ?p ?o
+             */
             } elseif (1 == count($triplePattern)
                 && 'uri' == $triplePattern[0]['s_type']
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
-                // generate result
-                foreach ($this->statementsPerGraph as $graph => $statements) {
-                    foreach ($statements as $stmt) {
-                        if ($stmt->getSubject()->isNamed()) {
-                            $sUri = $stmt->getSubject()->getUri();
-                            // if subject matches directly
-                            $condition1 = $sUri == $triplePattern[0]['s'];
-                            // if subject is shortened but its extended version matches
-                            $condition2 = $this->commonNamespaces->isShortenedUri($sUri)
-                                          && $this->commonNamespaces->extendUri($sUri) == $triplePattern[0]['s'];
 
-                            if ($condition1 || $condition2) {
-                                // get value of predicate and object
-                                $pValue = $this->getNodeValue($stmt->getPredicate());
-                                $oValue = $this->getNodeValue($stmt->getObject());
+                $queryHandler = new UriVarVar(
+                    $this->commonNamespaces,
+                    $this->nodeFactory
+                );
+                $result = $queryHandler->handle(
+                    $this->statementsPerGraph,
+                    $triplePattern,
+                    $this->getFiltersIfAvailable($queryParts)
+                );
 
-                                // add tuple
-                                $setEntries[$pValue . $oValue] = array(
-                                    $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
-                                    $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
-                                );
-                            }
-                         }
-                    }
-                }
-
-            // handle ?s <http://...#type> <http://...Person>
+            /*
+             * handle ?s <http://...#type> <http://...Person>
+             */
             } elseif (1 == count($triplePattern)
                 && 'var' == $triplePattern[0]['s_type']
                 && 'uri' == $triplePattern[0]['p_type']
                 && 'uri' == $triplePattern[0]['o_type']) {
-                // generate result
-                foreach ($this->statementsPerGraph as $graph => $statements) {
-                    foreach ($statements as $stmt) {
-                        // assuming predicate is named too
-                        if ($stmt->getObject()->isNamed()) {
-                            // predicate condition
-                            $condition1 = $stmt->getPredicate()->getUri() == $triplePattern[0]['p'];
 
-                            // object conditions
-                            $oUri = $triplePattern[0]['o'];
-                            $condition2 = $stmt->getObject()->getUri() == $oUri
-                                || $this->commonNamespaces->extendUri($oUri) == $stmt->getObject()->getUri();
+                $queryHandler = new VarUriUri(
+                    $this->commonNamespaces,
+                    $this->nodeFactory
+                );
+                $result = $queryHandler->handle(
+                    $this->statementsPerGraph,
+                    $triplePattern,
+                    $this->getFiltersIfAvailable($queryParts)
+                );
 
-                            if ($condition1 && $condition2) {
-                                $sValue = $this->getNodeValue($stmt->getSubject());
-                                $setEntries[$sValue] = array(
-                                    $triplePattern[0][$triplePattern[0]['s']] => $stmt->getSubject(),
-                                );
-                            }
-                        }
-                    }
-                }
-
-            // handle _:blankid ?p ?o
+            /*
+             * handle _:blankid ?p ?o
+             */
             } elseif (1 == count($triplePattern)
                 && 'blanknode' == $triplePattern[0]['s_type']
                 && 'var' == $triplePattern[0]['p_type']
                 && 'var' == $triplePattern[0]['o_type']) {
-                // generate result
-                foreach ($this->statementsPerGraph as $graph => $statements) {
-                    foreach ($statements as $stmt) {
-                        $subject = $stmt->getSubject();
-                        if ($subject->isBlank()) {
-                            if ('_:' !== substr($subject->getBlankId(), 0, 2)) {
-                                $blankId = '_:'.$subject->getBlankId();
-                            } else {
-                                $blankId = $subject->getBlankId();
-                            }
-                            if (strtolower($blankId) == strtolower($triplePattern[0]['s'])) {
-                                $setEntries[] = array(
-                                    $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
-                                    $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()
-                                );
-                            }
-                        }
-                    }
-                }
-            }
+
+                $queryHandler = new BlankVarVar(
+                    $this->commonNamespaces,
+                    $this->nodeFactory
+                );
+                $result = $queryHandler->handle(
+                    $this->statementsPerGraph,
+                    $triplePattern,
+                    $this->getFiltersIfAvailable($queryParts)
+                );
 
             /*
-             * apply filter like FILTER (?p = <http://...>) and remove statements which dont match
+             * handle ?s ?p ?o
              */
-            $filterInformation = $this->getFiltersIfAvailable($queryParts);
-            if (null !== $filterInformation) {
-                foreach ($setEntries as $key => $stmtArray) {
-                    // remove entries which are not fit the given filters
-                    $relatedNode = $stmtArray[$filterInformation['variable_letter']];
-                    $relatedNodeUri = $relatedNode->getUri();
-                    // we assume that the node is a named node
-                    if (false == isset($filterInformation['possible_values'][$relatedNodeUri])) {
-                        // if its node does not match with the filter requirements,
-                        // remove the statement from the result
-                        unset($setEntries[$key]);
-                    }
-                }
+            } elseif ((1 == count($triplePattern) || 2 == count($triplePattern))
+                && 'var' == $triplePattern[0]['s_type']
+                && 'var' == $triplePattern[0]['p_type']
+                && 'var' == $triplePattern[0]['o_type']) {
+
+                $queryHandler = new VarVarVar(
+                    $this->commonNamespaces,
+                    $this->nodeFactory
+                );
+                $result = $queryHandler->handle(
+                    $this->statementsPerGraph,
+                    $triplePattern,
+                    $this->getFiltersIfAvailable($queryParts)
+                );
+
+            } else {
+                throw new \Exception('Unknown query type given.');
             }
 
-            $result = new SetResultImpl($setEntries);
             $result->setVariables($queryParts['variables']);
             return $result;
         }

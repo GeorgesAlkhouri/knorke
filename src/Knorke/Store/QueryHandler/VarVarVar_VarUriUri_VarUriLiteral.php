@@ -24,6 +24,7 @@ class VarVarVar_VarUriUri_VarUriLiteral extends AbstractQueryHandler
         array $triplePattern,
         array $filterInformation = null
     ) : Result {
+        $entries = array();
         $relevantSFirstRound = array();
         $relevantS = array();
 

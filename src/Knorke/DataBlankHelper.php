@@ -109,6 +109,8 @@ class DataBlankHelper
      */
     public function find(string $typeUri, string $wherePart = '') : array
     {
+        $typeUri = $this->commonNamespaces->extendUri($typeUri);
+
         $result = $this->store->query('SELECT * FROM <'. $this->graph->getUri() .'> WHERE {
             ?s ?p ?o.
             ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <'. $typeUri .'>.
@@ -137,10 +139,10 @@ class DataBlankHelper
      *
      * @param string $typeUri
      * @param string $wherePart Optional, default: ''
-     * @return DataBlank
+     * @return DataBlank|null
      * @throws \KnorkeException if more than one resource was found.
      */
-    public function findOne(string $typeUri, string $wherePart = '') : DataBlank
+    public function findOne(string $typeUri, string $wherePart = '')
     {
         $result = $this->find($typeUri, $wherePart);
 

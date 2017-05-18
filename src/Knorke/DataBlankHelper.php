@@ -2,6 +2,7 @@
 
 namespace Knorke;
 
+use Knorke\Exception\KnorkeException;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NamedNode;
 use Saft\Rdf\Node;
@@ -127,6 +128,34 @@ class DataBlankHelper
         }
 
         return $blanks;
+    }
+
+    /**
+     * Finds one resource (and all their properties+objects) for a given type URI, if available.
+     * You can add a where part to tighten your search field. Be aware of the used store engine,
+     * if it supports certain queries.
+     *
+     * @param string $typeUri
+     * @param string $wherePart Optional, default: ''
+     * @return DataBlank
+     * @throws \KnorkeException if more than one resource was found.
+     */
+    public function findOne(string $typeUri, string $wherePart = '') : DataBlank
+    {
+        $result = $this->find($typeUri, $wherePart);
+
+        // more than one entry found
+        if (1 < count($result)) {
+            throw new KnorkeException('More than one entry for the given typeUri and wherePart found.');
+
+        // one entry found
+        } elseif (1 == count($result)) {
+            return array_values($result)[0];
+
+        // nothing found
+        } else {
+            return null;
+        }
     }
 
     /**

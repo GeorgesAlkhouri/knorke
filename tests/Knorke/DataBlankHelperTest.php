@@ -4,6 +4,7 @@ namespace Tests\Knorke;
 
 use Knorke\DataBlank;
 use Knorke\DataBlankHelper;
+use Knorke\Exception\KnorkeException;
 use Knorke\InMemoryStore;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NamedNodeImpl;
@@ -242,6 +243,78 @@ class DataBlankHelperTest extends UnitTestCase
                 )[0]->getArrayCopy()
             )
         );
+    }
+
+    /*
+     * Tests for findOne
+     */
+
+    public function testFindOne()
+    {
+        $resourceUri = 'http://foobar/foaf-person/id/foobar';
+
+        $this->store->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://foo'),
+                $this->nodeFactory->createLiteral('bar'),
+                $this->testGraph
+            ),
+            // second resource
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri .'/second'),
+                $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri .'/second'),
+                $this->nodeFactory->createNamedNode('http://foo'),
+                $this->nodeFactory->createLiteral('too be ignored'),
+                $this->testGraph
+            ),
+        ));
+
+        // compare
+        $this->assertEquals(
+            array(
+                '_idUri' => $resourceUri,
+                'rdf:type' => 'foaf:Person',
+                'http://foo' => 'bar'
+            ),
+            $this->fixture->findOne('foaf:Person', '?s <http://foo> "bar".')->getArrayCopy()
+        );
+    }
+
+    // test for exception if more than one entry was found
+    public function testFindOneMultipleFindings()
+    {
+        $resourceUri = 'http://foobar/foaf-person/id/foobar';
+
+        $this->store->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri .'/second'),
+                $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
+                $this->testGraph
+            )
+        ));
+
+        $this->expectException('Knorke\Exception\KnorkeException');
+
+        $this->fixture->findOne('foaf:Person');
     }
 
     /*

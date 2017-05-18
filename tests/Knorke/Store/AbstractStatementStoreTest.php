@@ -266,6 +266,42 @@ abstract class AbstractStatementStoreTest extends UnitTestCase
         );
     }
 
+    // check ?s ?p ?o .
+    //       ?s <http://..> <http://..> .
+    public function testQuerySPOQueryUriVarVar()
+    {
+        $this->fixture->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('http://p'),
+                $this->nodeFactory->createNamedNode('http://o')
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://second-entry'),
+                $this->nodeFactory->createNamedNode('http://p'),
+                $this->nodeFactory->createNamedNode('http://o')
+            )
+        ));
+        $expectedResult = new SetResultImpl(array(
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+                'p' => $this->nodeFactory->createNamedNode('http://p'),
+                'o' => $this->nodeFactory->createNamedNode('http://o'),
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://second-entry'),
+                'p' => $this->nodeFactory->createNamedNode('http://p'),
+                'o' => $this->nodeFactory->createNamedNode('http://o'),
+            )
+        ));
+        $expectedResult->setVariables(array('s', 'p', 'o'));
+        // check for classic SPO
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {?s ?p ?o. ?s <http://p> <http://o>.}')
+        );
+    }
+
     // check ?s ?p ?o.
     //       FILTER (?p = <http://p> || ?p = <http://p1>)
     public function testQuerySPOQueryWithFilter()

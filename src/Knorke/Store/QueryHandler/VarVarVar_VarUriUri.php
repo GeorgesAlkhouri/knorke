@@ -23,7 +23,9 @@ class VarVarVar_VarUriUri extends AbstractQueryHandler
         array $triplePattern,
         array $filterInformation = null
     ) : Result {
+        $entries = array();
         $relevantS = array();
+
         // extend triple pattern for S, P and O, if a prefixed URL was used
         // we already know, that p and o are URIs!
         if ($this->commonNamespaces->isShortenedUri($triplePattern[1]['p'])) {

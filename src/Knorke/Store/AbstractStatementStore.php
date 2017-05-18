@@ -76,6 +76,31 @@ abstract class AbstractStatementStore implements Store
     }
 
     /**
+     * @param array $triplePattern
+     * @return array
+     */
+    protected function extendUrisInTriplePattern(array $triplePattern) : array
+    {
+        $resultList = array();
+
+        foreach ($triplePattern as $pattern) {
+            if ('uri' == $pattern['s_type']) {
+                $pattern['s'] = $this->commonNamespaces->extendUri($pattern['s']);
+            }
+
+            $pattern['p'] = $this->commonNamespaces->extendUri($pattern['p']);
+
+            if ('uri' == $pattern['o_type']) {
+                $pattern['o'] = $this->commonNamespaces->extendUri($pattern['o']);
+            }
+
+            $resultList[] = $pattern;
+        }
+
+        return $resultList;
+    }
+
+    /**
      * @return string Generated blank node ID hash.
      */
     public function generateBlankIdHash() : string
@@ -180,7 +205,7 @@ abstract class AbstractStatementStore implements Store
 
         if ('selectQuery' == $this->rdfHelpers->getQueryType($query)) {
             $queryParts = $queryObject->getQueryParts();
-            $triplePattern = $queryParts['triple_pattern'];
+            $triplePattern = $this->extendUrisInTriplePattern($queryParts['triple_pattern']);
 
             /*
              * handle ?s ?p ?o .

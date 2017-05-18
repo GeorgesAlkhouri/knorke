@@ -194,6 +194,56 @@ class DataBlankHelperTest extends UnitTestCase
         );
     }
 
+    public function testFindWherePart()
+    {
+        $resourceUri = 'http://foobar/foaf-person/id/foobar';
+
+        $this->store->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
+                $this->testGraph
+            ),
+            // important triple, used for later search
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('foobar'),
+                $this->testGraph
+            ),
+            // following statements have to be ignored
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://to-be-ignored'),
+                $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://to-be-ignored'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('to be ignored'),
+                $this->testGraph
+            ),
+        ));
+
+        // compare
+        $this->assertEquals(
+            array(
+                $resourceUri => array(
+                    '_idUri' => $resourceUri,
+                    'rdf:type' => 'foaf:Person',
+                    'rdfs:label' => 'foobar'
+                )
+            ),
+            array(
+                $resourceUri => array_values(
+                    $this->fixture->find('foaf:Person', '?s rdfs:label "foobar"')
+                )[0]->getArrayCopy()
+            )
+        );
+    }
+
     /*
      * Tests for load
      */
@@ -226,6 +276,7 @@ class DataBlankHelperTest extends UnitTestCase
     {
         $dataBlank = $this->fixture->dispense('foaf:Person', 'foobar', 'http://foobar/');
 
+
         $dataBlank['rdfs:label'] = 'Geiles Label';
 
         $this->fixture->store($dataBlank);
@@ -233,7 +284,7 @@ class DataBlankHelperTest extends UnitTestCase
         /*
          * check generated store content
          */
-        $result = new SetResultImpl(array(
+        $expected = new SetResultImpl(array(
             array(
                 's' => $this->nodeFactory->createNamedNode($dataBlank['_idUri']),
                 'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
@@ -241,14 +292,14 @@ class DataBlankHelperTest extends UnitTestCase
             ),
             array(
                 's' => $this->nodeFactory->createNamedNode($dataBlank['_idUri']),
-                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#'),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
                 'o' => $this->nodeFactory->createLiteral('Geiles Label')
             )
         ));
-        $result->setVariables(array('s', 'p', 'o'));
+        $expected->setVariables(array('s', 'p', 'o'));
 
         $this->assertSetIteratorEquals(
-            $result,
+            $expected,
             $this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}')
         );
 

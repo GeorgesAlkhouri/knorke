@@ -98,14 +98,20 @@ class DataBlankHelper
     }
 
     /**
+     * Finds resources (and all their properties+objects) for a given type URI. You can add
+     * a where part to tighten your search field. Be aware of the used store engine, if it
+     * supports certain queries.
+     *
      * @param string $typeUri
      * @param string $wherePart Optional, default: ''
      * @return array
      */
-    public function find(string $typeUri) : array
+    public function find(string $typeUri, string $wherePart = '') : array
     {
         $result = $this->store->query('SELECT * FROM <'. $this->graph->getUri() .'> WHERE {
+            ?s ?p ?o.
             ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <'. $typeUri .'>.
+            '. $wherePart .'
         }');
 
         $blanks = array();
@@ -116,8 +122,8 @@ class DataBlankHelper
                 $resourceId = $entry['s'];
             }
 
-            $blanks[$key] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-            $blanks[$key]->initByStoreSearch($this->store, $this->graph, $resourceId);
+            $blanks[$resourceId] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+            $blanks[$resourceId]->initByStoreSearch($this->store, $this->graph, $resourceId);
         }
 
         return $blanks;

@@ -176,14 +176,8 @@ class DataBlankHelper
      */
     public function load(string $resourceUri) : DataBlank
     {
-        $result = $this->store->query('SELECT * FROM <'. $this->graph->getUri() .'> WHERE {
-            <'. $resourceUri .'> ?p ?o.
-        }');
-
-        $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $dataBlank->initBySetResult($result, $resourceUri);
-
-        $dataBlank['_idUri'] = $resourceUri;
+        $dataBlank = $this->createDataBlank();
+        $dataBlank->initByStoreSearch($this->store, $this->graph, $resourceUri);
 
         return $dataBlank;
     }
@@ -207,6 +201,15 @@ class DataBlankHelper
                 // if entry is a datablank too, recall store function for this entry
                 if ($blankCopy[$key] instanceof DataBlank) {
                     $this->store($blankCopy[$key]);
+
+                    // create relation between current datablank and referenced one
+                    $statements[] = $this->statementFactory->createStatement(
+                        $this->nodeFactory->createNamedNode($resourceUri),
+                        $this->nodeFactory->createNamedNode($key),
+                        $this->nodeFactory->createNamedNode($blankCopy[$key]['_idUri']),
+                        $this->graph
+                    );
+
                     continue;
 
                 } elseif (true === $this->rdfHelpers->simpleCheckURI($blankCopy[$key])) {

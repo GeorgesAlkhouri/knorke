@@ -357,8 +357,6 @@ class DataBlankHelperTest extends UnitTestCase
     public function testStore()
     {
         $dataBlank = $this->fixture->dispense('foaf:Person', 'foobar', 'http://foobar/');
-
-
         $dataBlank['rdfs:label'] = 'Geiles Label';
 
         $this->fixture->store($dataBlank);
@@ -394,6 +392,69 @@ class DataBlankHelperTest extends UnitTestCase
         $blankToCheckAgainst['_idUri'] = 'http://foobar/foaf-person/id/foobar';
         $blankToCheckAgainst['rdf:type'] = 'foaf:Person';
         $blankToCheckAgainst['rdfs:label'] = 'Geiles Label';
+
+        $this->assertEquals($blankToCheckAgainst, $blankCopy);
+    }
+
+    public function testStoreWithSubDataBlank()
+    {
+        $dataBlank = $this->fixture->dispense('foaf:Person', 'foobar', 'http://foobar/');
+        $dataBlank['rdfs:label'] = 'Geiles Label';
+
+        // sub data blank
+        $dataBlank['foaf:knows'] = $this->fixture->dispense('foaf:Person', 'foobar2', 'http://foobar/');
+        $dataBlank['foaf:knows']['rdfs:label'] = 'Label2';
+
+        $this->fixture->store($dataBlank);
+
+        /*
+         * check generated store content
+         */
+        $expected = new SetResultImpl(array(
+            array(
+                's' => $this->nodeFactory->createNamedNode($dataBlank['_idUri']),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person')
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode($dataBlank['_idUri']),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+                'o' => $this->nodeFactory->createLiteral('Geiles Label')
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode($dataBlank['_idUri']),
+                'p' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/knows'),
+                'o' => $this->nodeFactory->createNamedNode($dataBlank['foaf:knows']['_idUri'])
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode($dataBlank['foaf:knows']['_idUri']),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person')
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode($dataBlank['foaf:knows']['_idUri']),
+                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
+                'o' => $this->nodeFactory->createLiteral('Label2')
+            )
+        ));
+        $expected->setVariables(array('s', 'p', 'o'));
+
+        $this->assertSetIteratorEquals(
+            $expected,
+            $this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}')
+        );
+
+        /*
+         * load blank from store and check it
+         */
+        $blankCopy = $this->fixture->load($dataBlank['_idUri']);
+
+        $blankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $blankToCheckAgainst['_idUri'] = 'http://foobar/foaf-person/id/foobar';
+        $blankToCheckAgainst['rdf:type'] = 'foaf:Person';
+        $blankToCheckAgainst['rdfs:label'] = 'Geiles Label';
+        $blankToCheckAgainst['foaf:knows'] = $this->fixture->dispense('foaf:Person', 'foobar2', 'http://foobar/');
+        $blankToCheckAgainst['foaf:knows']['rdfs:label'] = 'Label2';
 
         $this->assertEquals($blankToCheckAgainst, $blankCopy);
     }

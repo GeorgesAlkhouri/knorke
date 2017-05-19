@@ -4,7 +4,7 @@ namespace Knorke\Store;
 
 use Knorke\Store\QueryHandler\BlankVarVar;
 use Knorke\Store\QueryHandler\UriVarVar;
-use Knorke\Store\QueryHandler\VarUriUri;
+use Knorke\Store\QueryHandler\VarUriLiteralOrUri;
 use Knorke\Store\QueryHandler\VarVarVar_VarUriUri;
 use Knorke\Store\QueryHandler\VarVarVar_VarUriUri_VarUriLiteral;
 use Knorke\Store\QueryHandler\VarVarVar;
@@ -299,13 +299,18 @@ abstract class AbstractStatementStore implements Store
 
             /*
              * handle ?s <http://...#type> <http://...Person>
+             *
+             * or
+             *
+             * handle ?s <http://...#label> "literal"
              */
             } elseif (1 == count($triplePattern)
                 && 'var' == $triplePattern[0]['s_type']
                 && 'uri' == $triplePattern[0]['p_type']
-                && 'uri' == $triplePattern[0]['o_type']) {
+                && ('uri' == $triplePattern[0]['o_type']
+                    || 'typed-literal' == $triplePattern[0]['o_type'])) {
 
-                $queryHandler = new VarUriUri(
+                $queryHandler = new VarUriLiteralOrUri(
                     $this->commonNamespaces,
                     $this->nodeFactory
                 );

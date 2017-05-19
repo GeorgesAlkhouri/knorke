@@ -425,6 +425,33 @@ abstract class AbstractStatementStoreTest extends UnitTestCase
         );
     }
 
+    // check ?s <http://> "literal"
+    public function testQuerySPOWithPredicateUriAndObjectLiteral()
+    {
+        $this->fixture->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('literal')
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s-to-be-ignored'),
+                $this->nodeFactory->createNamedNode('rdfs:label'),
+                $this->nodeFactory->createLiteral('another label')
+            ),
+        ));
+        $expectedResult = new SetResultImpl(array(
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://s'),
+            )
+        ));
+        $expectedResult->setVariables(array('s'));
+        $this->assertSetIteratorEquals(
+            $expectedResult,
+            $this->fixture->query('SELECT * WHERE {?s rdfs:label "literal".}')
+        );
+    }
+
     // check ?s ?p ?o.
     //       ?s rdf:type foaf:Person.
     public function testQuerySPOWithTypedSQuery()

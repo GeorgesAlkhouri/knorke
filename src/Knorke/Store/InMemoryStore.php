@@ -151,7 +151,7 @@ class InMemoryStore extends AbstractStatementStore
         }
 
         // use hash to differenciate between statements (no doublings allowed)
-        $statementHash = hash('sha256', json_encode($statement));
+        $statementHash = hash('sha256', serialize($statement));
 
         // delete it
         unset($this->statementsPerGraph[$graphUri][$statementHash]);

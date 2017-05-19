@@ -36,6 +36,14 @@ class DataBlankHelper
     }
 
     /**
+     * @param array $options
+     */
+    public function createDataBlank(array $options = array())
+    {
+        return new DataBlank($this->commonNamespaces, $this->rdfHelpers, $options);
+    }
+
+    /**
      * @param string $typeUri
      * @param string $hash Optional, default: null
      * @param string $baseUri Optional, default: null. Will be used as prefix for auto generated triples.
@@ -120,9 +128,9 @@ class DataBlankHelper
         $blanks = array();
         foreach ($result as $key => $entry) {
             if ($entry['s'] instanceof Node) {
-                $resourceId = $this->getNodeValue($entry['s']);
+                $resourceId = $this->commonNamespaces->extendUri($this->getNodeValue($entry['s']));
             } else {
-                $resourceId = $entry['s'];
+                $resourceId = $this->commonNamespaces->extendUri($entry['s']->getUri());
             }
 
             $blanks[$resourceId] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
@@ -196,7 +204,12 @@ class DataBlankHelper
 
             foreach (array_keys($blankCopy->getArrayCopy()) as $key) {
 
-                if (true === $this->rdfHelpers->simpleCheckURI($blankCopy[$key])) {
+                // if entry is a datablank too, recall store function for this entry
+                if ($blankCopy[$key] instanceof DataBlank) {
+                    $this->store($blankCopy[$key]);
+                    continue;
+
+                } elseif (true === $this->rdfHelpers->simpleCheckURI($blankCopy[$key])) {
                     $object = $this->nodeFactory->createNamedNode($blankCopy[$key]);
                 } else {
                     $object = $this->nodeFactory->createLiteral($blankCopy[$key]);
@@ -215,6 +228,43 @@ class DataBlankHelper
             // TODO support datablank as object
         } else {
             throw new \Exception('Property _idUri not set, therefore not storeable.');
+        }
+    }
+
+    public function trash(DataBlank $blank)
+    {
+        $subjectUri = $blank['_idUri'];
+        unset($blank['_idUri']);
+
+        $subjectNode = $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($subjectUri));
+
+        foreach ($blank as $property => $value) {
+            if ($value instanceof DataBlank) {
+                $this->trash($value);
+                continue;
+            }
+
+            $property = $this->commonNamespaces->extendUri($property);
+
+            if ($this->rdfHelpers->simpleCheckURI($value)) {
+                $valueNode = $this->nodeFactory->createNamedNode(
+                    $this->commonNamespaces->extendUri($value)
+                );
+            } elseif ($this->rdfHelpers->simpleCheckBlankNodeId($value)) {
+                $valueNode = $this->nodeFactory->createBlankNode($value);
+            } else {
+                $valueNode = $this->nodeFactory->createLiteral($value);
+            }
+
+            // remove statement
+            $this->store->deleteMatchingStatements(
+                $this->statementFactory->createStatement(
+                    $subjectNode,
+                    $this->nodeFactory->createNamedNode($property),
+                    $valueNode,
+                    $this->graph
+                )
+            );
         }
     }
 }

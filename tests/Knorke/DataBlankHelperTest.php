@@ -36,6 +36,15 @@ class DataBlankHelperTest extends UnitTestCase
     }
 
     /*
+     * Tests for createDataBlank
+     */
+
+    public function testCreateDataBlank()
+    {
+        $this->assertTrue($this->fixture->createDataBlank() instanceof DataBlank);
+    }
+
+    /*
      * Tests for dispense
      */
 
@@ -387,5 +396,30 @@ class DataBlankHelperTest extends UnitTestCase
         $blankToCheckAgainst['rdfs:label'] = 'Geiles Label';
 
         $this->assertEquals($blankToCheckAgainst, $blankCopy);
+    }
+
+    /*
+     * Tests for trash
+     */
+
+    public function testTrash()
+    {
+        $this->commonNamespaces->add('test', 'http://test/');
+
+        $blank = $this->fixture->dispense('test:User');
+        $blank['rdfs:label'] = 'label';
+
+        // store blank
+        $this->fixture->store($blank);
+
+        // check content
+        $result = $this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}');
+        $this->assertEquals(2, count($result->getArrayCopy()));
+
+        $this->fixture->trash($blank);
+
+        // check content again
+        $result = $this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}');
+        $this->assertEquals(0, count($result->getArrayCopy()));
     }
 }

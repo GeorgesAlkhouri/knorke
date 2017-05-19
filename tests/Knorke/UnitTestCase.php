@@ -17,8 +17,6 @@ use Saft\Sparql\Result\SetResult;
 
 class UnitTestCase extends TestCase
 {
-    protected $commonNamespaces;
-
     /**
      * Contains an instance of the class to test.
      *
@@ -26,9 +24,14 @@ class UnitTestCase extends TestCase
      */
     protected $fixture;
 
+    protected $commonNamespaces;
     protected $nodeFactory;
+    protected $parserFactory;
+    protected $queryFactory;
     protected $rdfHelpers;
     protected $statementFactory;
+    protected $statementIteratorFactory;
+    protected $store;
 
     protected $testGraph;
 
@@ -36,21 +39,18 @@ class UnitTestCase extends TestCase
     {
         parent::setUp();
 
-        $statementIteratorFactory = new StatementIteratorFactoryImpl();
-        $statementFactory = new StatementFactoryImpl();
-
         $this->commonNamespaces = new CommonNamespaces();
         $this->rdfHelpers = new RdfHelpers();
         $this->nodeFactory = new NodeFactoryImpl($this->rdfHelpers);
         $this->queryFactory = new QueryFactoryImpl($this->rdfHelpers);
+        $this->statementFactory = new StatementFactoryImpl();
+        $this->statementIteratorFactory = new StatementIteratorFactoryImpl();
         $this->parserFactory = new ParserFactory(
             $this->nodeFactory,
-            $statementFactory,
-            $statementIteratorFactory,
+            $this->statementFactory,
+            $this->statementIteratorFactory,
             $this->rdfHelpers
         );
-        $this->statementFactory = $statementFactory;
-        $this->statementIteratorFactory = $statementIteratorFactory;
         $this->testGraph = $this->nodeFactory->createNamedNode('http://knorke/testgraph/');
 
         // basic in memory store

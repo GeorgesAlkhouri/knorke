@@ -185,6 +185,49 @@ class DataBlank extends \ArrayObject
     }
 
     /**
+     * Returns an array which represents a list of triples for this
+     *
+     * @param array $array Default: array()
+     * @return array List of arrays with s, p and o as keys.
+     */
+    public function getTriples(array $array = array()) : array
+    {
+        $triples = array();
+
+        if (0 == count($array)) {
+            $array = $this->getArrayCopy();
+        }
+
+        // get resource URI
+        if (isset($array['_idUri'])) {
+            $resourceUri = $array['_idUri'];
+            unset($array['_idUri']);
+        } else {
+            throw new \Exception('Key _idUri in $array not set.');
+        }
+
+        foreach ($array as $property => $value) {
+            // recursive call
+            if (is_array($value)) {
+                $triples[] = array(
+                    's' => $resourceUri,
+                    'p' => $property,
+                    'o' => $value['_idUri']
+                );
+                $triples = array_merge($this->getTriples($value), $triples);
+            } else {
+                $triples[] = array(
+                    's' => $resourceUri,
+                    'p' => $property,
+                    'o' => $value,
+                );
+            }
+        }
+
+        return $triples;
+    }
+
+    /**
      * Init instance by a simple array with properties as keys and according values.
      *
      * @param array $array

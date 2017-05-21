@@ -275,7 +275,7 @@ class DataBlankHelperTest extends UnitTestCase
                 $this->nodeFactory->createLiteral('bar'),
                 $this->testGraph
             ),
-            // second resource
+            // second resource needs to be ignored
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode($resourceUri .'/second'),
                 $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),

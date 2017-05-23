@@ -419,4 +419,116 @@ class DataBlankTest extends UnitTestCase
             $this->fixture->getArrayCopy()
         );
     }
+
+    // test special case with sub blank nodes. thats a regression check, because we expierenced
+    // it only in a productive environment.
+    public function testInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode2()
+    {
+        /*
+            > DataBlank implementation produced something like:
+
+            array(
+                array(
+                    'backmodel:Event' => array(
+                        '_idUri' => array(      <====== this makes no sense
+
+                            '_idUri' => 'http://back/data/Wacken2017',
+                            'rdf:type' => 'backmodel:Event',
+                            'rdfs:label' => 'Wacken'
+                        ),
+                        'rdf:type' => 'backmodel:Event',
+                        'rdfs:label' => 'Wacken'
+                    ),
+                    'backmodel:type' => 'backmodel:Event',
+                ),
+                ...
+            )
+
+
+            > According n-triples:
+
+            <http://back/data/Wacken2017> <http://rdf#type> <http://back/model/Event> .
+            <http://back/data/Wacken2017> <http://rdfs#label> "Wacken" .
+            <http://back/data/user1> <http://rdf#type> <http://back/model/User> .
+            <http://back/data/user1> <http://back/model/has-rights> _:genid1 .
+            _:genid1 <http://back/model/type> <http://back/model/Event> .
+            _:genid1 <http://back/model/event> <http://back/data/Wacken2017> .
+
+         */
+        $this->commonNamespaces->add('backdata', 'http://back/data/');
+        $this->commonNamespaces->add('backmodel', 'http://back/model/');
+
+        $this->store->addStatements(array(
+            // <http://back/data/Wacken2017> <http://rdf#type> <http://back/model/Event> .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://back/data/Wacken2017'),
+                $this->nodeFactory->createNamedNode('http://rdf#type'),
+                $this->nodeFactory->createNamedNode('http://back/model/Event'),
+                $this->testGraph
+            ),
+            // <http://back/data/Wacken2017> <http://rdfs#label> "Wacken" .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://back/data/Wacken2017'),
+                $this->nodeFactory->createNamedNode('http://rdfs#label'),
+                $this->nodeFactory->createLiteral('Wacken'),
+                $this->testGraph
+            ),
+            // <http://back/data/user1> <http://rdf#type> <http://back/model/User> .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://back/data/user1'),
+                $this->nodeFactory->createNamedNode('http://rdf#type'),
+                $this->nodeFactory->createNamedNode('http://back/model/User'),
+                $this->testGraph
+            ),
+            // <http://back/data/user1> <http://back/model/has-rights> _:genid1 .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://back/data/user1'),
+                $this->nodeFactory->createNamedNode('http://back/model/has-rights'),
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->testGraph
+            ),
+            // _:genid1 <http://back/model/type> <http://back/model/Event> .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('http://back/model/type'),
+                $this->nodeFactory->createLiteral('http://back/model/Event'),
+                $this->testGraph
+            ),
+            // _:genid1 <http://back/model/event> <http://back/data/Wacken2017> .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createBlankNode('genid1'),
+                $this->nodeFactory->createNamedNode('http://back/model/event'),
+                $this->nodeFactory->createNamedNode('http://back/data/Wacken2017'),
+                $this->testGraph
+            )
+        ));
+
+        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
+            'use_prefixed_predicates' => true,
+            'use_prefixed_objects' => true,
+        ));
+
+        $this->fixture->initByStoreSearch($this->store, $this->testGraph, 'http://back/data/user1');
+
+        // get blank node ids
+        $result = $this->store->query('SELECT * WHERE { ?s <http://back/model/type> <http://back/model/Event>. }');
+        foreach ($result as $value) { $blankNodeId1 = $value['s']->toNQuads(); break; }
+
+        $this->assertEquals(
+            array(
+                '_idUri' => 'http://back/data/user1',
+                'http://rdf#type' => 'backmodel:User',
+                'backmodel:has-rights' => array(
+                    '_idUri' => $blankNodeId1,
+                    'backmodel:type' => 'http://back/model/Event',
+                    'backmodel:event' => array(
+                        '_idUri' => 'http://back/data/Wacken2017',
+                        'http://rdf#type' => 'backmodel:Event',
+                        'http://rdfs#label' => 'Wacken'
+                    )
+                )
+            ),
+            $this->fixture->getArrayCopy()
+        );
+    }
 }

@@ -389,12 +389,17 @@ class DataBlank extends \ArrayObject
             // to avoid infinite recursion
             if ($value == $resourceId) {
                 continue;
-            }
 
             // value is an array
-            if (is_array($value)) {
+            } elseif ('_idUri' == $key) {
+                $this->data[$key] = $value;
+
+            // value is an array
+            } elseif (is_array($value)) {
                 foreach ($value as $subKey => $subValue) {
-                    if ($this->rdfHelpers->simpleCheckURI($subValue) || $this->rdfHelpers->simpleCheckBlankNodeId($subValue)) {
+                    if ($this->rdfHelpers->simpleCheckURI($subValue) ||
+                        $this->rdfHelpers->simpleCheckBlankNodeId($subValue)) {
+
                         $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->options);
                         $valueDataBlank->initByStoreSearch($store, $graph, $subValue);
                         if (1 < count($valueDataBlank)) {
@@ -404,7 +409,9 @@ class DataBlank extends \ArrayObject
                 }
 
             // value is resource (try to load further information)
-            } elseif ($this->rdfHelpers->simpleCheckURI($value) || $this->rdfHelpers->simpleCheckBlankNodeId($value)) {
+            } elseif ($this->rdfHelpers->simpleCheckURI($value)
+                || $this->rdfHelpers->simpleCheckBlankNodeId($value)) {
+
                 $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->options);
                 $valueDataBlank->initByStoreSearch($store, $graph, $value);
                 if (1 < count($valueDataBlank)) {

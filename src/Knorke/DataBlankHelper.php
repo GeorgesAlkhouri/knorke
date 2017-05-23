@@ -234,6 +234,11 @@ class DataBlankHelper
         }
     }
 
+    /**
+     * Trashes all triples according to a given blank.
+     *
+     * @param DataBlank $blank
+     */
     public function trash(DataBlank $blank)
     {
         $subjectUri = $blank['_idUri'];

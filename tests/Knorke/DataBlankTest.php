@@ -444,7 +444,6 @@ class DataBlankTest extends UnitTestCase
                 ...
             )
 
-
             > According n-triples:
 
             <http://back/data/Wacken2017> <http://rdf#type> <http://back/model/Event> .

@@ -530,4 +530,94 @@ class DataBlankTest extends UnitTestCase
             $this->fixture->getArrayCopy()
         );
     }
+
+    // test case with a list of entries related to one resource, focus on array handling
+    public function testInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode3()
+    {
+        /*
+
+            http://foo --- http://bar --- http://baz
+                                                |
+                                                 `---- http://bar --- http://biz1
+                                                |
+                                                 `---- http://bar --- http://biz2
+
+         */
+        $this->store->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo'),
+                $this->nodeFactory->createNamedNode('http://bar'),
+                $this->nodeFactory->createNamedNode('http://baz1'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://foo'),
+                $this->nodeFactory->createNamedNode('http://bar'),
+                $this->nodeFactory->createNamedNode('http://baz2'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://baz1'),
+                $this->nodeFactory->createNamedNode('http://bar1'),
+                $this->nodeFactory->createNamedNode('http://biz1'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://baz2'),
+                $this->nodeFactory->createNamedNode('http://bar2'),
+                $this->nodeFactory->createNamedNode('http://biz2'),
+                $this->testGraph
+            ),
+        ));
+
+        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
+            'use_prefixed_predicates' => true,
+            'use_prefixed_objects' => true,
+        ));
+
+        $this->fixture->initByStoreSearch($this->store, $this->testGraph, 'http://foo');
+
+        $this->assertEquals(
+            array(
+                '_idUri' => 'http://foo',
+                'http://bar' => array(
+                    array(
+                        '_idUri' => 'http://baz1',
+                        'http://bar1' => 'http://biz1'
+                    ),
+                    array(
+                        '_idUri' => 'http://baz2',
+                        'http://bar2' => 'http://biz2'
+                    )
+                )
+            ),
+            $this->fixture->getArrayCopy()
+        );
+
+        $this->assertEquals(
+            array(
+                array(
+                    's' => 'http://baz2',
+                    'p' => 'http://bar2',
+                    'o' => 'http://biz2',
+                ),
+                array(
+                    's' => 'http://baz1',
+                    'p' => 'http://bar1',
+                    'o' => 'http://biz1',
+                ),
+                array(
+                    's' => 'http://foo',
+                    'p' => 'http://bar',
+                    'o' => 'http://baz1',
+                ),
+                array(
+                    's' => 'http://foo',
+                    'p' => 'http://bar',
+                    'o' => 'http://baz2',
+                ),
+            ),
+            $this->fixture->getTriples()
+        );
+    }
 }

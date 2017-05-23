@@ -225,12 +225,26 @@ class DataBlank extends \ArrayObject
         foreach ($array as $property => $value) {
             // recursive call
             if (is_array($value)) {
-                $triples[] = array(
-                    's' => $resourceUri,
-                    'p' => $property,
-                    'o' => $value['_idUri']
-                );
-                $triples = array_merge($this->getTriples($value), $triples);
+                // array version of a datablank
+                if (isset($value['_idUri'])) {
+                    $triples[] = array(
+                        's' => $resourceUri,
+                        'p' => $property,
+                        'o' => $value['_idUri']
+                    );
+                    $triples = array_merge($this->getTriples($value), $triples);
+
+                // array of array version of a datablank
+                } else {
+                    foreach ($value as $key => $subentry) {
+                        $triples[] = array(
+                            's' => $resourceUri,
+                            'p' => $property,
+                            'o' => $subentry['_idUri']
+                        );
+                        $triples = array_merge($this->getTriples($subentry), $triples);
+                    }
+                }
             } else {
                 $triples[] = array(
                     's' => $resourceUri,

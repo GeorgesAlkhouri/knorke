@@ -23,17 +23,59 @@ class DataBlankTest extends UnitTestCase
     {
         parent::setUp();
 
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $this->initFixture();
+    }
+
+    protected function getFixtureInstance()
+    {
+        return new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+    }
+
+    protected function initFixture()
+    {
+        $this->fixture = $this->getFixtureInstance();
+    }
+
+    /*
+     * Tests for standard data handling
+     */
+
+    public function testDataHandling()
+    {
+        /*
+         * string in, string out
+         */
+        $blank = $this->getFixtureInstance();
+        $blank['rdfs:label'] = 'label';
+        $this->assertEquals('label', $blank['rdfs:label']);
+
+        /*
+         * expect that only latest value is used
+         */
+        $blank = $this->getFixtureInstance();
+        $blank['rdfs:label'] = 'label1';
+        $blank['rdfs:label'] = 'label2';
+        $this->assertEquals(array('label1', 'label2'), $blank['rdfs:label']);
+
+        /*
+         * connect datablank instances
+         */
+        $blank = $this->getFixtureInstance();
+        $anotherBlank = $this->getFixtureInstance();
+        $blank['foaf:knows'] = $anotherBlank;
+        $blank['foaf:knows']['foaf:name'] = 'cool';
+        $this->assertEquals($anotherBlank, $blank['foaf:knows']);
+        $this->assertEquals('cool', $blank['foaf:knows']['foaf:name']);
     }
 
     // test that getting http://...#label results in rdfs:label property is set as well
     public function testGetterMagic()
     {
-        $blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $blank = $this->getFixtureInstance();
         $blank['rdfs:label'] = 'label';
         $this->assertEquals($blank->get('http://www.w3.org/2000/01/rdf-schema#label'), 'label');
 
-        $blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $blank = $this->getFixtureInstance();
         $blank['http://www.w3.org/2000/01/rdf-schema#label'] = 'label';
         $this->assertEquals($blank->get('rdfs:label'), 'label');
     }
@@ -183,7 +225,7 @@ class DataBlankTest extends UnitTestCase
         $this->fixture['http://foo'] = 'bar';
         $this->fixture['http://foo2'] = array(0, 2);
 
-        $this->fixture['http://foo3'] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $this->fixture['http://foo3'] = $this->getFixtureInstance();
         $this->fixture['http://foo3']['http://foo4'] = 4;
 
         $this->assertEquals(

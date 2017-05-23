@@ -48,6 +48,8 @@ class DataBlank extends \ArrayObject
      */
     protected $commonNamespaces;
 
+    protected $data = array();
+
     /**
      * @var array
      */
@@ -81,6 +83,14 @@ class DataBlank extends \ArrayObject
     }
 
     /**
+     * @return int
+     */
+    public function count() : int
+    {
+        return count($this->data);
+    }
+
+    /**
      * Helper function to allow content gathering by using full URIs or prefixed ones.
      * If the indirect way worked, the previously try $property will be applied to.
      *
@@ -90,21 +100,21 @@ class DataBlank extends \ArrayObject
     public function get($property)
     {
         // found? ok, return back!
-        if (isset($this[$property])) {
-            return $this[$property];
+        if (isset($this->data[$property])) {
+            return $this->data[$property];
         } else {
             // if not found, try the prefixed version resp. the full URI
             if (false !== strpos($property, 'http://')) { // full URI
                 $shortendProperty = $this->commonNamespaces->shortenUri($property);
-                if (isset($this[$shortendProperty])) {
-                    $this[$property] = $this[$shortendProperty];
-                    return $this[$shortendProperty];
+                if (isset($this->data[$shortendProperty])) {
+                    $this->data[$property] = $this->data[$shortendProperty];
+                    return $this->data[$shortendProperty];
                 }
             } else { // shorted version
                 $extendedProperty = $this->commonNamespaces->extendUri($property);
-                if (isset($this[$extendedProperty])) {
-                    $this[$property] = $this[$extendedProperty];
-                    return $this[$extendedProperty];
+                if (isset($this->data[$extendedProperty])) {
+                    $this->data[$property] = $this->data[$extendedProperty];
+                    return $this->data[$extendedProperty];
                 }
             }
         }
@@ -119,15 +129,13 @@ class DataBlank extends \ArrayObject
     {
         $copy = array();
 
-        foreach ($this as $key => $value) {
+        foreach ($this->data as $key => $value) {
+            // if entry is of type DataBlank call getArrayCopyRecursive recursively
             if (is_array($value) || $value instanceof DataBlank) {
                 $copy[$key] = $this->getArrayCopyRecursive($value);
             } elseif (is_string($key) && $key !== $value) {
                 $copy[$key] = $value;
             } else {
-                echo '
-
-                '. $value;
                 $copy[] = $value;
             }
         }
@@ -162,6 +170,14 @@ class DataBlank extends \ArrayObject
         }
 
         return $value;
+    }
+
+    /**
+     * @return Traversable
+     */
+    public function getIterator() : \Traversable
+    {
+        return new \ArrayIterator($this->data);
     }
 
     /**
@@ -250,7 +266,7 @@ class DataBlank extends \ArrayObject
                 $value = $this->commonNamespaces->extendUri($value);
             }
 
-            $this->setValue($property, $value);
+            $this->offsetSet($property, $value);
         }
     }
 
@@ -306,13 +322,13 @@ class DataBlank extends \ArrayObject
             }
 
             // set property key and object value
-            $this->setValue($predicateValue, $value);
+            $this->offsetSet($predicateValue, $value);
         }
 
         $result->rewind();
 
         if ($this->options['add_internal_data_fields']) {
-            $this['_idUri'] = $subjectUri;
+            $this->data['_idUri'] = $subjectUri;
         }
     }
 
@@ -355,7 +371,7 @@ class DataBlank extends \ArrayObject
         }
 
         if ($this->options['add_internal_data_fields']) {
-            $this->setValue('_idUri', $resourceId);
+            $this->offsetSet('_idUri', $resourceId);
         }
 
         // ask store for all properties and values for the given resource
@@ -369,7 +385,7 @@ class DataBlank extends \ArrayObject
         /*
          * recursive initiation of already stored objects, which are URIs or blank nodes
          */
-        foreach ($this as $key => $value) {
+        foreach ($this->data as $key => $value) {
             // to avoid infinite recursion
             if ($value == $resourceId) {
                 continue;
@@ -382,7 +398,7 @@ class DataBlank extends \ArrayObject
                         $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->options);
                         $valueDataBlank->initByStoreSearch($store, $graph, $subValue);
                         if (1 < count($valueDataBlank)) {
-                            $this[$key][$subKey] = $valueDataBlank;
+                            $this->data[$key][$subKey] = $valueDataBlank;
                         }
                     }
                 }
@@ -392,7 +408,7 @@ class DataBlank extends \ArrayObject
                 $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->options);
                 $valueDataBlank->initByStoreSearch($store, $graph, $value);
                 if (1 < count($valueDataBlank)) {
-                    $this[$key] = $valueDataBlank;
+                    $this->data[$key] = $valueDataBlank;
                 }
                 // if nothing is in $valueDataBlank, the current value remains untouched
             }
@@ -400,25 +416,47 @@ class DataBlank extends \ArrayObject
     }
 
     /**
-     * Helps setting values, but checking if key is already in use. If so, change value to array so that multiple
-     * values for the same key can be stored.
+     * @param mixed $key
      */
-    protected function setValue($key, $value)
+    public function offsetExists($key)
+    {
+        return isset($this->data[$key]);
+    }
+
+    /**
+     * @param mixed $key
+     */
+    public function offsetGet($key)
+    {
+        return $this->data[$key];
+    }
+
+    /**
+     * @param mixed $key
+     * @param mixed $value
+     */
+    public function offsetSet($key, $value)
     {
         // value already set, but is not the same we already stored
-        if (isset($this[$key]) && $this[$key] !== $value) {
+        if (isset($this->data[$key]) && $this->data[$key] !== $value) {
             // is already an array, add further item
-            if (is_array($this[$key])) {
-                // $this[$key][$value] = $value;
-                $this[$key][] = $value;
-            // is a string, make it to array
+            if (is_array($this->data[$key])) {
+                array_push($this->data[$key], $value);
+            // if current entry is set but its not an array, make it to array
             } else {
-                // $this[$key] = array($this[$key] => $this[$key], $value => $value);
-                $this[$key] = array(0 => $this[$key], 1 => $value);
+                $this->data[$key] = array(0 => $this->data[$key], 1 => $value);
             }
         // value not set already
         } else {
-            $this[$key] = $value;
+            $this->data[$key] = $value;
         }
+    }
+
+    /**
+     * @param mixed $key
+     */
+    public function offsetUnset($key)
+    {
+        unset($this->data[$key]);
     }
 }

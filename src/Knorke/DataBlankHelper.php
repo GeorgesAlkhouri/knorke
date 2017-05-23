@@ -80,33 +80,6 @@ class DataBlankHelper
     }
 
     /**
-     * @param Node $node
-     * @throws \Exception on unknown Node type
-     */
-    protected function getNodeValue(Node $node)
-    {
-        if ($node->isConcrete()) {
-            // uri
-            if ($node->isNamed()) {
-                $value = $node->getUri();
-            // literal
-            } elseif ($node->isLiteral()) {
-                $value = $node->getValue();
-            // blanknode
-            } elseif ($node->isBlank()) {
-                $value = $node->toNQuads();
-            } else {
-                throw new \Exception('Unknown Node type given');
-            }
-
-        } else { // anypattern
-            $value = (string)$node;
-        }
-
-        return $value;
-    }
-
-    /**
      * Finds resources (and all their properties+objects) for a given type URI. You can add
      * a where part to tighten your search field. Be aware of the used store engine, if it
      * supports certain queries.
@@ -133,7 +106,7 @@ class DataBlankHelper
                 $resourceId = $this->commonNamespaces->extendUri($entry['s']->getUri());
             }
 
-            $blanks[$resourceId] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+            $blanks[$resourceId] = $this->createDataBlank();
             $blanks[$resourceId]->initByStoreSearch($this->store, $this->graph, $resourceId);
         }
 
@@ -166,6 +139,33 @@ class DataBlankHelper
         } else {
             return null;
         }
+    }
+
+    /**
+     * @param Node $node
+     * @throws \Exception on unknown Node type
+     */
+    protected function getNodeValue(Node $node)
+    {
+        if ($node->isConcrete()) {
+            // uri
+            if ($node->isNamed()) {
+                $value = $node->getUri();
+            // literal
+            } elseif ($node->isLiteral()) {
+                $value = $node->getValue();
+            // blanknode
+            } elseif ($node->isBlank()) {
+                $value = $node->toNQuads();
+            } else {
+                throw new \Exception('Unknown Node type given');
+            }
+
+        } else { // anypattern
+            $value = (string)$node;
+        }
+
+        return $value;
     }
 
     /**
@@ -237,7 +237,7 @@ class DataBlankHelper
     public function trash(DataBlank $blank)
     {
         $subjectUri = $blank['_idUri'];
-        unset($blank['_idUri']);
+        if (isset($blank['_idUri'])) unset($blank['_idUri']);
 
         $subjectNode = $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($subjectUri));
 

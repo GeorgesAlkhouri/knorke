@@ -45,29 +45,6 @@ class DataBlankHelperTest extends UnitTestCase
     }
 
     /*
-     * Tests for dispense
-     */
-
-    public function testDispense()
-    {
-        $personHash = 'foobar';
-        $dataBlank = $this->fixture->dispense('foaf:Person', $personHash);
-
-        $this->assertEquals('foaf:Person/foaf-person/id/foobar', $dataBlank['_idUri']);
-        $this->assertEquals('foaf:Person', $dataBlank['rdf:type']);
-    }
-
-    // with base URI provided, the resource URI changes
-    public function testDispenseWithBaseUri()
-    {
-        $personHash = 'foobar';
-        $dataBlank = $this->fixture->dispense('foaf:Person', $personHash, 'http://foobar/');
-
-        $this->assertEquals('http://foobar/foaf-person/id/'. $personHash, $dataBlank['_idUri']);
-        $this->assertEquals('foaf:Person', $dataBlank['rdf:type']);
-    }
-
-    /*
      * Tests for find
      */
 
@@ -254,6 +231,14 @@ class DataBlankHelperTest extends UnitTestCase
         );
     }
 
+    // test return value if store is empty array and find doesn't find anything
+    public function testFindNothingFound()
+    {
+        $this->assertEquals(0, count($this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}')));
+
+        $this->assertEquals(array(), $this->fixture->find('foaf:Person'));
+    }
+
     /*
      * Tests for findOne
      */
@@ -326,6 +311,14 @@ class DataBlankHelperTest extends UnitTestCase
         $this->fixture->findOne('foaf:Person');
     }
 
+    // test return value if store is empty and findOne doesn't find anything
+    public function testFindOneNothingFound()
+    {
+        $this->assertEquals(0, count($this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}')));
+
+        $this->assertNull($this->fixture->findOne('foaf:Person'));
+    }
+
     /*
      * Tests for load
      */
@@ -348,139 +341,5 @@ class DataBlankHelperTest extends UnitTestCase
 
         $this->assertEquals('http://foobar/foaf-person/id/foobar', $dataBlank['_idUri']);
         $this->assertEquals('foaf:Person', $dataBlank['rdf:type']);
-    }
-
-    /*
-     * Tests for store
-     */
-
-    public function testStore()
-    {
-        $dataBlank = $this->fixture->dispense('foaf:Person', 'foobar', 'http://foobar/');
-        $dataBlank['rdfs:label'] = 'Geiles Label';
-
-        $this->fixture->store($dataBlank);
-
-        /*
-         * check generated store content
-         */
-        $expected = new SetResultImpl(array(
-            array(
-                's' => $this->nodeFactory->createNamedNode($dataBlank['_idUri']),
-                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person')
-            ),
-            array(
-                's' => $this->nodeFactory->createNamedNode($dataBlank['_idUri']),
-                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
-                'o' => $this->nodeFactory->createLiteral('Geiles Label')
-            )
-        ));
-        $expected->setVariables(array('s', 'p', 'o'));
-
-        $this->assertSetIteratorEquals(
-            $expected,
-            $this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}')
-        );
-
-        /*
-         * load blank from store and check it
-         */
-        $blankCopy = $this->fixture->load($dataBlank['_idUri']);
-
-        $blankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $blankToCheckAgainst['_idUri'] = 'http://foobar/foaf-person/id/foobar';
-        $blankToCheckAgainst['rdf:type'] = 'foaf:Person';
-        $blankToCheckAgainst['rdfs:label'] = 'Geiles Label';
-
-        $this->assertEquals($blankToCheckAgainst, $blankCopy);
-    }
-
-    public function testStoreWithSubDataBlank()
-    {
-        $dataBlank = $this->fixture->dispense('foaf:Person', 'foobar', 'http://foobar/');
-        $dataBlank['rdfs:label'] = 'Geiles Label';
-
-        // sub data blank
-        $dataBlank['foaf:knows'] = $this->fixture->dispense('foaf:Person', 'foobar2', 'http://foobar/');
-        $dataBlank['foaf:knows']['rdfs:label'] = 'Label2';
-
-        $this->fixture->store($dataBlank);
-
-        /*
-         * check generated store content
-         */
-        $expected = new SetResultImpl(array(
-            array(
-                's' => $this->nodeFactory->createNamedNode($dataBlank['_idUri']),
-                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person')
-            ),
-            array(
-                's' => $this->nodeFactory->createNamedNode($dataBlank['_idUri']),
-                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
-                'o' => $this->nodeFactory->createLiteral('Geiles Label')
-            ),
-            array(
-                's' => $this->nodeFactory->createNamedNode($dataBlank['_idUri']),
-                'p' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/knows'),
-                'o' => $this->nodeFactory->createNamedNode($dataBlank['foaf:knows']['_idUri'])
-            ),
-            array(
-                's' => $this->nodeFactory->createNamedNode($dataBlank['foaf:knows']['_idUri']),
-                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person')
-            ),
-            array(
-                's' => $this->nodeFactory->createNamedNode($dataBlank['foaf:knows']['_idUri']),
-                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/2000/01/rdf-schema#label'),
-                'o' => $this->nodeFactory->createLiteral('Label2')
-            )
-        ));
-        $expected->setVariables(array('s', 'p', 'o'));
-
-        $this->assertSetIteratorEquals(
-            $expected,
-            $this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}')
-        );
-
-        /*
-         * load blank from store and check it
-         */
-        $blankCopy = $this->fixture->load($dataBlank['_idUri']);
-
-        $blankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $blankToCheckAgainst['_idUri'] = 'http://foobar/foaf-person/id/foobar';
-        $blankToCheckAgainst['rdf:type'] = 'foaf:Person';
-        $blankToCheckAgainst['rdfs:label'] = 'Geiles Label';
-        $blankToCheckAgainst['foaf:knows'] = $this->fixture->dispense('foaf:Person', 'foobar2', 'http://foobar/');
-        $blankToCheckAgainst['foaf:knows']['rdfs:label'] = 'Label2';
-
-        $this->assertEquals($blankToCheckAgainst, $blankCopy);
-    }
-
-    /*
-     * Tests for trash
-     */
-
-    public function testTrash()
-    {
-        $this->commonNamespaces->add('test', 'http://test/');
-
-        $blank = $this->fixture->dispense('test:User');
-        $blank['rdfs:label'] = 'label';
-
-        // store blank
-        $this->fixture->store($blank);
-
-        // check content
-        $result = $this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}');
-        $this->assertEquals(2, count($result->getArrayCopy()));
-
-        $this->fixture->trash($blank);
-
-        // check content again
-        $result = $this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}');
-        $this->assertEquals(0, count($result->getArrayCopy()));
     }
 }

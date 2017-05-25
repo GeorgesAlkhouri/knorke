@@ -1,6 +1,5 @@
 {
     "name": "k00ni/knorke",
-    "license": "MIT",
     "require": {
         "php": ">=7.0",
         "paragonie/easydb": "2.*",

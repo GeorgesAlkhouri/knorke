@@ -102,6 +102,39 @@ abstract class AbstractStatementStoreTest extends UnitTestCase
     }
 
     /*
+     * Tests for deleteMatchingStatements
+     */
+
+    public function testDeleteMatchingStatements()
+    {
+        $this->store->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s1'),
+                $this->nodeFactory->createNamedNode('http://p1'),
+                $this->nodeFactory->createNamedNode('http://o1'),
+                $this->testGraph
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://s2'),
+                $this->nodeFactory->createNamedNode('http://p2'),
+                $this->nodeFactory->createNamedNode('http://o2'),
+                $this->testGraph
+            ),
+        ));
+
+        $this->assertEquals(2, count($this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE { ?s ?p ?o. }')));
+
+        // test removal
+        $this->store->deleteMatchingStatements($this->statementFactory->createStatement(
+            $this->nodeFactory->createNamedNode('http://s1'),
+            $this->nodeFactory->createAnyPattern(),
+            $this->nodeFactory->createAnyPattern(),
+            $this->testGraph
+        ));
+        $this->assertEquals(1, count($this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE { ?s ?p ?o. }')));
+    }
+
+    /*
      * Tests for getGraphs
      */
 

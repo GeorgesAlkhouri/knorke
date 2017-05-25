@@ -32,4 +32,9 @@ class InMemoryStoreTest extends AbstractStatementStoreTest
 
        return $this->fixture;
     }
+
+    public function testDeleteMatchingStatements()
+    {
+        $this->markTestIncomplete('InMemoryStore has no advanced implementation for statement deletion, yet.');
+    }
 }

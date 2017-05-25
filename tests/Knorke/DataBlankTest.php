@@ -3,7 +3,7 @@
 namespace Tests\Knorke;
 
 use Knorke\DataBlank;
-use Knorke\InMemoryStore;
+use Knorke\Store\SemanticDbl;
 use Saft\Rdf\BlankNodeImpl;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\LiteralImpl;
@@ -34,6 +34,34 @@ class DataBlankTest extends UnitTestCase
     protected function initFixture()
     {
         $this->fixture = $this->getFixtureInstance();
+    }
+
+    /**
+     * inits an instance of SemanticDbl
+     */
+    protected function initSemanticDblInstance()
+    {
+        global $dbConfig;
+
+        $store = new SemanticDbl(
+            $this->nodeFactory,
+            $this->statementFactory,
+            $this->queryFactory,
+            $this->statementIteratorFactory,
+            $this->commonNamespaces,
+            $this->rdfHelpers
+        );
+
+        $store->connect(
+            $dbConfig['user'],
+            $dbConfig['pass'],
+            $dbConfig['db'],
+            $dbConfig['host']
+        );
+
+        $store->setup();
+
+        return $store;
     }
 
     /*
@@ -78,6 +106,61 @@ class DataBlankTest extends UnitTestCase
         $blank = $this->getFixtureInstance();
         $blank['http://www.w3.org/2000/01/rdf-schema#label'] = 'label';
         $this->assertEquals($blank->get('rdfs:label'), 'label');
+    }
+
+    /*
+     * Tests how it reacts if underlying store data got updated
+     */
+
+    public function testDataLoadingAfterUpdatesInUnderlyingStore()
+    {
+        $subjectNode = $this->nodeFactory->createNamedNode('http://s');
+
+        // get instance of SemanticDbl (MySQL backend), because the in memory store has no
+        // working implementation to remove statements
+        $store = $this->initSemanticDblInstance();
+
+        $store->createGraph($this->testGraph);
+
+        $store->addStatements(array(
+            $this->statementFactory->createStatement(
+                $subjectNode,
+                $this->nodeFactory->createNamedNode('http://p'),
+                $this->nodeFactory->createNamedNode('http://o'),
+                $this->testGraph
+            ),
+        ));
+
+        $blank = $this->getFixtureInstance();
+        $blank->initByStoreSearch($store, $this->testGraph, 'http://s');
+
+        $this->assertEquals('http://o', $blank['http://p']);
+
+        /*
+         * update store to later, if it gathers latest data
+         */
+        $store->deleteMatchingStatements($this->statementFactory->createStatement(
+            $subjectNode,
+            $this->nodeFactory->createAnyPattern(),
+            $this->nodeFactory->createAnyPattern(),
+            $this->testGraph
+        ));
+
+        $store->addStatements(array(
+            $this->statementFactory->createStatement(
+                $subjectNode,
+                $this->nodeFactory->createNamedNode('http://p'),
+                $this->nodeFactory->createNamedNode('http://new'),
+                $this->testGraph
+            ),
+        ));
+
+        $blank = $this->getFixtureInstance();
+        $blank->initByStoreSearch($store, $this->testGraph, 'http://s');
+
+        $store->dropGraph($this->testGraph);
+
+        $this->assertEquals('http://new', $blank['http://p']);
     }
 
     /*

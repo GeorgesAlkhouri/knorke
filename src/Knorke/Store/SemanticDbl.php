@@ -319,9 +319,17 @@ class SemanticDbl extends AbstractStatementStore
          * - s, p, o
          */
         $subject = $this->getNodeValue($statement->getSubject());
+        // if $subject is blank node, remove _: if available
+        $subject = '_:' == substr($subject, 0, 2) ? substr($subject, 2) : $subject;
+
         $predicate = $this->getNodeValue($statement->getPredicate());
+
         $object = $this->getNodeValue($statement->getObject());
+        // if $object is blank node, remove _: if available
+        $object = '_:' == substr($object, 0, 2) ? substr($object, 2) : $object;
+
         $graph = $this->nodeFactory->createNamedNode($this->retrieveGraphUri($graph, $statement));
+
         $sOperator = $pOperator = $oOperator = '=';
 
         if ('ANY' == $subject) {
@@ -340,7 +348,10 @@ class SemanticDbl extends AbstractStatementStore
 
         // fetch value id for s, p and o for given values
         $values = $this->pdo->run(
-            'SELECT subject_id, predicate_id, object_id
+            'SELECT subject_id, predicate_id, object_id,
+                    v1.value as value1,
+                    v2.value as value2,
+                    v3.value as value3
                FROM quad q
                     LEFT JOIN value v1 ON q.subject_id = v1.id
                     LEFT JOIN value v2 ON q.predicate_id = v2.id
@@ -453,7 +464,7 @@ class SemanticDbl extends AbstractStatementStore
         if ($node->isConcrete()) {
             // uri
             if ($node->isNamed()) {
-                $value = $node->getUri();
+                $value = $this->commonNamespaces->extendUri($node->getUri());
             // literal
             } elseif ($node->isLiteral()) {
                 $value = $node->getValue();

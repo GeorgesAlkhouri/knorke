@@ -28,12 +28,7 @@ class BlankVarVar extends AbstractQueryHandler
             foreach ($statements as $stmt) {
                 $subject = $stmt->getSubject();
                 if ($subject->isBlank()) {
-                    if ('_:' !== substr($subject->getBlankId(), 0, 2)) {
-                        $blankId = '_:'.$subject->getBlankId();
-                    } else {
-                        $blankId = $subject->getBlankId();
-                    }
-                    if (strtolower($blankId) == strtolower($triplePattern[0]['s'])) {
+                    if (strtolower($subject->toNQuads()) == strtolower($triplePattern[0]['s'])) {
                         $entries[] = array(
                             $triplePattern[0][$triplePattern[0]['p']] => $stmt->getPredicate(),
                             $triplePattern[0][$triplePattern[0]['o']] => $stmt->getObject()

@@ -241,70 +241,6 @@ class DataBlankTest extends UnitTestCase
     }
 
     /*
-     * Tests for getTriples
-     */
-
-    public function testGetTriples()
-    {
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://s'),
-                $this->nodeFactory->createNamedNode('http://p'),
-                $this->nodeFactory->createNamedNode('http://o'),
-                $this->testGraph
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://s'),
-                $this->nodeFactory->createNamedNode('http://p1'),
-                $this->nodeFactory->createNamedNode('http://o1'),
-                $this->testGraph
-            ),
-            // sub resource
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://o'),
-                $this->nodeFactory->createNamedNode('http://p2'),
-                $this->nodeFactory->createBlankNode('blank1'),
-                $this->testGraph
-            ),
-            // sub sub resource
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('blank1'),
-                $this->nodeFactory->createNamedNode('http://p3'),
-                $this->nodeFactory->createLiteral('foobar'),
-                $this->testGraph
-            )
-        ));
-
-        $this->fixture->initByStoreSearch($this->store, $this->testGraph, 'http://s');
-
-        $this->assertEquals(
-            array(
-                array(
-                    's' => $this->fixture['http://p']['http://p2']['_idUri'],
-                    'p' => 'http://p3',
-                    'o' => 'foobar',
-                ),
-                array(
-                    's' => 'http://o',
-                    'p' => 'http://p2',
-                    'o' => $this->fixture['http://p']['http://p2']['_idUri'],
-                ),
-                array(
-                    's' => 'http://s',
-                    'p' => 'http://p',
-                    'o' => 'http://o',
-                ),
-                array(
-                    's' => 'http://s',
-                    'p' => 'http://p1',
-                    'o' => 'http://o1',
-                ),
-            ),
-            $this->fixture->getTriples()
-        );
-    }
-
-    /*
      * Tests for initByStoreQuery
      */
 
@@ -592,32 +528,6 @@ class DataBlankTest extends UnitTestCase
                 )
             ),
             $this->fixture->getArrayCopy()
-        );
-
-        $this->assertEquals(
-            array(
-                array(
-                    's' => 'http://baz2',
-                    'p' => 'http://bar2',
-                    'o' => 'http://biz2',
-                ),
-                array(
-                    's' => 'http://baz1',
-                    'p' => 'http://bar1',
-                    'o' => 'http://biz1',
-                ),
-                array(
-                    's' => 'http://foo',
-                    'p' => 'http://bar',
-                    'o' => 'http://baz1',
-                ),
-                array(
-                    's' => 'http://foo',
-                    'p' => 'http://bar',
-                    'o' => 'http://baz2',
-                ),
-            ),
-            $this->fixture->getTriples()
         );
     }
 }

@@ -22,12 +22,12 @@ These rules are to described in **RDF** as following:
 foo:value1 rdf:type kno:StatisticValue .
 
 foo:value2 rdf:type kno:StatisticValue ;
-    kno:computationOrder [
+    kno:computation-order [
         kno:_0 "[foo:value1]+5"
     ];
 
 foo:value3 rdf:type kno:StatisticValue ;
-    kno:computationOrder [
+    kno:computation-order [
         kno:_0 "[foo:value1]*3" ;
         kno:_1 "/2"
     ];

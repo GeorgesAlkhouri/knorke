@@ -47,7 +47,7 @@ class DataValidator
             /*
              * check for data type
              */
-            case 'kno:restrictionHasDatatype':
+            case 'kno:restriction-has-datatype':
                 // string
                 if ('string' == $restrictionValue && is_string($dataValueToCheck)) {
                     return true;
@@ -75,7 +75,7 @@ class DataValidator
             /*
              * check for minimum number
              */
-            case 'kno:restrictionMinimumNumber':
+            case 'kno:restriction-minimum-number':
                 $restrictionValue = (float)$restrictionValue;
                 if ($restrictionValue <= $dataValueToCheck) {
                     return true;
@@ -88,7 +88,7 @@ class DataValidator
             /*
              * check for maximum number
              */
-            case 'kno:restrictionMaximumNumber':
+            case 'kno:restriction-maximum-number':
 
                 if ($restrictionValue >= $dataValueToCheck) {
                     return true;
@@ -101,7 +101,7 @@ class DataValidator
             /*
              * check for MATCHING regex
              */
-            case 'kno:restrictionRegexMatch':
+            case 'kno:restriction-regex-match':
 
                 $regex = $restrictionValue;
                 if (0 < preg_match($regex, $dataValueToCheck)) {
@@ -140,13 +140,13 @@ class DataValidator
         $result = $this->store->query('SELECT * WHERE {<'. $typeUri .'> ?p ?o.}');
         $typedBlank->initBySetResult($result, $typeUri);
 
-        // if only one hasProperty was given, transform it from string to array
-        if (isset($typedBlank['kno:hasProperty']) && false == is_array($typedBlank['kno:hasProperty'])) {
-            $typedBlank['kno:hasProperty'] = array($typedBlank['kno:hasProperty']);
+        // if only one has-property was given, transform it from string to array
+        if (isset($typedBlank['kno:has-property']) && false == is_array($typedBlank['kno:has-property'])) {
+            $typedBlank['kno:has-property'] = array($typedBlank['kno:has-property']);
         }
 
         // check each property of the type, if it is available and suits the restrictions
-        foreach ($typedBlank['kno:hasProperty'] as $uri) {
+        foreach ($typedBlank['kno:has-property'] as $uri) {
             $fullObjectUri = $this->commonNamespaces->extendUri($uri);
 
             // load restrictions per property
@@ -161,7 +161,7 @@ class DataValidator
                 // if a property with a restriction was found
                 if (false !== strpos($propertyUri, 'kno:restriction')) {
                     $this->checkIfRestrictionIsApplied(
-                        $propertyUri,                           // e.g. kno:restrictionHasDatatype
+                        $propertyUri,                           // e.g. kno:restriction-has-datatype
                         $object,                                // e.g. string
                         $dataToCheck[$propertyBlank['_idUri']]  // e.g. "foobar"
                     );

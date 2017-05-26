@@ -23,10 +23,10 @@ class RestrictionTest extends UnitTestCase
         /*
         http://resourceWithRestrictions
             rdfs:label "label"@de ;
-            kno:restrictionOneOf http://foo , http://bar ;
-            kno:inheritsAllPropertiesOf http://foreign-resource .
+            kno:restriction-one-of http://foo , http://bar ;
+            kno:inherits-all-properties-of http://foreign-resource .
 
-        http://foreign-resource kno:restrictionOrder [
+        http://foreign-resource kno:restriction-order [
                 kno:_0 http://foo ;
                 kno:_1 http://bar
             ] .
@@ -40,19 +40,19 @@ class RestrictionTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
-                $this->nodeFactory->createNamedNode('kno:restrictionOneOf'),
+                $this->nodeFactory->createNamedNode('kno:restriction-one-of'),
                 $this->nodeFactory->createNamedNode('http://foo'),
                 $this->testGraph
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
-                $this->nodeFactory->createNamedNode('kno:restrictionOneOf'),
+                $this->nodeFactory->createNamedNode('kno:restriction-one-of'),
                 $this->nodeFactory->createNamedNode('http://bar'),
                 $this->testGraph
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://resourceWithRestrictions'),
-                $this->nodeFactory->createNamedNode('kno:inheritsAllPropertiesOf'),
+                $this->nodeFactory->createNamedNode('kno:inherits-all-properties-of'),
                 $this->nodeFactory->createNamedNode('http://foreign-resource'),
                 $this->testGraph
             ),
@@ -61,7 +61,7 @@ class RestrictionTest extends UnitTestCase
              */
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://foreign-resource'),
-                $this->nodeFactory->createNamedNode('kno:restrictionOrder'),
+                $this->nodeFactory->createNamedNode('kno:restriction-order'),
                 $this->nodeFactory->createBlankNode('genid1')
             ),
             $this->statementFactory->createStatement(
@@ -89,12 +89,12 @@ class RestrictionTest extends UnitTestCase
         $this->assertEquals(
             array(
                 'rdfs:label' => 'label',
-                'kno:restrictionOneOf' => array(
+                'kno:restriction-one-of' => array(
                     0 => 'http://foo',
                     1 => 'http://bar',
                 ),
-                'kno:inheritsAllPropertiesOf' => 'http://foreign-resource',
-                'kno:restrictionOrder' => array(
+                'kno:inherits-all-properties-of' => 'http://foreign-resource',
+                'kno:restriction-order' => array(
                     'kno:_0' => 'http://foo',
                     'kno:_1' => 'http://bar',
                 ),

@@ -68,7 +68,7 @@ class StatisticValue
         // check that all non-depending values were defined
         foreach ($statisticValues as $uri => $statisticValue) {
             // check for values which have no computationOrder property but are part of the mapping
-            if (false === isset($statisticValue['kno:computationOrder'])
+            if (false === isset($statisticValue['kno:computation-order'])
                 && false === isset($this->mapping[$this->commonNamespaces->shortenUri($uri)])
                 && false === isset($this->mapping[$this->commonNamespaces->extendUri($uri)])) {
                 $e = new KnorkeException('Statistic value ' . $uri . ' is non-depending, but has no mapping.');
@@ -80,7 +80,7 @@ class StatisticValue
         // compute computationOrder for each statistical value
         $statisticalValuesWithCompOrder = array();
         foreach ($statisticValues as $uri => $statisticValue) {
-            if (isset($statisticValue['kno:computationOrder'])) {
+            if (isset($statisticValue['kno:computation-order'])) {
                 $statisticalValuesWithCompOrder[$this->commonNamespaces->shortenUri($uri)] =
                     $this->getComputationOrderFor($uri, $statisticValues);
             }
@@ -306,7 +306,7 @@ class StatisticValue
 
     /**
      * @param string $statisticValueUri
-     * @param array $statisticValues Array of arrays which contains references (kno:computationOrder) to blank nodes.
+     * @param array $statisticValues Array of arrays which contains references (kno:computation-order) to blank nodes.
      * @return null|array Array if an order was found, null otherwise.
      */
     public function getComputationOrderFor($statisticValueUri, array $statisticValues)
@@ -317,7 +317,7 @@ class StatisticValue
             $uri = $this->commonNamespaces->shortenUri($uri);
             if ($uri == $statisticValueUri) {
                 $result = $this->store->query(
-                    'SELECT * WHERE {'. $value['kno:computationOrder'] .' ?p ?o.}'
+                    'SELECT * WHERE {'. $value['kno:computation-order'] .' ?p ?o.}'
                 );
 
                 $computationOrderBlank = new DataBlank(
@@ -327,7 +327,7 @@ class StatisticValue
                         'add_internal_data_fields' => false
                     )
                 );
-                $computationOrderBlank->initBySetResult($result, $value['kno:computationOrder']);
+                $computationOrderBlank->initBySetResult($result, $value['kno:computation-order']);
 
                 // order entries by key
                 $computationOrder = $computationOrderBlank->getArrayCopy();

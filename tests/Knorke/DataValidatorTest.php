@@ -27,12 +27,12 @@ class DataValidatorTest extends UnitTestCase
         $knoNs = $this->commonNamespaces->getUri('kno');
 
         $this->assertTrue($this->fixture->checkIfRestrictionIsApplied(
-            $knoNs .'restrictionHasDatatype', 'boolean-string', 'true'
+            $knoNs .'restriction-has-datatype', 'boolean-string', 'true'
         ));
 
         try {
             $this->fixture->checkIfRestrictionIsApplied(
-                $knoNs .'restrictionHasDatatype', 'boolean-string', false
+                $knoNs .'restriction-has-datatype', 'boolean-string', false
             );
             // not good
             $this->fail('Expected an instance of Exception\DataValidatorException thrown.');
@@ -50,12 +50,12 @@ class DataValidatorTest extends UnitTestCase
         $knoNs = $this->commonNamespaces->getUri('kno');
 
         $this->assertTrue($this->fixture->checkIfRestrictionIsApplied(
-            $knoNs .'restrictionHasDatatype', 'number', 11
+            $knoNs .'restriction-has-datatype', 'number', 11
         ));
 
         try {
             $this->fixture->checkIfRestrictionIsApplied(
-                $knoNs .'restrictionHasDatatype', 'number', "11"
+                $knoNs .'restriction-has-datatype', 'number', "11"
             );
             // not good
             $this->fail('Expected an instance of Exception\DataValidatorException thrown.');
@@ -73,12 +73,12 @@ class DataValidatorTest extends UnitTestCase
         $knoNs = $this->commonNamespaces->getUri('kno');
 
         $this->assertTrue($this->fixture->checkIfRestrictionIsApplied(
-            $knoNs .'restrictionHasDatatype', 'string', 'foobar'
+            $knoNs .'restriction-has-datatype', 'string', 'foobar'
         ));
 
         try {
             $this->fixture->checkIfRestrictionIsApplied(
-                $knoNs .'restrictionHasDatatype', 'string', false
+                $knoNs .'restriction-has-datatype', 'string', false
             );
             // not good
             $this->fail('Expected an instance of Exception\DataValidatorException thrown.');
@@ -96,12 +96,12 @@ class DataValidatorTest extends UnitTestCase
         $knoNs = $this->commonNamespaces->getUri('kno');
 
         $this->assertTrue($this->fixture->checkIfRestrictionIsApplied(
-            $knoNs .'restrictionMinimumNumber', 14, 15
+            $knoNs .'restriction-minimum-number', 14, 15
         ));
 
         try {
             $this->fixture->checkIfRestrictionIsApplied(
-                $knoNs .'restrictionMinimumNumber', 1000, 0
+                $knoNs .'restriction-minimum-number', 1000, 0
             );
             // not good
             $this->fail('Expected an instance of Exception\DataValidatorException thrown.');
@@ -119,12 +119,12 @@ class DataValidatorTest extends UnitTestCase
         $knoNs = $this->commonNamespaces->getUri('kno');
 
         $this->assertTrue($this->fixture->checkIfRestrictionIsApplied(
-            $knoNs .'restrictionMaximumNumber', 1000, 15
+            $knoNs .'restriction-maximum-number', 1000, 15
         ));
 
         try {
             $this->fixture->checkIfRestrictionIsApplied(
-                $knoNs .'restrictionMaximumNumber', 0, 1000
+                $knoNs .'restriction-maximum-number', 0, 1000
             );
             // not good
             $this->fail('Expected an instance of Exception\DataValidatorException thrown.');
@@ -142,12 +142,12 @@ class DataValidatorTest extends UnitTestCase
         $knoNs = $this->commonNamespaces->getUri('kno');
 
         $this->assertTrue($this->fixture->checkIfRestrictionIsApplied(
-            $knoNs .'restrictionRegexMatch', '/\d/', '12'
+            $knoNs .'restriction-regex-match', '/\d/', '12'
         ));
 
         try {
             $this->fixture->checkIfRestrictionIsApplied(
-                $knoNs .'restrictionRegexMatch', '/\d/', 'aa'
+                $knoNs .'restriction-regex-match', '/\d/', 'aa'
             );
             // not good
             $this->fail('Expected an instance of Exception\DataValidatorException thrown.');
@@ -170,20 +170,20 @@ class DataValidatorTest extends UnitTestCase
 
         /*
          * Add test data
-         * http://Person/ kno:hasProperty :age .
+         * http://Person/ kno:has-property :age .
          */
         $this->store->addStatements(array(
             /*
-             * set hasProperty triples
+             * set has-property triples
              */
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://Person/'),
-                $this->nodeFactory->createNamedNode($knoNs . 'hasProperty'),
+                $this->nodeFactory->createNamedNode($knoNs . 'has-property'),
                 $this->nodeFactory->createNamedNode('http://age/')
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://Person/'),
-                $this->nodeFactory->createNamedNode($knoNs . 'hasProperty'),
+                $this->nodeFactory->createNamedNode($knoNs . 'has-property'),
                 $this->nodeFactory->createNamedNode('http://firstname/')
             ),
             /*
@@ -191,12 +191,12 @@ class DataValidatorTest extends UnitTestCase
              */
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://age/'),
-                $this->nodeFactory->createNamedNode($knoNs . 'restrictionHasDatatype'),
+                $this->nodeFactory->createNamedNode($knoNs . 'restriction-has-datatype'),
                 $this->nodeFactory->createLiteral('number')
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://firstname/'),
-                $this->nodeFactory->createNamedNode($knoNs . 'restrictionHasDatatype'),
+                $this->nodeFactory->createNamedNode($knoNs . 'restriction-has-datatype'),
                 $this->nodeFactory->createLiteral('string')
             ),
         ));

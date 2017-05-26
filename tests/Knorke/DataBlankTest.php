@@ -173,7 +173,7 @@ class DataBlankTest extends UnitTestCase
         $result = new SetResultImpl(array(
             array(
                 's' => $this->nodeFactory->createNamedNode('stat:1'),
-                'p' => $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                'p' => $this->nodeFactory->createNamedNode('kno:computation-order'),
                 'o' => $this->nodeFactory->createBlankNode('genid1')
             ),
             array(

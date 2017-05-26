@@ -48,7 +48,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('stat:1'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid1')
             ),
             $this->statementFactory->createStatement(
@@ -80,7 +80,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('stat:date'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid2')
             ),
             $this->statementFactory->createStatement(
@@ -96,7 +96,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('stat:days'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid3')
             ),
             $this->statementFactory->createStatement(
@@ -161,7 +161,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid1')
             ),
             $this->statementFactory->createStatement(
@@ -197,7 +197,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid1')
             ),
             $this->statementFactory->createStatement(
@@ -260,7 +260,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid1')
             ),
             $this->statementFactory->createStatement(
@@ -310,7 +310,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid1')
             ),
             $this->statementFactory->createStatement(
@@ -360,7 +360,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid1')
             ),
             $this->statementFactory->createStatement(
@@ -477,7 +477,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('stat:2'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid2')
             ),
             $this->statementFactory->createStatement(
@@ -492,7 +492,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('stat:3'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid3')
             ),
             $this->statementFactory->createStatement(
@@ -538,7 +538,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('stat:2'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid1')
             ),
             $this->statementFactory->createStatement(
@@ -553,7 +553,7 @@ class StatisticValueTest extends UnitTestCase
             ),
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('stat:2'),
-                $this->nodeFactory->createNamedNode('kno:computationOrder'),
+                $this->nodeFactory->createNamedNode('kno:computation-order'),
                 $this->nodeFactory->createBlankNode('genid2')
             ),
             $this->statementFactory->createStatement(
@@ -588,11 +588,11 @@ class StatisticValueTest extends UnitTestCase
                 array(
                     'stat:1' => array(
                         'rdf:type' => 'kno:StatisticValue',
-                        'kno:computationOrder' => $stat2Blank['kno:computationOrder'][0]
+                        'kno:computation-order' => $stat2Blank['kno:computation-order'][0]
                     ),
                     'stat:2' => array(
                         'rdf:type' => 'kno:StatisticValue',
-                        'kno:computationOrder' => $stat2Blank['kno:computationOrder'][1]
+                        'kno:computation-order' => $stat2Blank['kno:computation-order'][1]
                     ),
                 )
             )

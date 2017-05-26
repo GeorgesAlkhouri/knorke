@@ -12,22 +12,23 @@
 #
 # General
 #
-:hasProperty rdf:type rdfs:Property .
+:has-property rdf:type rdfs:Property .
 
-:inheritsAllPropertiesOf rdf:type rdfs:Property .
+:inherits-all-properties-of rdf:type rdfs:Property .
 
-:standardValue rdf:type rdfs:Property .
+:standard-value rdf:type rdfs:Property .
 
 #
 # Restrictions
 #
-:restrictionHasDatatype rdf:type rdfs:Property .
-:restrictionMinimumNumber rdf:type rdfs:Property .
-:restrictionMaximumNumber rdf:type rdfs:Property .
-:restrictionOneOf rdf:type rdfs:Property .
-:restrictionOrder rdf:type rdfs:Property .
+:restriction-has-datatype rdf:type rdfs:Property .
+:restriction-minimum-number rdf:type rdfs:Property .
+:restriction-maximum-number rdf:type rdfs:Property .
+:restriction-one-of rdf:type rdfs:Property .
+:restriction-order rdf:type rdfs:Property .
+:restriction-regex-match rdf:type rdfs:Property .
 
 #
 # StatisticValue
 #
-:computationOrder rdf:type rdfs:Property .
+:computation-order rdf:type rdfs:Property .

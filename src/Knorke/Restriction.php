@@ -40,9 +40,9 @@ class Restriction
         /*
          * if its a proxy resource which inherits from another, get the properties of the other one.
          */
-        if (null !== $blank->get('kno:inheritsAllPropertiesOf')) {
+        if (null !== $blank->get('kno:inherits-all-properties-of')) {
             // get infos from the other resource
-            $foreignResource = $blank->get('kno:inheritsAllPropertiesOf');
+            $foreignResource = $blank->get('kno:inherits-all-properties-of');
             $foreignBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
                 'add_internal_data_fields' => false
             ));

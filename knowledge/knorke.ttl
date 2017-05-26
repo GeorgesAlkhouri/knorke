@@ -16,17 +16,19 @@
 
 :inherits-all-properties-of rdf:type rdfs:Property .
 
+:Restriction rdfs:label "Property restriction" .
+
 :standard-value rdf:type rdfs:Property .
 
 #
 # Restrictions
 #
-:restriction-has-datatype rdf:type rdfs:Property .
-:restriction-minimum-number rdf:type rdfs:Property .
-:restriction-maximum-number rdf:type rdfs:Property .
-:restriction-one-of rdf:type rdfs:Property .
-:restriction-order rdf:type rdfs:Property .
-:restriction-regex-match rdf:type rdfs:Property .
+:restriction-has-datatype a :Restriction .
+:restriction-minimum-number a :Restriction .
+:restriction-maximum-number a :Restriction .
+:restriction-one-of a :Restriction .
+:restriction-order a :Restriction .
+:restriction-regex-match a :Restriction .
 
 #
 # StatisticValue

@@ -13,8 +13,10 @@ class DataValidatorTest extends UnitTestCase
 
         $this->fixture = new DataValidator(
             $this->commonNamespaces,
+            $this->dataBlankHelper,
             $this->rdfHelpers,
-            $this->store
+            $this->store,
+            $this->testGraph
         );
     }
 
@@ -166,46 +168,226 @@ class DataValidatorTest extends UnitTestCase
 
     public function testValidate()
     {
-        $knoNs = $this->commonNamespaces->getUri('kno');
+        // load knorke data
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
 
         /*
-         * Add test data
-         * http://Person/ kno:has-property :age .
+            Add test data
+
+            http://Person/ kno:has-property http://age , http://firstname .
+
+            http://age kno:restriction-has-datatype "number" .
+
+            http://firstname kno:restriction-has-datatype "string" .
+
          */
         $this->store->addStatements(array(
             /*
              * set has-property triples
              */
             $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://Person/'),
-                $this->nodeFactory->createNamedNode($knoNs . 'has-property'),
-                $this->nodeFactory->createNamedNode('http://age/')
+                $this->nodeFactory->createNamedNode('http://Person'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://age')
             ),
             $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://Person/'),
-                $this->nodeFactory->createNamedNode($knoNs . 'has-property'),
-                $this->nodeFactory->createNamedNode('http://firstname/')
+                $this->nodeFactory->createNamedNode('http://Person'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://firstname')
             ),
             /*
              * property details
              */
             $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://age/'),
-                $this->nodeFactory->createNamedNode($knoNs . 'restriction-has-datatype'),
+                $this->nodeFactory->createNamedNode('http://age'),
+                $this->nodeFactory->createNamedNode('kno:restriction-has-datatype'),
                 $this->nodeFactory->createLiteral('number')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://firstname/'),
-                $this->nodeFactory->createNamedNode($knoNs . 'restriction-has-datatype'),
-                $this->nodeFactory->createLiteral('string')
             ),
         ));
 
         $dataToValidate = array(
-            'http://age/' => 15,
-            'http://firstname/' => 'foobar'
+            'rdf:type'          => 'http://Person',
+            'http://age'        => 15,
+            'http://firstname'  => 'foobar'
         );
 
-        $this->assertTrue($this->fixture->validate($dataToValidate, 'http://Person/'));
+        $this->assertTrue($this->fixture->validate($dataToValidate));
+    }
+
+    // test how it reacts if one of the has-property related properties are not in $dataToCheck
+    public function testValidateNotAllPropertiesGiven()
+    {
+        // load knorke data
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+
+        /*
+            Add test data
+
+            http://Person/ kno:has-property http://age , http://firstname .
+
+            http://age kno:restriction-has-datatype "number" .
+
+            http://firstname kno:restriction-has-datatype "string" .
+
+         */
+        $this->store->addStatements(array(
+            /*
+             * set has-property triples
+             */
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://Person'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://age')
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://Person'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://firstname')
+            ),
+            /*
+             * property details
+             */
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://age'),
+                $this->nodeFactory->createNamedNode('kno:restriction-has-datatype'),
+                $this->nodeFactory->createLiteral('number')
+            ),
+        ));
+
+        $dataToValidate = array(
+            'http://age' => 13,
+            // firstname is missing
+        );
+
+        $this->expectException('Knorke\Exception\DataValidatorException');
+
+        $this->assertFalse($this->fixture->validate($dataToValidate));
+    }
+
+    // test that exception is thrown, if no type info was found
+    public function testValidateNoTypeInfoFound()
+    {
+        $this->expectException('Knorke\Exception\DataValidatorException');
+
+        $this->fixture->validate(array(
+            // rdf:type missing
+            'http://foobar' => 'baz'
+        ));
+    }
+
+    // test how it validates sub structures. it has to recursively checks
+    public function testValidateSubStructures()
+    {
+        // load knorke data
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+
+        /*
+         Add test data:
+
+         http://Person kno:has-property http://has-user-settings .
+
+         http://UserSettings kno:has-property http://setting-startpage .
+
+         http://setting-startpage kno:restriction-has-datatype "string" .
+
+         */
+        $this->store->addStatements(array(
+            // http://Person kno:has-property :has-user-settings .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://Person'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://has-user-settings')
+            ),
+            // http://UserSettings kno:has-property backmodel:setting-startpage .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://UserSettings'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://setting-startpage')
+            ),
+            // http://UserSettings kno:has-property http://number-of-xyze .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://UserSettings'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://number-of-xyz')
+            ),
+            // http://setting-startpage kno:restriction-has-datatype "string" .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://setting-startpage'),
+                $this->nodeFactory->createNamedNode('kno:restriction-has-datatype'),
+                $this->nodeFactory->createLiteral('string')
+            ),
+        ), $this->testGraph);
+
+        $dataToValidate = array(
+            // person level
+            'rdf:type' => 'http://Person',
+            'http://has-user-settings' => array(
+                // sub level 1
+                'rdf:type' => 'http://UserSettings',
+                'http://setting-startpage' => '/index',
+                'http://number-of-xyz' => 23
+            )
+        );
+
+        $this->assertTrue($this->fixture->validate($dataToValidate));
+    }
+
+    // test how it validates sub structures. it has to recursively checks
+    public function testValidateSubStructuresCheckForFail()
+    {
+        // load knorke data
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+
+        /*
+         Add test data:
+
+         http://Person kno:has-property http://has-user-settings .
+
+         http://UserSettings kno:has-property http://setting-startpage .
+
+         http://setting-startpage kno:restriction-has-datatype "string" .
+
+         */
+        $this->store->addStatements(array(
+            // http://Person kno:has-property :has-user-settings .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://Person'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://has-user-settings')
+            ),
+            // http://UserSettings kno:has-property backmodel:setting-startpage .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://UserSettings'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://setting-startpage')
+            ),
+            // http://UserSettings kno:has-property http://number-of-xyze .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://UserSettings'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://number-of-xyz')
+            ),
+            // http://setting-startpage kno:restriction-has-datatype "string" .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://setting-startpage'),
+                $this->nodeFactory->createNamedNode('kno:restriction-has-datatype'),
+                $this->nodeFactory->createLiteral('string')
+            ),
+        ), $this->testGraph);
+
+        $dataToValidate = array(
+            // person level
+            'rdf:type' => 'http://Person',
+            'http://has-user-settings' => array(
+                // sub level 1
+                'rdf:type' => 'http://UserSettings',
+                'http://setting-startpage' => '/index',
+                // missing http://number-of-xyz
+            )
+        );
+
+        $this->expectException('Knorke\Exception\DataValidatorException');
+
+        $this->assertTrue($this->fixture->validate($dataToValidate));
     }
 }

@@ -11,10 +11,11 @@ class RestrictionTest extends UnitTestCase
         parent::setUp();
 
         $this->fixture = new Restriction(
-            $this->store,
-            $this->testGraph,
             $this->commonNamespaces,
-            $this->rdfHelpers
+            $this->rdfHelpers,
+            $this->dataBlankHelper,
+            $this->store,
+            $this->testGraph
         );
     }
 
@@ -85,6 +86,7 @@ class RestrictionTest extends UnitTestCase
         $blankNodeId = array_keys($result->getArrayCopy())[0];
 
         $restrictions = $this->fixture->getRestrictionsForResource('http://resourceWithRestrictions');
+        $restArry = $restrictions->getArrayCopy();
 
         $this->assertEquals(
             array(
@@ -93,14 +95,22 @@ class RestrictionTest extends UnitTestCase
                     0 => 'http://foo',
                     1 => 'http://bar',
                 ),
-                'kno:inherits-all-properties-of' => 'http://foreign-resource',
+                'kno:inherits-all-properties-of' => array(
+                    '_idUri' => 'http://foreign-resource',
+                    'kno:restriction-order' => array(
+                        'kno:_0' => 'http://foo',
+                        'kno:_1' => 'http://bar',
+                        '_idUri' => $restArry['kno:inherits-all-properties-of']['kno:restriction-order']['_idUri'],
+                    ),
+                ),
                 'kno:restriction-order' => array(
                     'kno:_0' => 'http://foo',
                     'kno:_1' => 'http://bar',
+                    '_idUri' => $restArry['kno:restriction-order']['_idUri'],
                 ),
                 '_idUri' => 'http://resourceWithRestrictions'
             ),
-            $restrictions->getArrayCopy()
+            $restArry
         );
     }
 }

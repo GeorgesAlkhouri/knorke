@@ -2,8 +2,10 @@
 
 namespace Tests\Knorke;
 
-use Knorke\Store\InMemoryStore;
+use Knorke\DataBlankHelper;
+use Knorke\Importer;
 use Knorke\Data\ParserFactory;
+use Knorke\Store\InMemoryStore;
 use PHPUnit\Framework\TestCase;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NodeFactoryImpl;
@@ -25,6 +27,8 @@ class UnitTestCase extends TestCase
     protected $fixture;
 
     protected $commonNamespaces;
+    protected $dataBlankHelper;
+    protected $importer;
     protected $nodeFactory;
     protected $parserFactory;
     protected $queryFactory;
@@ -62,6 +66,17 @@ class UnitTestCase extends TestCase
             $this->commonNamespaces,
             $this->rdfHelpers
         );
+
+        $this->dataBlankHelper = new DataBlankHelper(
+            $this->commonNamespaces,
+            $this->statementFactory,
+            $this->nodeFactory,
+            $this->rdfHelpers,
+            $this->store,
+            $this->testGraph
+        );
+
+        $this->importer = new Importer($this->store, $this->parserFactory, $this->rdfHelpers);
     }
 
     /**

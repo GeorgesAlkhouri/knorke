@@ -3,9 +3,11 @@
 namespace Knorke;
 
 use Knorke\DataBlank;
+use Knorke\DataBlankHelper;
 use Knorke\Data\ParserFactory;
 use Knorke\Exception\DataValidatorException;
 use Saft\Rdf\CommonNamespaces;
+use Saft\Rdf\NamedNode;
 use Saft\Rdf\RdfHelpers;
 use Saft\Store\Store;
 
@@ -15,15 +17,21 @@ use Saft\Store\Store;
 class DataValidator
 {
     protected $commonNamespaces;
+    protected $dataBlankHelper;
+    protected $graph;
     protected $rdfHelpers;
     protected $store;
 
     public function __construct(
         CommonNamespaces $commonNamespaces,
+        DataBlankHelper $dataBlankHelper,
         RdfHelpers $rdfHelpers,
-        Store $store
+        Store $store,
+        NamedNode $graph
     ) {
         $this->commonNamespaces = $commonNamespaces;
+        $this->dataBlankHelper = $dataBlankHelper;
+        $this->graph = $graph;
         $this->rdfHelpers = $rdfHelpers;
         $this->store = $store;
     }
@@ -32,6 +40,8 @@ class DataValidator
      * @param string $restrictionUri
      * @param mixed $restrictionValue
      * @param mixed $dataValueToCheck
+     * @return bool
+     * @throws DataValidatorException if a restriction doesn't apply.
      * @todo handle case for datatype=number: if value is true
      * @todo add datatype case for boolean
      */
@@ -39,7 +49,7 @@ class DataValidator
         string $restrictionUri,
         $restrictionValue,
         $dataValueToCheck
-    ) {
+    ) : bool {
         // make sure $restrictionUri is like kno:... and not http://...
         $restrictionUri = $this->commonNamespaces->shortenUri($restrictionUri);
 
@@ -121,55 +131,137 @@ class DataValidator
     }
 
     /**
+     * @param array $possibleKeys
+     * @return mixed
+     */
+    protected function getArrayValue(array $array, array $possibleKeys)
+    {
+        foreach ($possibleKeys as $key) {
+            if (isset($array[$key])) {
+                return $array[$key];
+            }
+        }
+
+        return null;
+    }
+
+    public function getAvailableRestrictions() : array
+    {
+        return $this->dataBlankHelper->find('kno:Restriction');
+    }
+
+    /**
      * @param array $dataToCheck Array with the structure like: array('kno:Person/age' => 'foobar', ... )
-     * @param string $typeUri URI of the class or resource which needs to be validated.
-     * @return True if no errors were found, false if errors occoured or no data were given.
+     * @return True if no errors were found
      * @throws \Exception in case of an validation error
      */
-    public function validate(array $dataToCheck, string $typeUri)
+    public function validate(array $dataToCheck)
     {
         if (0 == count($dataToCheck)) {
             return false;
-        } elseif (false === $this->rdfHelpers->simpleCheckUri($typeUri)) {
-            throw new DataValidatorException('Parameter $typeUri is not a valid URI: '. $typeUri);
+        }
+
+        $availableRestrictions = $this->getAvailableRestrictions();
+
+        // short and extended version of rdf:type
+        $rdfTypeUriArray = array(
+            $this->commonNamespaces->extendUri('rdf:type'),
+            $this->commonNamespaces->shortenUri('rdf:type')
+        );
+
+        /*
+         * check for rdf:type
+         */
+        $typeUri = $this->getArrayValue($dataToCheck, $rdfTypeUriArray);
+
+        if (false === $this->rdfHelpers->simpleCheckUri($typeUri)) {
+            throw new DataValidatorException('No type found. Did you miss key rdf:type?');
         }
 
         // load resource behind given type
-        $typedBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $type = $this->dataBlankHelper->createDataBlank();
+        $type->initByStoreSearch($this->store, $this->graph, $typeUri);
+        $typeArray = $type->getArrayCopy();
 
-        $result = $this->store->query('SELECT * WHERE {<'. $typeUri .'> ?p ?o.}');
-        $typedBlank->initBySetResult($result, $typeUri);
+        if (false == is_array($typeArray['kno:has-property'])) {
+            $typeArray['kno:has-property'] = array($typeArray['kno:has-property']);
+        }
 
-        // if only one has-property was given, transform it from string to array
-        if (isset($typedBlank['kno:has-property']) && false == is_array($typedBlank['kno:has-property'])) {
-            $typedBlank['kno:has-property'] = array($typedBlank['kno:has-property']);
+        /*
+          if object refereced by has-property looks like:
+                 array(2) {
+                  ["_idUri"]=>
+                  string(19) "http://UserSettings"
+                  ["kno:has-property"]=>
+                  array(2) {
+                    ["_idUri"]=>
+                    string(24) "http://setting-startpage"
+                    ["kno:restriction-has-datatype"]=>
+                    string(6) "string"
+                  }
+                }
+
+            put it into an array to reuse later loop:
+         */
+        if (isset($typeArray['kno:has-property']['_idUri'])) {
+            $typeArray['kno:has-property'] = array($typeArray['kno:has-property']);
         }
 
         // check each property of the type, if it is available and suits the restrictions
-        foreach ($typedBlank['kno:has-property'] as $uri) {
-            $fullObjectUri = $this->commonNamespaces->extendUri($uri);
+        foreach ($typeArray['kno:has-property'] as $property) {
+            $propertyUri = null;
+            if (is_array($property)) {
+                $propertyUri = $property['_idUri'];
+            } elseif (is_string($property) && $this->rdfHelpers->simpleCheckUri($property)) {
+                $propertyUri = $property;
+            } else {
+                throw new DataValidatorException(
+                    'Property kno:has-property needs to point to an array (based on DataBlank) or string: '
+                    . json_encode($property)
+                );
+            }
 
-            // load restrictions per property
-            $propertyBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-            $propertyBlank->initBySetResult(
-                $this->store->query('SELECT * WHERE {<'. $fullObjectUri .'> ?p ?o.}'),
-                $fullObjectUri
-            );
+            /*
+             * check for value of current property in $dataToCheck. both with extended and shorten URI.
+             */
+            if (isset($dataToCheck[$this->commonNamespaces->extendUri($propertyUri)])) {
+                $value = $dataToCheck[$this->commonNamespaces->extendUri($propertyUri)];
+            } elseif (isset($dataToCheck[$this->commonNamespaces->shortenUri($propertyUri)])) {
+                $value = $dataToCheck[$this->commonNamespaces->shortenUri($propertyUri)];
+            } else {
+                throw new DataValidatorException(
+                    'Property '. $propertyUri .' was not found in: '. json_encode($dataToCheck)
+                );
+            }
 
-            foreach ($propertyBlank as $propertyUri => $object) {
-                $propertyUri = $this->commonNamespaces->shortenUri($propertyUri);
-                // if a property with a restriction was found
-                if (false !== strpos($propertyUri, 'kno:restriction')) {
-                    $this->checkIfRestrictionIsApplied(
-                        $propertyUri,                           // e.g. kno:restriction-has-datatype
-                        $object,                                // e.g. string
-                        $dataToCheck[$propertyBlank['_idUri']]  // e.g. "foobar"
-                    );
+            // here you can assume $value is set.
+
+            /*
+             * recursive check sub structures
+             */
+            if (is_array($value)) {
+                $this->validate($value);
+
+            /*
+             * assume no further sub structure, so directly check property
+             */
+            } else {
+                // go through available restrictions and check, which one is set
+                foreach ($availableRestrictions as $restriction) {
+                    $shortenedRestrictionUri = $this->commonNamespaces->shortenUri($restriction['_idUri']);
+                    if (isset($property[$shortenedRestrictionUri])) {
+                        $this->checkIfRestrictionIsApplied(
+                            $shortenedRestrictionUri,               // e.g. kno:restriction-has-datatype
+                            $property[$shortenedRestrictionUri],    // e.g. string
+                            $value                                  // e.g. "foobar"
+                        );
+                    }
                 }
             }
         }
 
-        // if the program runs until here, we know nothing bad happen and the data is valid
+        // if the program runs until here, we know nothing bad happen and given data is valid
+
         return true;
     }
 }

@@ -13,17 +13,20 @@ use Saft\Store\Store;
 class Restriction
 {
     protected $commonNamespaces;
+    protected $dataBlankHelper;
     protected $graph;
     protected $rdfHelpers;
     protected $store;
 
     public function __construct(
-        Store $store,
-        NamedNode $graph,
         CommonNamespaces $commonNamespaces,
-        RdfHelpers $rdfHelpers
+        RdfHelpers $rdfHelpers,
+        DataBlankHelper $dataBlankHelper,
+        Store $store,
+        NamedNode $graph
     ) {
         $this->commonNamespaces = $commonNamespaces;
+        $this->dataBlankHelper = $dataBlankHelper;
         $this->graph = $graph;
         $this->rdfHelpers = $rdfHelpers;
         $this->store = $store;
@@ -34,8 +37,8 @@ class Restriction
      */
     public function getRestrictionsForResource(string $resourceUri) : DataBlank
     {
-        $blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $blank->initBySetResult($this->store->query('SELECT * WHERE {<'. $resourceUri .'> ?p ?o.}'), $resourceUri);
+        $blank = $this->dataBlankHelper->createDataBlank();
+        $blank->initByStoreSearch($this->store, $this->graph, $resourceUri);
 
         /*
          * if its a proxy resource which inherits from another, get the properties of the other one.
@@ -43,12 +46,14 @@ class Restriction
         if (null !== $blank->get('kno:inherits-all-properties-of')) {
             // get infos from the other resource
             $foreignResource = $blank->get('kno:inherits-all-properties-of');
-            $foreignBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
-                'add_internal_data_fields' => false
-            ));
-            $foreignBlank->initByStoreSearch($this->store, $this->graph, $foreignResource);
+            $foreignBlank = $this->dataBlankHelper->createDataBlank();
+            $foreignBlank->initByStoreSearch($this->store, $this->graph, $foreignResource['_idUri']);
             // copy property-value combination into blank instance
             foreach ($foreignBlank as $property => $value) {
+                // ignore internal fields
+                if ('_idUri' == $property) {
+                    continue;
+                }
                 $blank[$property] = $value;
             }
         }

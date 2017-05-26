@@ -81,7 +81,9 @@ $dataValidator->validate(array(
 ```
 
 
-Sure, you didn't modeled the constraint explicit, for instance, the `http://has-settings` property my point to a a resource of a different type. But in my opinion, if you control the data handling, such cases are rare and may be detected by a sufficient test environment. 
+Sure, you didn't modeled the constraint explicit, for instance, the `http://has-settings` property may point to a resource of a different type. But in my opinion, if you control the data handling, such cases are rare and may be detected by a sufficient test environment, before they become problematic. 
+
+For more information see [knowledge/knorke.ttl](https://github.com/k00ni/knorke/blob/master/knowledge/knorke.ttl) and validation [tests](https://github.com/k00ni/knorke/blob/master/tests/Knorke/DataValidatorTest.php).
 
 
 ## class StatisticValue

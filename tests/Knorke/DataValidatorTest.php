@@ -332,6 +332,125 @@ class DataValidatorTest extends UnitTestCase
         $this->assertTrue($this->fixture->validate($dataToValidate));
     }
 
+    // test that it cares about type info in restriction-relation-to-resource-of-type
+    public function testValidateSubStructuresExplicitTypeCheck()
+    {
+        // load knorke data
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+
+        /*
+         Add test data:
+
+         http://Person kno:has-property http://has-user-settings .
+         http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+
+         */
+        $this->store->addStatements(array(
+            // http://Person kno:has-property :has-user-settings .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://Person'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://has-user-settings')
+            ),
+            // http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://has-user-settings'),
+                $this->nodeFactory->createNamedNode('kno:restriction-relation-to-resource-of-type'),
+                $this->nodeFactory->createNamedNode('http://UserSettings')
+            ),
+        ), $this->testGraph);
+
+        $dataToValidate = array(
+            // person level
+            'rdf:type' => 'http://Person',
+            'http://has-user-settings' => array(
+                // sub level 1
+                'rdf:type' => 'http://UserSettings',
+            )
+        );
+
+        $this->assertTrue($this->fixture->validate($dataToValidate));
+    }
+
+    // property wants a type, but no type given for sub entry
+    public function testValidateSubStructuresExplicitTypeCheckNoTypeGiven()
+    {
+        // load knorke data
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+
+        /*
+         Add test data:
+
+         http://Person kno:has-property http://has-user-settings .
+         http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+
+         */
+        $this->store->addStatements(array(
+            // http://Person kno:has-property :has-user-settings .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://Person'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://has-user-settings')
+            ),
+            // http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://has-user-settings'),
+                $this->nodeFactory->createNamedNode('kno:restriction-relation-to-resource-of-type'),
+                $this->nodeFactory->createNamedNode('http://UserSettings')
+            ),
+        ), $this->testGraph);
+
+        $dataToValidate = array(
+            'rdf:type' => 'http://Person',
+            'http://has-user-settings' => array(
+                // type information rdf:type missing
+            )
+        );
+
+        $this->expectException('Knorke\Exception\DataValidatorException');
+        $this->fixture->validate($dataToValidate);
+    }
+
+    // property wants a type, but no type given for sub entry
+    public function testValidateSubStructuresExplicitTypeCheckWrongTypeGiven()
+    {
+        // load knorke data
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+
+        /*
+         Add test data:
+
+         http://Person kno:has-property http://has-user-settings .
+         http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+
+         */
+        $this->store->addStatements(array(
+            // http://Person kno:has-property :has-user-settings .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://Person'),
+                $this->nodeFactory->createNamedNode('kno:has-property'),
+                $this->nodeFactory->createNamedNode('http://has-user-settings')
+            ),
+            // http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://has-user-settings'),
+                $this->nodeFactory->createNamedNode('kno:restriction-relation-to-resource-of-type'),
+                $this->nodeFactory->createNamedNode('http://UserSettings')
+            ),
+        ), $this->testGraph);
+
+        $dataToValidate = array(
+            'rdf:type' => 'http://Person',
+            'http://has-user-settings' => array(
+                'rdf:type' => 'http://wrong-type'
+                // wrong type given
+            )
+        );
+
+        $this->expectException('Knorke\Exception\DataValidatorException');
+        $this->fixture->validate($dataToValidate);
+    }
+
     // test how it validates sub structures. it has to recursively checks
     public function testValidateSubStructuresCheckForFail()
     {

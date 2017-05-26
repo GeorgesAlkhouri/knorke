@@ -183,6 +183,11 @@ class DataValidator
         $type->initByStoreSearch($this->store, $this->graph, $typeUri);
         $typeArray = $type->getArrayCopy();
 
+        // no has-property relations found, stop here, because there is nothing to check
+        if (false == isset($typeArray['kno:has-property'])) {
+            return true;
+        }
+
         if (false == is_array($typeArray['kno:has-property'])) {
             $typeArray['kno:has-property'] = array($typeArray['kno:has-property']);
         }
@@ -240,6 +245,24 @@ class DataValidator
              * recursive check sub structures
              */
             if (is_array($value)) {
+                // check type of referenced resource, if provided
+                if (isset($property['kno:restriction-relation-to-resource-of-type'])) {
+                    $relatedToType = $property['kno:restriction-relation-to-resource-of-type'];
+                    // type not found
+                    if (null == $this->getArrayValue($value, $rdfTypeUriArray)) {
+                        throw new DataValidatorException(
+                            'Property '. $propertyUri .' forces related instance be of type: '. $relatedToType
+                            . ' but no rdf:type found at all.'
+                        );
+                    // required type differes from current one
+                    } elseif ($relatedToType !== $this->getArrayValue($value, $rdfTypeUriArray)) {
+                        throw new DataValidatorException(
+                            'Property '. $propertyUri .' forces related instance be of type: '. $relatedToType
+                            . ' but found rdf:type '. $this->getArrayValue($value, $rdfTypeUriArray)
+                        );
+                    }
+                }
+
                 $this->validate($value);
 
             /*

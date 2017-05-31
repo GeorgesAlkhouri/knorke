@@ -2,6 +2,7 @@
 
 namespace Knorke\Data;
 
+use Saft\Addition\hardf\Data\ParserHardf;
 use Saft\Data\NQuadsParser;
 use Saft\Data\RDFXMLParser;
 use Saft\Data\ParserFactory as ParserFactoryInterface;
@@ -73,6 +74,15 @@ class ParserFactory implements ParserFactoryInterface
                 $this->statementIteratorFactory,
                 $this->rdfHelpers
             );
+
+        } elseif ('turtle' == $serialization) {
+            return new ParserHardf(
+                $this->nodeFactory,
+                $this->statementFactory,
+                $this->statementIteratorFactory,
+                $this->rdfHelpers,
+                $serialization
+            );
         }
 
         return null;
@@ -83,8 +93,8 @@ class ParserFactory implements ParserFactoryInterface
      *
      * @return array
      */
-    public function getSupportedSerializations()
+    public function getSupportedSerializations() : array
     {
-        return array('n-triples', 'n-quads', 'rdf-xml');
+        return array('n-triples', 'n-quads', 'rdf-xml', 'turtle');
     }
 }

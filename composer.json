@@ -4,6 +4,7 @@
         "php": ">=7.0",
         "paragonie/easydb": "2.*",
         "saft/saft-data": ">=0.9",
+        "saft/saft-hardf": ">=0.10",
         "saft/saft-rdf": ">=0.9",
         "saft/saft-sparql": ">=0.9",
         "saft/saft-store": ">=0.9"

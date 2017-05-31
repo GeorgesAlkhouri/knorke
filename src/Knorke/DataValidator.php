@@ -246,8 +246,8 @@ class DataValidator
              */
             if (is_array($value)) {
                 // check type of referenced resource, if provided
-                if (isset($property['kno:restriction-relation-to-resource-of-type'])) {
-                    $relatedToType = $property['kno:restriction-relation-to-resource-of-type'];
+                if (isset($property['kno:restriction-reference-is-of-type'])) {
+                    $relatedToType = $property['kno:restriction-reference-is-of-type'];
                     // type not found
                     if (null == $this->getArrayValue($value, $rdfTypeUriArray)) {
                         throw new DataValidatorException(

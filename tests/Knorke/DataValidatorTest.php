@@ -332,7 +332,7 @@ class DataValidatorTest extends UnitTestCase
         $this->assertTrue($this->fixture->validate($dataToValidate));
     }
 
-    // test that it cares about type info in restriction-relation-to-resource-of-type
+    // test that it cares about type info in restriction-reference-is-of-type
     public function testValidateSubStructuresExplicitTypeCheck()
     {
         // load knorke data
@@ -342,7 +342,7 @@ class DataValidatorTest extends UnitTestCase
          Add test data:
 
          http://Person kno:has-property http://has-user-settings .
-         http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+         http://has-user-settings kno:restriction-reference-is-of-type http://UserSettings .
 
          */
         $this->store->addStatements(array(
@@ -352,10 +352,10 @@ class DataValidatorTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('kno:has-property'),
                 $this->nodeFactory->createNamedNode('http://has-user-settings')
             ),
-            // http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+            // http://has-user-settings kno:restriction-reference-is-of-type http://UserSettings .
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://has-user-settings'),
-                $this->nodeFactory->createNamedNode('kno:restriction-relation-to-resource-of-type'),
+                $this->nodeFactory->createNamedNode('kno:restriction-reference-is-of-type'),
                 $this->nodeFactory->createNamedNode('http://UserSettings')
             ),
         ), $this->testGraph);
@@ -382,7 +382,7 @@ class DataValidatorTest extends UnitTestCase
          Add test data:
 
          http://Person kno:has-property http://has-user-settings .
-         http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+         http://has-user-settings kno:restriction-reference-is-of-type http://UserSettings .
 
          */
         $this->store->addStatements(array(
@@ -392,10 +392,10 @@ class DataValidatorTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('kno:has-property'),
                 $this->nodeFactory->createNamedNode('http://has-user-settings')
             ),
-            // http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+            // http://has-user-settings kno:restriction-reference-is-of-type http://UserSettings .
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://has-user-settings'),
-                $this->nodeFactory->createNamedNode('kno:restriction-relation-to-resource-of-type'),
+                $this->nodeFactory->createNamedNode('kno:restriction-reference-is-of-type'),
                 $this->nodeFactory->createNamedNode('http://UserSettings')
             ),
         ), $this->testGraph);
@@ -421,7 +421,7 @@ class DataValidatorTest extends UnitTestCase
          Add test data:
 
          http://Person kno:has-property http://has-user-settings .
-         http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+         http://has-user-settings kno:restriction-reference-is-of-type http://UserSettings .
 
          */
         $this->store->addStatements(array(
@@ -431,10 +431,10 @@ class DataValidatorTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('kno:has-property'),
                 $this->nodeFactory->createNamedNode('http://has-user-settings')
             ),
-            // http://has-user-settings kno:restriction-relation-to-resource-of-type http://UserSettings .
+            // http://has-user-settings kno:restriction-reference-is-of-type http://UserSettings .
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://has-user-settings'),
-                $this->nodeFactory->createNamedNode('kno:restriction-relation-to-resource-of-type'),
+                $this->nodeFactory->createNamedNode('kno:restriction-reference-is-of-type'),
                 $this->nodeFactory->createNamedNode('http://UserSettings')
             ),
         ), $this->testGraph);

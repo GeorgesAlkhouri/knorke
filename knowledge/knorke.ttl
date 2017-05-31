@@ -28,7 +28,7 @@
 :restriction-maximum-number a :Restriction .
 :restriction-one-of a :Restriction .
 :restriction-order a :Restriction .
-:restriction-relation-to-resource-of-type a :Restriction .
+:restriction-reference-is-of-type a :Restriction .
 :restriction-regex-match a :Restriction .
 
 #

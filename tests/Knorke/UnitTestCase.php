@@ -76,7 +76,37 @@ class UnitTestCase extends TestCase
             $this->testGraph
         );
 
-        $this->importer = new Importer($this->store, $this->parserFactory, $this->rdfHelpers);
+        $this->importer = new Importer(
+            $this->store,
+            $this->parserFactory,
+            $this->nodeFactory,
+            $this->statementFactory,
+            $this->rdfHelpers,
+            $this->commonNamespaces
+        );
+    }
+
+    /**
+     * This assertion consumes the StatementIterator and counts its entries until it is empty. It automatically
+     * calls assertTrue and -False on $statementIterator->valid() from time to time.
+     *
+     * @param int $expectedCount
+     * @param StatementIterator $statementIterator
+     * @param string $message
+     */
+    public function assertCountStatementIterator(
+        int $expectedCount,
+        \Iterator $statementIterator,
+        string $message = null
+    ) {
+        if (true == empty($message)) {
+            $message = 'Assertion about count of statements. Expected: '. $expectedCount .', Actual: %s';
+        }
+        $i = 0;
+        foreach ($statementIterator as $statement) {
+            ++$i;
+        }
+        $this->assertEquals($i, $expectedCount, sprintf($message, $i));
     }
 
     /**
@@ -170,8 +200,6 @@ class UnitTestCase extends TestCase
      * @param StatementIterator $expected
      * @param StatementIterator $actual
      * @param boolean $debug optional, default: false
-     * @api
-     * @since 0.1
      * @todo implement a more precise way to check blank nodes (currently we just count expected
      *       and actual numbers of statements with blank nodes)
      */
@@ -258,6 +286,10 @@ class UnitTestCase extends TestCase
         }
     }
 
+    /**
+     * @param Statement $statement
+     * @return bool
+     */
     protected function statementContainsNoBlankNodes(Statement $statement) : bool
     {
         return false == $statement->getSubject()->isBlank()

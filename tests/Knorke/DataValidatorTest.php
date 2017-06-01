@@ -169,7 +169,7 @@ class DataValidatorTest extends UnitTestCase
     public function testValidate()
     {
         // load knorke data
-        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.ttl', $this->testGraph);
 
         /*
             Add test data
@@ -218,7 +218,7 @@ class DataValidatorTest extends UnitTestCase
     public function testValidateNotAllPropertiesGiven()
     {
         // load knorke data
-        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.ttl', $this->testGraph);
 
         /*
             Add test data
@@ -279,7 +279,7 @@ class DataValidatorTest extends UnitTestCase
     public function testValidateSubStructures()
     {
         // load knorke data
-        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.ttl', $this->testGraph);
 
         /*
          Add test data:
@@ -336,7 +336,7 @@ class DataValidatorTest extends UnitTestCase
     public function testValidateSubStructuresExplicitTypeCheck()
     {
         // load knorke data
-        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.ttl', $this->testGraph);
 
         /*
          Add test data:
@@ -376,7 +376,7 @@ class DataValidatorTest extends UnitTestCase
     public function testValidateSubStructuresExplicitTypeCheckNoTypeGiven()
     {
         // load knorke data
-        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.ttl', $this->testGraph);
 
         /*
          Add test data:
@@ -415,7 +415,7 @@ class DataValidatorTest extends UnitTestCase
     public function testValidateSubStructuresExplicitTypeCheckWrongTypeGiven()
     {
         // load knorke data
-        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.ttl', $this->testGraph);
 
         /*
          Add test data:
@@ -455,7 +455,7 @@ class DataValidatorTest extends UnitTestCase
     public function testValidateSubStructuresCheckForFail()
     {
         // load knorke data
-        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.nt', $this->testGraph);
+        $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.ttl', $this->testGraph);
 
         /*
          Add test data:

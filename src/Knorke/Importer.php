@@ -3,8 +3,14 @@
 namespace Knorke;
 
 use Knorke\Data\ParserFactory;
+use Knorke\Exception\KnorkeException;
+use Saft\Rdf\BlankNode;
+use Saft\Rdf\CommonNamespaces;
+use Saft\Rdf\Node;
 use Saft\Rdf\NamedNode;
+use Saft\Rdf\NodeFactory;
 use Saft\Rdf\RdfHelpers;
+use Saft\Rdf\StatementFactory;
 use Saft\Store\Store;
 
 /**
@@ -13,12 +19,17 @@ use Saft\Store\Store;
 class Importer
 {
     /**
-     * @var NodeUtils
+     * @var CommonNamespaces
      */
-    protected $rdfHelpers;
+    protected $commonNamespaces;
 
     /**
-     * @var array of Parser
+     * @var NodeFactory
+     */
+    protected $nodeFactory;
+
+    /**
+     * @var array of Parser instances
      */
     protected $parsers;
 
@@ -28,6 +39,16 @@ class Importer
     protected $parserFactory;
 
     /**
+     * @var RdfHelpers
+     */
+    protected $rdfHelpers;
+
+    /**
+     * @var StatementFactory
+     */
+    protected $statementFactory;
+
+    /**
      * @var Store
      */
     protected $store;
@@ -35,23 +56,58 @@ class Importer
     /**
      * @param Store $store
      * @param ParserFactory $parserFactory
+     * @param NodeFacotry $nodeFactory
+     * @param StatementFactory $statementFactory
      * @param RdfHelpers $rdfHelpers
+     * @param CommonNamespaces $commonNamespaces
      */
-    public function __construct(Store $store, ParserFactory $parserFactory, RdfHelpers $rdfHelpers)
-    {
+    public function __construct(
+        Store $store,
+        ParserFactory $parserFactory,
+        NodeFactory $nodeFactory,
+        StatementFactory $statementFactory,
+        RdfHelpers $rdfHelpers,
+        CommonNamespaces $commonNamespaces
+    ) {
+        $this->commonNamespaces = $commonNamespaces;
+
         $this->store = $store;
+
+        $this->nodeFactory = $nodeFactory;
 
         $this->parsers = array();
 
+        $this->parserFactory = $parserFactory;
+
         $this->rdfHelpers = $rdfHelpers;
 
-        $this->parserFactory = $parserFactory;
+        $this->statementFactory = $statementFactory;
+    }
+
+    /**
+     * @param string $value
+     * @return Node
+     */
+    protected function getNodeForGivenValue(string $value) : Node
+    {
+        // named node
+        if ($this->rdfHelpers->simpleCheckUri($value)) {
+            return $this->nodeFactory->createNamedNode($value);
+
+        // blank node
+        } elseif ($this->rdfHelpers->simpleCheckBlankNodeId($value)) {
+            return $this->nodeFactory->createBlankNode(substr($value, 2));
+
+        // literal
+        } else {
+            return $this->nodeFactory->createLiteral($value);
+        }
     }
 
     /**
      * @param string|resource $file
      * @return string
-     * @throws \Exception if parameter $file is not of type string or resource.
+     * @throws KnorkeException if parameter $file is not of type string or resource.
      */
     public function getSerialization($target)
     {
@@ -68,7 +124,7 @@ class Importer
             $short = $target;
             return $this->rdfHelpers->guessFormat($short);
         } else {
-            throw new \Exception('Parameter $file must be the string itself or a filename.');
+            throw new KnorkeException('Parameter $file must be the string itself or a filename.');
         }
     }
 
@@ -76,18 +132,32 @@ class Importer
      * @param string $filepath
      * @param NamedNode $graph Graph to import data into.
      * @param true
-     * @throws \Exception if parameter $file is not of type string or resource.
-     * @throws \Exception if a non-n-triples file is to import.
+     * @throws KnorkeException if parameter $file is not of type string or resource.
+     * @throws KnorkeException if a non-n-triples file is to import.
      */
     public function importFile($filename, NamedNode $graph)
     {
         $content = file_get_contents($filename);
         $serialization = $this->getSerialization($content);
         if (null == $serialization) {
-            throw new \Exception('Your file/string has an unknown serialization: '. $serialization);
+            throw new KnorkeException('Your file/string has an unknown serialization: '. $serialization);
         }
 
         return $this->importString($content, $graph, $serialization);
+    }
+
+    /**
+     * @param array $array
+     * @param NodeNamed|BlankNode $startResource
+     * @param NamedNode $graph
+     */
+    public function importDataValidationArray(array $array, Node $startResource, NamedNode $graph)
+    {
+        // transforms array of array structures to valid statements
+        $statements = $this->transformPhpArrayToStatementArray($startResource, $array);
+
+        // add statements to store
+        $this->store->addStatements($statements, $graph);
     }
 
     /**
@@ -95,18 +165,18 @@ class Importer
      *
      * @param string $string
      * @param NamedNode $graph
-     * @param string $serialization
-     * @param true
-     * @throws \Exception if parameter $graph is null.
+     * @param string $serialization Default is n-triples
+     * @return true If everything worked well.
+     * @throws KnorkeException if parameter $graph is null.
      */
-    public function importString($string, $graph, $serialization = 'n-triples')
+    public function importString($string, NamedNode $graph, string $serialization = 'n-triples')
     {
         if (in_array($serialization, $this->parserFactory->getSupportedSerializations())) {
             if (false == isset($this->parsers[$serialization])) {
                 $this->parsers[$serialization] = $this->parserFactory->createParserFor($serialization);
             }
         } else {
-            throw new \Exception('Given serialization is unknown: '. $serialization);
+            throw new KnorkeException('Given serialization is unknown: '. $serialization);
         }
 
         // parse string
@@ -116,5 +186,54 @@ class Importer
         $this->store->addStatements($iterator, $graph);
 
         return true;
+    }
+
+    /**
+     * @param NodeNamed|BlankNode $startResource
+     * @param array $array
+     * @return array
+     */
+    protected function transformPhpArrayToStatementArray(Node $startResource, array $array) : array
+    {
+        if (0 == count($array)) {
+            throw new KnorkeException('Parameter $array is empty.');
+        }
+
+        if (false == $startResource->isNamed() && false == $startResource->isBlank()) {
+            throw new KnorkeException('Parameter $startResource needs to be of type NamedNode or BlankNode.');
+        }
+
+        $result = array();
+
+        foreach ($array as $uri => $value) {
+            $extendedUri = $this->commonNamespaces->extendUri($uri);
+
+            // is sub array, so call function recursively
+            if (is_array($value)) {
+
+                $blankNode = $this->nodeFactory->createBlankNode(hash('sha256', time() . rand(0, time())));
+
+                // add relation between head resource and the sub structure
+                $result[] = $this->statementFactory->createStatement(
+                    $startResource,
+                    $this->nodeFactory->createNamedNode($extendedUri),
+                    $blankNode
+                );
+
+                $result = array_merge($this->transformPhpArrayToStatementArray($blankNode, $value), $result);
+
+                continue;
+
+            // is URI
+            } else {
+                $result[] = $this->statementFactory->createStatement(
+                    $startResource,
+                    $this->nodeFactory->createNamedNode($extendedUri),
+                    $this->getNodeForGivenValue($value)
+                );
+            }
+        }
+
+        return $result;
     }
 }

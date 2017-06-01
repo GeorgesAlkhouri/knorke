@@ -183,11 +183,22 @@ class UnitTestCase extends TestCase
         }
 
         if (!empty($notFoundEntries)) {
-            echo PHP_EOL . PHP_EOL . 'Not found entries:' . PHP_EOL;
+            echo PHP_EOL . PHP_EOL . 'Given entries, but not found:' . PHP_EOL;
             var_dump($notFoundEntries);
+
+            echo PHP_EOL . PHP_EOL . 'Actual entries:' . PHP_EOL;
+            foreach ($actualEntries as $entries) {
+                echo '- ';
+                foreach ($entries as $entry) {
+                    echo $entry->toNQuads() .' ';
+                }
+                echo PHP_EOL;
+                echo PHP_EOL;
+            }
 
             $this->fail(count($notFoundEntries) .' entries where not found.');
 
+        // check variables in the end
         } elseif (0 == count($notFoundEntries)) {
             $this->assertEquals($expected->getVariables(), $actual->getVariables());
         }

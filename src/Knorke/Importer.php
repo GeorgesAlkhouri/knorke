@@ -92,7 +92,7 @@ class Importer
     {
         // named node
         if ($this->rdfHelpers->simpleCheckUri($value)) {
-            return $this->nodeFactory->createNamedNode($value);
+            return $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($value));
 
         // blank node
         } elseif ($this->rdfHelpers->simpleCheckBlankNodeId($value)) {
@@ -193,7 +193,7 @@ class Importer
      * @param array $array
      * @return array
      */
-    protected function transformPhpArrayToStatementArray(Node $startResource, array $array) : array
+    public function transformPhpArrayToStatementArray(Node $startResource, array $array) : array
     {
         if (0 == count($array)) {
             throw new KnorkeException('Parameter $array is empty.');
@@ -206,25 +206,40 @@ class Importer
         $result = array();
 
         foreach ($array as $uri => $value) {
-            $extendedUri = $this->commonNamespaces->extendUri($uri);
+            if ($this->rdfHelpers->simpleCheckUri($uri)) {
+                $extendedUri = $this->commonNamespaces->extendUri($uri);
+            } else {
+                throw new KnorkeException('Array key needs to be an URI: '. $uri);
+            }
 
-            // is sub array, so call function recursively
             if (is_array($value)) {
+                // assume array with key-value pairs
+                if (is_string(array_keys($value)[0])) {
+                    $referenceNode = $this->nodeFactory->createBlankNode(hash('sha256', time() . rand(0, 1000)));
 
-                $blankNode = $this->nodeFactory->createBlankNode(hash('sha256', time() . rand(0, time())));
+                    $result[] = $this->statementFactory->createStatement(
+                        $startResource,
+                        $this->nodeFactory->createNamedNode($extendedUri),
+                        $referenceNode
+                    );
 
-                // add relation between head resource and the sub structure
-                $result[] = $this->statementFactory->createStatement(
-                    $startResource,
-                    $this->nodeFactory->createNamedNode($extendedUri),
-                    $blankNode
-                );
+                    $result = array_merge($this->transformPhpArrayToStatementArray($referenceNode, $value), $result);
 
-                $result = array_merge($this->transformPhpArrayToStatementArray($blankNode, $value), $result);
+                // assume array of array
+                } else {
+                    foreach ($value as $entry) {
+                        $referenceNode = $this->nodeFactory->createBlankNode(hash('sha256', time() . rand(0, 1000)));
 
-                continue;
+                        $result[] = $this->statementFactory->createStatement(
+                            $startResource,
+                            $this->nodeFactory->createNamedNode($extendedUri),
+                            $referenceNode
+                        );
 
-            // is URI
+                        $result = array_merge($this->transformPhpArrayToStatementArray($referenceNode, $entry), $result);
+                    }
+                }
+
             } else {
                 $result[] = $this->statementFactory->createStatement(
                     $startResource,

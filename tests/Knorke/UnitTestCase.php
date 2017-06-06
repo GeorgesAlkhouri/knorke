@@ -8,6 +8,7 @@ use Knorke\Data\ParserFactory;
 use Knorke\Store\InMemoryStore;
 use PHPUnit\Framework\TestCase;
 use Saft\Rdf\CommonNamespaces;
+use Saft\Rdf\NamedNode;
 use Saft\Rdf\NodeFactoryImpl;
 use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\Statement;
@@ -16,6 +17,7 @@ use Saft\Rdf\StatementIterator;
 use Saft\Rdf\StatementIteratorFactoryImpl;
 use Saft\Sparql\Query\QueryFactoryImpl;
 use Saft\Sparql\Result\SetResult;
+use Saft\Store\Store;
 
 class UnitTestCase extends TestCase
 {
@@ -295,6 +297,25 @@ class UnitTestCase extends TestCase
         } else {
             $this->assertTrue(true);
         }
+    }
+
+    /**
+     * @param string $rdf
+     * @param NamedNode $graph
+     * @param Store $store
+     */
+    protected function importTurtle(string $rdf, NamedNode $graph, Store $store)
+    {
+        $importer = new Importer(
+            $store,
+            $this->parserFactory,
+            $this->nodeFactory,
+            $this->statementFactory,
+            $this->rdfHelpers,
+            $this->commonNamespaces
+        );
+
+        $importer->importString($rdf, $graph, 'turtle');
     }
 
     /**

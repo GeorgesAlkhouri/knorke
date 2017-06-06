@@ -24,18 +24,13 @@ class SemanticDblTest extends AbstractStatementStoreTest
     {
         parent::setUp();
 
-        $this->fixture->getDb()->q(
-            'DELETE FROM graph WHERE uri LIKE ?',
-            $this->testGraph->getUri() . '%'
-        );
+        $this->fixture->dropGraph($this->testGraph);
+        $this->fixture->createGraph($this->testGraph);
     }
 
     public function tearDown()
     {
-        $this->fixture->getDb()->q(
-            'DELETE FROM graph WHERE uri LIKE ?',
-            $this->testGraph->getUri() . '%'
-        );
+        $this->fixture->dropGraph($this->testGraph);
 
         parent::tearDown();
     }
@@ -184,6 +179,8 @@ class SemanticDblTest extends AbstractStatementStoreTest
         $this->initFixture();
         $db = $this->fixture->getDb();
 
+        $this->fixture->dropGraph($this->testGraph);
+
         // check that test graph is not available already
         $row = $db->row('SELECT uri FROM graph WHERE uri= ?', $this->testGraph->getUri());
         $this->assertNull($row);
@@ -204,6 +201,7 @@ class SemanticDblTest extends AbstractStatementStoreTest
     {
         $this->initFixture();
 
+        $this->fixture->dropGraph($this->testGraph);
         $this->fixture->createGraph($this->testGraph);
 
         // remove test content, if available to have a clean test base
@@ -215,36 +213,16 @@ class SemanticDblTest extends AbstractStatementStoreTest
         /*
          * test data
          */
-        $statement1 = $this->statementFactory->createStatement(
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'1'),
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'),
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'3'),
-            $this->testGraph
-        );
+        $this->importTurtle('
+            @prefix foo: <'. $this->testGraph.'>.
 
-        $statement2 = $this->statementFactory->createStatement(
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'1'),
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'),
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'4'),
-            $this->testGraph
+            foo:1 foo:2 foo:3 ;
+                  foo:2 foo:4 ;
+                  foo:2 "content" .
+            foo:3 foo:2 foo:5.',
+            $this->testGraph,
+            $this->fixture
         );
-
-        $statement3 = $this->statementFactory->createStatement(
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'1'),
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'),
-            $this->nodeFactory->createLiteral($this->testGraph->getUri() . ' content'),
-            $this->testGraph
-        );
-
-        $statement4 = $this->statementFactory->createStatement(
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'3'),
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'2'),
-            $this->nodeFactory->createNamedNode($this->testGraph->getUri() .'5'),
-            $this->testGraph
-        );
-
-        // create test data
-        $this->fixture->addStatements(array($statement1, $statement2, $statement3, $statement4));
 
         $quads = $this->fixture->getDb()->run('SELECT * FROM quad WHERE graph = ?', $this->testGraph->getUri());
         $this->assertEquals(4, count($quads));
@@ -252,7 +230,12 @@ class SemanticDblTest extends AbstractStatementStoreTest
         /*
          * remove by set s, p, o
          */
-        $this->fixture->deleteMatchingStatements($statement3);
+        $this->fixture->deleteMatchingStatements($this->statementFactory->createStatement(
+            $this->nodeFactory->createNamedNode($this->testGraph . '1'),
+            $this->nodeFactory->createNamedNode($this->testGraph . '2'),
+            $this->nodeFactory->createLiteral('content'),
+            $this->testGraph
+        ));
 
         $quads = $this->fixture->getDb()->run('SELECT * FROM quad WHERE graph = ?', $this->testGraph->getUri());
         $this->assertEquals(3, count($quads));
@@ -270,7 +253,49 @@ class SemanticDblTest extends AbstractStatementStoreTest
         $quads = $this->fixture->getDb()->run('SELECT * FROM quad WHERE graph = ?', $this->testGraph->getUri());
         $this->assertEquals(1, count($quads));
 
-        // $statement4 should remains
+        // $statement4 should remain
+    }
+
+    // check for removal using any pattern
+    public function testDeleteMatchingStatementsTestAnyPattern()
+    {
+        $this->initFixture();
+
+        $this->fixture->dropGraph($this->testGraph);
+        $this->fixture->createGraph($this->testGraph);
+
+        // remove test content, if available to have a clean test base
+        $this->fixture->getDb()->run(
+            'DELETE FROM value WHERE value LIKE ?',
+            $this->testGraph->getUri() .'%'
+        );
+
+        /*
+         * test data
+         */
+        $this->importTurtle('
+            @prefix foo: <'. $this->testGraph.'>.
+
+            foo:1 foo:2 foo:3 ;
+                  foo:2 _:b0 ;
+                  foo:2 "content" .
+            foo:3 foo:2 foo:5.',
+            $this->testGraph,
+            $this->fixture
+        );
+
+        $quads = $this->fixture->getDb()->run('SELECT * FROM quad WHERE graph = ?', $this->testGraph->getUri());
+        $this->assertEquals(4, count($quads));
+
+        $this->fixture->deleteMatchingStatements($this->statementFactory->createStatement(
+            $this->nodeFactory->createNamedNode($this->testGraph . '1'),
+            $this->nodeFactory->createAnyPattern(),
+            $this->nodeFactory->createAnyPattern(),
+            $this->testGraph
+        ));
+
+        $quads = $this->fixture->getDb()->run('SELECT * FROM quad WHERE graph = ?', $this->testGraph->getUri());
+        $this->assertEquals(1, count($quads));
     }
 
     /*

@@ -215,7 +215,8 @@ class Importer
             if (is_array($value)) {
                 // assume array with key-value pairs
                 if (is_string(array_keys($value)[0])) {
-                    $referenceNode = $this->nodeFactory->createBlankNode(hash('sha256', time() . rand(0, 1000)));
+                    // $referenceNode = $this->nodeFactory->createBlankNode(hash('sha256', time() . rand(0, 1000)));
+                    $referenceNode = $this->nodeFactory->createNamedNode('bn://' . hash('sha256', microtime() . rand(0, 1000)));
 
                     $result[] = $this->statementFactory->createStatement(
                         $startResource,
@@ -228,7 +229,8 @@ class Importer
                 // assume array of array
                 } else {
                     foreach ($value as $entry) {
-                        $referenceNode = $this->nodeFactory->createBlankNode(hash('sha256', time() . rand(0, 1000)));
+                        // $referenceNode = $this->nodeFactory->createBlankNode(hash('sha256', time() . rand(0, 1000)));
+                        $referenceNode = $this->nodeFactory->createNamedNode('bn://' . hash('sha256', microtime() . rand(0, 1000)));
 
                         $result[] = $this->statementFactory->createStatement(
                             $startResource,

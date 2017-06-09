@@ -3,7 +3,7 @@
 namespace Knorke\Exception;
 
 /**
- * 
+ * @codeCoverageIgnore
  */
 class KnorkeException extends \Exception
 {

@@ -41,6 +41,47 @@ class StatisticValueTest extends UnitTestCase
      * Tests for compute
      */
 
+    public function testComputeTestEmptyStartMapping()
+    {
+        $this->expectException('Knorke\Exception\KnorkeException');
+
+        $this->fixture->setStartMapping(array());
+
+        $this->fixture->compute(array('foo:1'));
+    }
+
+    public function testComputeTestEmptyValuesParameter()
+    {
+        $this->expectException('Knorke\Exception\KnorkeException');
+
+        $this->fixture->compute(array());
+    }
+
+    public function testComputeTestNonDependingValueHasNoValue()
+    {
+        $this->expectException('Knorke\Exception\KnorkeException');
+
+        $this->importTurtle('
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
+            @prefix stat: <http://stat/> .
+
+            stat:1 rdf:type kno:StatisticValue .
+
+            stat:2 rdf:type kno:StatisticValue ;
+                kno:computation-order [
+                    kno:_0 "[stat:1]*2"
+                ] .
+            ',
+            $this->testGraph,
+            $this->store
+        );
+
+        $this->fixture->setStartMapping(array());
+
+        $this->fixture->compute(array('stat:2'));
+    }
+
     public function testComputeTestWithSimpleRule()
     {
         $this->importTurtle('
@@ -121,6 +162,11 @@ class StatisticValueTest extends UnitTestCase
                 kno:computation-order [
                     kno:_0 "IF([stat:1]>30, 1, 0)"
                 ] .
+
+            stat:3 rdf:type kno:StatisticValue ;
+                kno:computation-order [
+                    kno:_0 "IF([stat:2]<1, 1, 0)"
+                ] .
             ',
             $this->testGraph,
             $this->store
@@ -136,9 +182,10 @@ class StatisticValueTest extends UnitTestCase
         $this->assertEquals(
             array(
                 'stat:1' => 31,
-                'stat:2' => 1
+                'stat:2' => 1,
+                'stat:3' => 0,
             ),
-            $this->fixture->compute(array('stat:2'))
+            $this->fixture->compute(array('stat:2', 'stat:3'))
         );
 
         /*
@@ -151,9 +198,10 @@ class StatisticValueTest extends UnitTestCase
         $this->assertEquals(
             array(
                 'stat:1' => 20,
-                'stat:2' => 0
+                'stat:2' => 0,
+                'stat:3' => 1,
             ),
-            $this->fixture->compute(array('stat:2'))
+            $this->fixture->compute(array('stat:2', 'stat:3'))
         );
     }
 
@@ -299,5 +347,22 @@ class StatisticValueTest extends UnitTestCase
         $this->assertEquals('2017-01-10', $this->fixture->computeValue('2017-01-05', '+', 5));
         $this->assertEquals('2017-01-01', $this->fixture->computeValue('2017-01-06', '-', 5));
         $this->assertEquals(2,            $this->fixture->computeValue('2017-01-06', '-', '2017-01-04'));
+    }
+
+    public function testComputeValueInvalidSecondParameter()
+    {
+        $this->fixture->setStartMapping(array());
+
+        $this->assertNull($this->fixture->computeValue('2017-01-01 00:00:00', '*', 1));
+        $this->assertNull($this->fixture->computeValue('2017-01-01 00:00:00', '/', 1));
+    }
+
+    public function testComputeValueInvalidThirdParameter()
+    {
+        $this->fixture->setStartMapping(array());
+
+        $this->assertNull($this->fixture->computeValue('2017-01-01 00:00:00', '+', '2017-01-01 00:00:00'));
+        $this->assertNull($this->fixture->computeValue('2017-01-01 00:00:00', '/', '2017-01-01 00:00:00'));
+        $this->assertNull($this->fixture->computeValue('2017-01-01 00:00:00', '*', '2017-01-01 00:00:00'));
     }
 }

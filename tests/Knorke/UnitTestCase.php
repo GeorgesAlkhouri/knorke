@@ -20,6 +20,9 @@ use Saft\Sparql\Result\ResultFactoryImpl;
 use Saft\Sparql\Result\SetResult;
 use Saft\Store\Store;
 
+/**
+ * @codeCoverageIgnore
+ */
 class UnitTestCase extends TestCase
 {
     /**

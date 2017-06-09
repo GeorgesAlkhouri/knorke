@@ -15,7 +15,7 @@ class RestrictionTest extends UnitTestCase
             $this->rdfHelpers,
             $this->dataBlankHelper,
             $this->store,
-            $this->testGraph
+            array($this->testGraph)
         );
     }
 

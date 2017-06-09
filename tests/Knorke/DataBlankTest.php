@@ -100,7 +100,7 @@ class DataBlankTest extends UnitTestCase
         ));
 
         $blank = $this->getFixtureInstance();
-        $blank->initByStoreSearch($this->store, $this->testGraph, 'http://s');
+        $blank->initByStoreSearch($this->store, array($this->testGraph), 'http://s');
 
         $this->assertEquals('http://o', $blank['http://p']);
 
@@ -124,7 +124,7 @@ class DataBlankTest extends UnitTestCase
         ));
 
         $blank = $this->getFixtureInstance();
-        $blank->initByStoreSearch($this->store, $this->testGraph, 'http://s');
+        $blank->initByStoreSearch($this->store, array($this->testGraph), 'http://s');
 
         $this->store->dropGraph($this->testGraph);
 
@@ -183,7 +183,7 @@ class DataBlankTest extends UnitTestCase
         ));
 
         $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $dataBlank->initByStoreSearch($this->store, $this->testGraph, 'http://s');
+        $dataBlank->initByStoreSearch($this->store, array($this->testGraph), 'http://s');
 
         $dataBlankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
         $dataBlankToCheckAgainst['_idUri'] = 'http://s';
@@ -218,7 +218,7 @@ class DataBlankTest extends UnitTestCase
             'use_prefixed_objects' => true,
         ));
 
-        $this->fixture->initByStoreSearch($this->store, $this->testGraph, 'http://s');
+        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://s');
 
         // get blank node id
         $result = $this->store->query('SELECT * WHERE { ?s <http://p2> <http://o2>. }');
@@ -276,7 +276,7 @@ class DataBlankTest extends UnitTestCase
             'use_prefixed_objects' => true,
         ));
 
-        $this->fixture->initByStoreSearch($this->store, $this->testGraph, 'http://back/data/user1');
+        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://back/data/user1');
 
         $this->assertEquals(
             array(
@@ -326,7 +326,7 @@ class DataBlankTest extends UnitTestCase
             'use_prefixed_objects' => true,
         ));
 
-        $this->fixture->initByStoreSearch($this->store, $this->testGraph, 'http://foo');
+        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://foo');
 
         $this->assertEquals(
             array(

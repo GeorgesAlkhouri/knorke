@@ -14,7 +14,7 @@ use Saft\Store\Store;
 class DataBlankHelper
 {
     protected $commonNamespaces;
-    protected $graph;
+    protected $graphs;
     protected $nodeFactory;
     protected $statementFactory;
     protected $store;
@@ -25,14 +25,28 @@ class DataBlankHelper
         NodeFactory $nodeFactory,
         RdfHelpers $rdfHelpers,
         Store $store,
-        NamedNode $graph
+        array $graphs
     ) {
         $this->commonNamespaces = $commonNamespaces;
-        $this->graph = $graph;
+        $this->graphs = $graphs;
         $this->nodeFactory = $nodeFactory;
         $this->rdfHelpers = $rdfHelpers;
         $this->statementFactory = $statementFactory;
         $this->store = $store;
+    }
+
+    /**
+     * @param array $graphs Array of NamedNode instances
+     */
+    protected function buildGraphsList(array $graphs) : string
+    {
+        $fromGraphList = array();
+
+        foreach ($graphs as $graph) {
+            $fromGraphList[] = 'FROM <'. $graph->getUri(). '>';
+        }
+
+        return implode(' ', $fromGraphList);
     }
 
     /**
@@ -57,7 +71,9 @@ class DataBlankHelper
     {
         $typeUri = $this->commonNamespaces->extendUri($typeUri);
 
-        $result = $this->store->query('SELECT * FROM <'. $this->graph->getUri() .'> WHERE {
+        $graphs = $this->buildGraphsList($this->graphs);
+
+        $result = $this->store->query('SELECT * '. $graphs .' WHERE {
             ?s ?p ?o.
             ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <'. $typeUri .'>.
             '. $wherePart .'
@@ -72,7 +88,7 @@ class DataBlankHelper
             }
 
             $blanks[$resourceId] = $this->createDataBlank();
-            $blanks[$resourceId]->initByStoreSearch($this->store, $this->graph, $resourceId);
+            $blanks[$resourceId]->initByStoreSearch($this->store, $this->graphs, $resourceId);
         }
 
         return $blanks;
@@ -140,7 +156,7 @@ class DataBlankHelper
     public function load(string $resourceUri) : DataBlank
     {
         $dataBlank = $this->createDataBlank();
-        $dataBlank->initByStoreSearch($this->store, $this->graph, $resourceUri);
+        $dataBlank->initByStoreSearch($this->store, $this->graphs, $resourceUri);
 
         return $dataBlank;
     }

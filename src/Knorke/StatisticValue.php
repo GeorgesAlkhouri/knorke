@@ -11,7 +11,7 @@ use Saft\Store\Store;
 class StatisticValue
 {
     protected $commonNamespaces;
-    protected $graph;
+    protected $graphs;
     protected $mapping;
     protected $rdfHelpers;
     protected $store;
@@ -20,18 +20,18 @@ class StatisticValue
      * @param Store $store
      * @param CommonNamespaces $commonNamespaces
      * @param RdfHelpers $rdfHelpers
-     * @param NamedNode $graph
+     * @param array $graphs
      * @param array $mapping
      */
     public function __construct(
         Store $store,
         CommonNamespaces $commonNamespaces,
         RdfHelpers $rdfHelpers,
-        NamedNode $graph,
+        array $graphs,
         array $startMapping = array()
     ) {
         $this->commonNamespaces = $commonNamespaces;
-        $this->graph = $graph;
+        $this->graphs = $graphs;
         $this->startMapping = $startMapping;
         $this->rdfHelpers = $rdfHelpers;
         $this->store = $store;
@@ -63,7 +63,7 @@ class StatisticValue
 
             // create DataBlank instance which represents given value
             $statisticValues[$shortValueUri] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-            $statisticValues[$shortValueUri]->initByStoreSearch($this->store, $this->graph, $valueUri);
+            $statisticValues[$shortValueUri]->initByStoreSearch($this->store, $this->graphs, $valueUri);
         }
 
         $computedValues = array();

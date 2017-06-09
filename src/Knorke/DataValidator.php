@@ -18,7 +18,7 @@ class DataValidator
 {
     protected $commonNamespaces;
     protected $dataBlankHelper;
-    protected $graph;
+    protected $graphs;
     protected $rdfHelpers;
     protected $store;
 
@@ -27,11 +27,11 @@ class DataValidator
         DataBlankHelper $dataBlankHelper,
         RdfHelpers $rdfHelpers,
         Store $store,
-        NamedNode $graph
+        array $graphs
     ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->dataBlankHelper = $dataBlankHelper;
-        $this->graph = $graph;
+        $this->graphs = $graphs;
         $this->rdfHelpers = $rdfHelpers;
         $this->store = $store;
     }
@@ -123,7 +123,7 @@ class DataValidator
                 break;
 
             default:
-                $e = new \DataValidatorException('Invalid restriction property used: '. $restrictionUri);
+                $e = new DataValidatorException('Invalid restriction property used: '. $restrictionUri);
         }
 
         $e->setPayload($dataValueToCheck);
@@ -180,7 +180,7 @@ class DataValidator
 
         // load resource behind given type
         $type = $this->dataBlankHelper->createDataBlank();
-        $type->initByStoreSearch($this->store, $this->graph, $typeUri);
+        $type->initByStoreSearch($this->store, $this->graphs, $typeUri);
         $typeArray = $type->getArrayCopy();
 
         // no has-property relations found, stop here, because there is nothing to check

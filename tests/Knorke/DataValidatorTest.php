@@ -16,7 +16,7 @@ class DataValidatorTest extends UnitTestCase
             $this->dataBlankHelper,
             $this->rdfHelpers,
             $this->store,
-            $this->testGraph
+            array($this->testGraph)
         );
     }
 

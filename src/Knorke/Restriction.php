@@ -23,11 +23,11 @@ class Restriction
         RdfHelpers $rdfHelpers,
         DataBlankHelper $dataBlankHelper,
         Store $store,
-        NamedNode $graph
+        array $graphs
     ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->dataBlankHelper = $dataBlankHelper;
-        $this->graph = $graph;
+        $this->graphs = $graphs;
         $this->rdfHelpers = $rdfHelpers;
         $this->store = $store;
     }
@@ -38,7 +38,7 @@ class Restriction
     public function getRestrictionsForResource(string $resourceUri) : DataBlank
     {
         $blank = $this->dataBlankHelper->createDataBlank();
-        $blank->initByStoreSearch($this->store, $this->graph, $resourceUri);
+        $blank->initByStoreSearch($this->store, $this->graphs, $resourceUri);
 
         /*
          * if its a proxy resource which inherits from another, get the properties of the other one.
@@ -47,7 +47,7 @@ class Restriction
             // get infos from the other resource
             $foreignResource = $blank->get('kno:inherits-all-properties-of');
             $foreignBlank = $this->dataBlankHelper->createDataBlank();
-            $foreignBlank->initByStoreSearch($this->store, $this->graph, $foreignResource['_idUri']);
+            $foreignBlank->initByStoreSearch($this->store, $this->graphs, $foreignResource['_idUri']);
             // copy property-value combination into blank instance
             foreach ($foreignBlank as $property => $value) {
                 // ignore internal fields

@@ -83,6 +83,20 @@ class DataBlank extends \ArrayObject
     }
 
     /**
+     * @param array $graphs Array of NamedNode instances
+     */
+    protected function buildGraphsList(array $graphs) : string
+    {
+        $fromGraphList = array();
+
+        foreach ($graphs as $graph) {
+            $fromGraphList[] = 'FROM <'. $graph->getUri(). '>';
+        }
+
+        return implode(' ', $fromGraphList);
+    }
+
+    /**
      * @return int
      */
     public function count() : int
@@ -209,7 +223,7 @@ class DataBlank extends \ArrayObject
      */
     public function initByStoreSearch(
         Store $store,
-        NamedNode $graph,
+        array $graphs,
         string $resourceId,
         string $parentPredicate = null,
         string $parentSubject = null
@@ -227,6 +241,8 @@ class DataBlank extends \ArrayObject
             $this->offsetSet('_idUri', $resourceId);
         }
 
+        $graphFromList = $this->buildGraphsList($graphs);
+
         /*
          * Parameter $resourceId is an URI
          */
@@ -234,7 +250,7 @@ class DataBlank extends \ArrayObject
             $resourceId = $this->commonNamespaces->extendUri($resourceId);
 
             // get direct neighbours of $resourceId
-            $result = $store->query('SELECT * FROM <'. $graph .'> WHERE {<'. $resourceId .'> ?p ?o .}');
+            $result = $store->query('SELECT * '. $graphFromList .' WHERE {<'. $resourceId .'> ?p ?o .}');
 
         /*
          * Parameter $resourceId is a blank node
@@ -244,7 +260,7 @@ class DataBlank extends \ArrayObject
          */
         } else {
             // get direct neighbours of related blank node (?blank)
-            $result = $store->query('SELECT * FROM <'. $graph .'> WHERE {
+            $result = $store->query('SELECT * '. $graphFromList .' WHERE {
                 <'. $parentSubject .'> <'. $parentPredicate .'> ?blank .
                 ?blank ?p ?o .
             }');
@@ -275,7 +291,7 @@ class DataBlank extends \ArrayObject
                  * check if behind the URI are more triples
                  */
                 $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-                $dataBlank->initByStoreSearch($store, $graph, $o->getUri());
+                $dataBlank->initByStoreSearch($store, $graphs, $o->getUri());
 
                 // if more than one data entry is in the data blank, we use it
                 // if not, it only contains an _idUri value and is worthless
@@ -288,7 +304,7 @@ class DataBlank extends \ArrayObject
              */
             } elseif ($o->isBlank()) {
                 $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-                $dataBlank->initByStoreSearch($store, $graph, $o->toNQuads(), $p->getUri(), $resourceId);
+                $dataBlank->initByStoreSearch($store, $graphs, $o->toNQuads(), $p->getUri(), $resourceId);
 
                 // if more than one data entry is in the data blank, we use it
                 // if not, it only contains an _idUri value and is worthless

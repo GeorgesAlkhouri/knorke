@@ -28,7 +28,7 @@ class DataBlankHelperTest extends UnitTestCase
             $this->nodeFactory,
             $this->rdfHelpers,
             $this->store,
-            $this->testGraph
+            array($this->testGraph)
         );
 
         $this->store->dropGraph($this->testGraph);

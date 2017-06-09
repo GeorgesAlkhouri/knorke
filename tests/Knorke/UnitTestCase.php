@@ -90,7 +90,7 @@ class UnitTestCase extends TestCase
             $this->nodeFactory,
             $this->rdfHelpers,
             $this->store,
-            $this->testGraph
+            array($this->testGraph)
         );
 
         $this->importer = new Importer(

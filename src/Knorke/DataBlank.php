@@ -231,6 +231,8 @@ class DataBlank extends \ArrayObject
          * Parameter $resourceId is an URI
          */
         if ($this->rdfHelpers->simpleCheckURI($resourceId)) {
+            $resourceId = $this->commonNamespaces->extendUri($resourceId);
+
             // get direct neighbours of $resourceId
             $result = $store->query('SELECT * FROM <'. $graph .'> WHERE {<'. $resourceId .'> ?p ?o .}');
 

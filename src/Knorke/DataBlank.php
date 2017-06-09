@@ -201,64 +201,57 @@ class DataBlank extends \ArrayObject
     }
 
     /**
-     * Init instance by a simple array with properties as keys and according values.
-     *
-     * @param array $array
-     * @todo implement a way to handle different $value data types
+     * @param Store $store
+     * @param NamedNode $graph
+     * @param string $resourceId
+     * @param string $parentPredicate Optional, only if $resourceId is a blank node
+     * @param string $parentSubject Optional, only if $resourceId is a blank node
      */
-    public function initByArray(array $array)
-    {
-        foreach ($array as $property => $value) {
-            // predicate
-            if ($this->options['use_prefixed_predicates']) {
-                $property = $this->commonNamespaces->shortenUri($property);
-            } else {
-                $property = $this->commonNamespaces->extendUri($property);
-            }
-
-            // object
-            if ($this->options['use_prefixed_objects']) {
-                $value = $this->commonNamespaces->shortenUri($value);
-            } else {
-                $value = $this->commonNamespaces->extendUri($value);
-            }
-
-            $this->offsetSet($property, $value);
-        }
-    }
-
-    /**
-     * Init instance by a given SetResult instance. It only set properties and values of the
-     * given subject. If for instance an object has also more properties, they will be ignored.
-     * For such cases, use initByStoreSearch.
-     *
-     * @param SetResult $result
-     * @param string $subjectUri
-     * @param string $subject Default: s (optional)
-     * @param string $predicate Default: p (optional)
-     * @param string $object Default: o (optional)
-     */
-    public function initBySetResult(
-        SetResult $result,
-        string $subjectUri,
-        string $subject = 's',
-        string $predicate = 'p',
-        string $object = 'o'
+    public function initByStoreSearch(
+        Store $store,
+        NamedNode $graph,
+        string $resourceId,
+        string $parentPredicate = null,
+        string $parentSubject = null
     ) {
-        $subjectUri = $this->commonNamespaces->extendUri($subjectUri);
+        /*
+         * check parameter $resourceId
+         */
+        if (!$this->rdfHelpers->simpleCheckURI($resourceId)
+            && !$this->rdfHelpers->simpleCheckBlankNodeId($resourceId)) {
+            throw new KnorkeException('Invalid $resourceId given (must be an URI or blank node): '. $resourceId);
+        }
 
+        // set internal _idUri field
+        if ($this->options['add_internal_data_fields']) {
+            $this->offsetSet('_idUri', $resourceId);
+        }
+
+        /*
+         * Parameter $resourceId is an URI
+         */
+        if ($this->rdfHelpers->simpleCheckURI($resourceId)) {
+            // get direct neighbours of $resourceId
+            $result = $store->query('SELECT * FROM <'. $graph .'> WHERE {<'. $resourceId .'> ?p ?o .}');
+
+        /*
+         * Parameter $resourceId is a blank node
+         *
+         * we assume, that we are in a recursion and this function was called before with
+         * resourceId as URI
+         */
+        } else {
+            // get direct neighbours of related blank node (?blank)
+            $result = $store->query('SELECT * FROM <'. $graph .'> WHERE {
+                <'. $parentSubject .'> <'. $parentPredicate .'> ?blank .
+                ?blank ?p ?o .
+            }');
+        }
+
+        // go through neighbours
         foreach ($result as $entry) {
-            // ignore entry if its subject is set but is not relevant
-            if (isset($entry[$subject])) {
-                $s = $entry[$subject];
-                $subjectValue = $s->isNamed() ? $s->getUri() : $s->getBlankId();
-                if ($subjectValue !== $subjectUri) {
-                    continue;
-                }
-            }
-
-            $p = $entry[$predicate];
-            $o = $entry[$object];
+            $p = $entry['p'];
+            $o = $entry['o'];
 
             /*
              * predicate value
@@ -267,115 +260,46 @@ class DataBlank extends \ArrayObject
                 ? $this->commonNamespaces->shortenUri($p->getUri())
                 : $this->commonNamespaces->extendUri($p->getUri());
 
+
             /*
-             * object value
+             * object is URI (check for more triples behind it)
              */
             if ($o->isNamed()) {
                 $value = $this->options['use_prefixed_objects']
                     ? $this->commonNamespaces->shortenUri($o->getUri())
                     : $this->commonNamespaces->extendUri($o->getUri());
+
+                /*
+                 * check if behind the URI are more triples
+                 */
+                $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+                $dataBlank->initByStoreSearch($store, $graph, $o->getUri());
+
+                // if more than one data entry is in the data blank, we use it
+                // if not, it only contains an _idUri value and is worthless
+                if (1 < count($dataBlank)) {
+                    $value = $dataBlank;
+                }
+
+            /*
+             * object is blank node (check for more triples behind it)
+             */
+            } elseif ($o->isBlank()) {
+                $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+                $dataBlank->initByStoreSearch($store, $graph, $o->toNQuads(), $p->getUri(), $resourceId);
+
+                // if more than one data entry is in the data blank, we use it
+                // if not, it only contains an _idUri value and is worthless
+                if (1 < count($dataBlank)) {
+                    $value = $dataBlank;
+                }
+
             } else {
                 $value = $this->getNodeValue($o);
             }
 
             // set property key and object value
             $this->offsetSet($predicateValue, $value);
-        }
-
-        $result->rewind();
-
-        if ($this->options['add_internal_data_fields']) {
-            $this->data['_idUri'] = $subjectUri;
-        }
-    }
-
-    /**
-     * Init instance by a given StatementIterator instance.
-     *
-     * @param Saft\Rdf\StatementIterator $iterator
-     * @param string $resourceUri URI of the resource to use
-     * @todo support blank nodes
-     */
-    public function initByStatementIterator(StatementIterator $iterator, $resourceUri)
-    {
-        $entries = array();
-        foreach ($iterator as $statement) {
-            if ($statement->getSubject()->getUri() == $resourceUri) {
-                $entries[] = array(
-                    'p' => $statement->getPredicate(),
-                    'o' => $statement->getObject()
-                );
-            }
-        }
-
-        return $this->initBySetResult(new SetResultImpl($entries), $resourceUri);
-    }
-
-    /**
-     * @param Store $store
-     * @param NamedNode $graph
-     * @param string $resourceId
-     */
-    public function initByStoreSearch(Store $store, NamedNode $graph, string $resourceId)
-    {
-        if ($this->rdfHelpers->simpleCheckURI($resourceId)) {
-            $resourceIdSubject = '<'. $resourceId .'>';
-        } elseif ($this->rdfHelpers->simpleCheckBlankNodeId($resourceId)) {
-            // leave it as it is
-            $resourceIdSubject = $resourceId;
-        } else {
-            throw new \KnorkeException('Invalid $resourceId given (must be URI or blank node): '. $resourceId);
-        }
-
-        if ($this->options['add_internal_data_fields']) {
-            $this->offsetSet('_idUri', $resourceId);
-        }
-
-        // ask store for all properties and values for the given resource
-        $setResult = $store->query('SELECT * FROM <'. $graph->getUri() .'> WHERE {
-            '. $resourceIdSubject .' ?p ?o.
-        }');
-
-        // init direct connections of the subject
-        $this->initBySetResult($setResult, $resourceId);
-
-        /*
-         * recursive initiation of already stored objects, which are URIs or blank nodes
-         */
-        foreach ($this->data as $key => $value) {
-            // to avoid infinite recursion
-            if ($value == $resourceId) {
-                continue;
-
-            // value is an array
-            } elseif ('_idUri' == $key) {
-                $this->data[$key] = $value;
-
-            // value is an array
-            } elseif (is_array($value)) {
-                foreach ($value as $subKey => $subValue) {
-                    if ($this->rdfHelpers->simpleCheckURI($subValue) ||
-                        $this->rdfHelpers->simpleCheckBlankNodeId($subValue)) {
-
-                        $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->options);
-                        $valueDataBlank->initByStoreSearch($store, $graph, $subValue);
-                        if (1 < count($valueDataBlank)) {
-                            $this->data[$key][$subKey] = $valueDataBlank;
-                        }
-                    }
-                }
-
-            // value is resource (try to load further information)
-            } elseif ($this->rdfHelpers->simpleCheckURI($value)
-                || $this->rdfHelpers->simpleCheckBlankNodeId($value)) {
-
-                $valueDataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->options);
-                $valueDataBlank->initByStoreSearch($store, $graph, $value);
-                if (1 < count($valueDataBlank)) {
-                    $this->data[$key] = $valueDataBlank;
-                }
-                // if nothing is in $valueDataBlank, the current value remains untouched
-            }
         }
     }
 
@@ -422,5 +346,13 @@ class DataBlank extends \ArrayObject
     public function offsetUnset($key)
     {
         unset($this->data[$key]);
+    }
+
+    /**
+     * @return string
+     */
+    public function __toString() : string
+    {
+        return json_encode($this->getArrayCopy());
     }
 }

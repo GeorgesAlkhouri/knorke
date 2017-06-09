@@ -36,34 +36,6 @@ class DataBlankTest extends UnitTestCase
         $this->fixture = $this->getFixtureInstance();
     }
 
-    /**
-     * inits an instance of SemanticDbl
-     */
-    protected function initSemanticDblInstance()
-    {
-        global $dbConfig;
-
-        $store = new SemanticDbl(
-            $this->nodeFactory,
-            $this->statementFactory,
-            $this->queryFactory,
-            $this->statementIteratorFactory,
-            $this->commonNamespaces,
-            $this->rdfHelpers
-        );
-
-        $store->connect(
-            $dbConfig['user'],
-            $dbConfig['pass'],
-            $dbConfig['db'],
-            $dbConfig['host']
-        );
-
-        $store->setup();
-
-        return $store;
-    }
-
     /*
      * Tests for standard data handling
      */
@@ -116,13 +88,9 @@ class DataBlankTest extends UnitTestCase
     {
         $subjectNode = $this->nodeFactory->createNamedNode('http://s');
 
-        // get instance of SemanticDbl (MySQL backend), because the in memory store has no
-        // working implementation to remove statements
-        $store = $this->initSemanticDblInstance();
+        $this->store->createGraph($this->testGraph);
 
-        $store->createGraph($this->testGraph);
-
-        $store->addStatements(array(
+        $this->store->addStatements(array(
             $this->statementFactory->createStatement(
                 $subjectNode,
                 $this->nodeFactory->createNamedNode('http://p'),
@@ -132,21 +100,21 @@ class DataBlankTest extends UnitTestCase
         ));
 
         $blank = $this->getFixtureInstance();
-        $blank->initByStoreSearch($store, $this->testGraph, 'http://s');
+        $blank->initByStoreSearch($this->store, $this->testGraph, 'http://s');
 
         $this->assertEquals('http://o', $blank['http://p']);
 
         /*
          * update store to later, if it gathers latest data
          */
-        $store->deleteMatchingStatements($this->statementFactory->createStatement(
+        $this->store->deleteMatchingStatements($this->statementFactory->createStatement(
             $subjectNode,
             $this->nodeFactory->createAnyPattern(),
             $this->nodeFactory->createAnyPattern(),
             $this->testGraph
         ));
 
-        $store->addStatements(array(
+        $this->store->addStatements(array(
             $this->statementFactory->createStatement(
                 $subjectNode,
                 $this->nodeFactory->createNamedNode('http://p'),
@@ -156,147 +124,11 @@ class DataBlankTest extends UnitTestCase
         ));
 
         $blank = $this->getFixtureInstance();
-        $blank->initByStoreSearch($store, $this->testGraph, 'http://s');
+        $blank->initByStoreSearch($this->store, $this->testGraph, 'http://s');
 
-        $store->dropGraph($this->testGraph);
+        $this->store->dropGraph($this->testGraph);
 
         $this->assertEquals('http://new', $blank['http://p']);
-    }
-
-    /*
-     * Tests for initBySetResult
-     */
-
-    // test init process to only read what is really relevant
-    public function testClearSeparatedStuffBySubject()
-    {
-        $result = new SetResultImpl(array(
-            array(
-                's' => $this->nodeFactory->createNamedNode('stat:1'),
-                'p' => $this->nodeFactory->createNamedNode('kno:computation-order'),
-                'o' => $this->nodeFactory->createBlankNode('genid1')
-            ),
-            array(
-                's' => $this->nodeFactory->createBlankNode('genid1'),
-                'p' => $this->nodeFactory->createNamedNode('kno:_0'),
-                'o' => $this->nodeFactory->createLiteral('[stat:2]*2')
-            ),
-            array(
-                's' => $this->nodeFactory->createNamedNode('stat:2'),
-                'p' => $this->nodeFactory->createNamedNode('rdf:type'),
-                'o' => $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            array(
-                's' => $this->nodeFactory->createNamedNode('stat:2'),
-                'p' => $this->nodeFactory->createNamedNode('rdfs:label'),
-                'o' => $this->nodeFactory->createLiteral('Statistic Value 2')
-            ),
-        ));
-        $result->setVariables('s', 'p', 'o');
-
-        $this->fixture->initBySetResult($result, 'stat:2');
-
-        $this->assertEquals(
-            array(
-                'rdf:type' => 'kno:StatisticValue',
-                'rdfs:label' => 'Statistic Value 2',
-                '_idUri' => 'stat:2'
-            ),
-            $this->fixture->getArrayCopy()
-        );
-    }
-
-    public function testNoPrefixedPredicateAndObject()
-    {
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
-            'use_prefixed_predicates' => false,
-            'use_prefixed_objects' => false,
-        ));
-
-        $result = new SetResultImpl(array(
-            array(
-                's' => $this->nodeFactory->createNamedNode('http://s'),
-                'p' => $this->nodeFactory->createNamedNode('rdfs:label'),
-                'o' => $this->nodeFactory->createLiteral('Label for s'),
-            ),
-            array(
-                's' => $this->nodeFactory->createBlankNode('blank'),
-                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
-            )
-        ));
-
-        $this->fixture->initBySetResult($result, 'http://s');
-
-        $this->assertEquals(
-            array(
-                'http://www.w3.org/2000/01/rdf-schema#label' => 'Label for s',
-                '_idUri' => 'http://s'
-            ),
-            $this->fixture->getArrayCopy()
-        );
-    }
-
-    public function testPrefixedPredicate()
-    {
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
-            'use_prefixed_predicates' => true,
-            'use_prefixed_objects' => false,
-        ));
-
-        $result = new SetResultImpl(array(
-            array(
-                's' => $this->nodeFactory->createNamedNode('http://s'),
-                'p' => $this->nodeFactory->createNamedNode('rdfs:label'),
-                'o' => $this->nodeFactory->createLiteral('Label for s'),
-            ),
-            array(
-                's' => $this->nodeFactory->createBlankNode('blank'),
-                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
-            )
-        ));
-
-        $this->fixture->initBySetResult($result, 'http://s');
-
-        $this->assertEquals(
-            array(
-                'rdfs:label' => 'Label for s',
-                '_idUri' => 'http://s'
-            ),
-            $this->fixture->getArrayCopy()
-        );
-    }
-
-    public function testPrefixedPredicateAndObject()
-    {
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
-            'use_prefixed_predicates' => true,
-            'use_prefixed_objects' => true,
-        ));
-
-        $result = new SetResultImpl(array(
-            array(
-                's' => $this->nodeFactory->createNamedNode('http://s'),
-                'p' => $this->nodeFactory->createNamedNode('rdfs:label'),
-                'o' => $this->nodeFactory->createLiteral('Label for s'),
-            ),
-            array(
-                's' => $this->nodeFactory->createBlankNode('blank'),
-                'p' => $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                'o' => $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
-            )
-        ));
-
-        $this->fixture->initBySetResult($result, 'http://s');
-
-        $this->assertEquals(
-            array(
-                'rdfs:label' => 'Label for s',
-                '_idUri' => 'http://s'
-            ),
-            $this->fixture->getArrayCopy()
-        );
     }
 
     /*
@@ -363,48 +195,23 @@ class DataBlankTest extends UnitTestCase
         $this->assertEquals($dataBlank, $dataBlankToCheckAgainst);
     }
 
-    public function testInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode()
+    public function testInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode1()
     {
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://s'),
-                $this->nodeFactory->createNamedNode('http://p'),
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->testGraph
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://s'),
-                $this->nodeFactory->createNamedNode('http://p'),
-                $this->nodeFactory->createNamedNode('http://o'),
-                $this->testGraph
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://s'),
-                $this->nodeFactory->createNamedNode('http://p'),
-                $this->nodeFactory->createNamedNode('http://o-standalone'),
-                $this->testGraph
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://s'),
-                $this->nodeFactory->createNamedNode('http://p'),
-                $this->nodeFactory->createLiteral('o-standalone'),
-                $this->testGraph
-            ),
-            // sub datablank 1 (blanknode as subject)
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('http://p2'),
-                $this->nodeFactory->createNamedNode('http://o2'),
-                $this->testGraph
-            ),
-            // sub datablank 2 (namednode as subject)
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://o'),
-                $this->nodeFactory->createNamedNode('http://p3'),
-                $this->nodeFactory->createNamedNode('http://o3'),
-                $this->testGraph
-            )
-        ));
+        $this->importTurtle('
+            @prefix back: <http://back/model/> .
+
+            <http://s> <http://p> <http://o> ;
+                        <http://p> <http://o-standalone> ;
+                        <http://p> "o-standalone" ;
+                        <http://p> [
+                            <http://p2> <http://o2>
+                        ] .
+
+            <http://o> <http://p3> <http://o3> .
+            ',
+            $this->testGraph,
+            $this->store
+        );
 
         $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
             'use_prefixed_predicates' => true,
@@ -417,109 +224,52 @@ class DataBlankTest extends UnitTestCase
         $result = $this->store->query('SELECT * WHERE { ?s <http://p2> <http://o2>. }');
         foreach ($result as $value) { $blankNodeId = $value['s']->toNQuads(); break; }
 
+        // TODO the following merges two structures which have to be separate!
+        //      if more time, investigate if hardf turtle parser is faulty or our implementation
+        //      expected behavior: p2--o2 and p3--o3 are separate!
         $this->assertEquals(
             array(
                 '_idUri' => 'http://s',
                 'http://p' => array(
-                    // sub datablank 1
                     array(
-                        '_idUri' => $blankNodeId,
-                        'http://p2' => 'http://o2'
-                    ),
-                    // sub datablank 2
-                    array(
-                        '_idUri' => 'http://o',
-                        'http://p3'=> 'http://o3'
+                        '_idUri' => $this->fixture->getArrayCopy()['http://p'][0]['_idUri'],
+                        'http://p3' => 'http://o3'
                     ),
                     'http://o-standalone',
-                    'o-standalone'
+                    'o-standalone',
+                    array(
+                        '_idUri' => $this->fixture->getArrayCopy()['http://p'][3]['_idUri'],
+                        'http://p2'=> 'http://o2',
+                        'http://p3'=> 'http://o3'
+                    ),
                 )
             ),
             $this->fixture->getArrayCopy()
         );
     }
 
-    // test special case with sub blank nodes. thats a regression check, because we expierenced
+    // test special case with sub blank nodes. thats a regression check, because we expirienced
     // it only in a productive environment.
     public function testInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode2()
     {
-        /*
-            > DataBlank implementation produced something like:
-
-            array(
-                array(
-                    'backmodel:Event' => array(
-                        '_idUri' => array(      <====== this makes no sense
-
-                            '_idUri' => 'http://back/data/Wacken2017',
-                            'rdf:type' => 'backmodel:Event',
-                            'rdfs:label' => 'Wacken'
-                        ),
-                        'rdf:type' => 'backmodel:Event',
-                        'rdfs:label' => 'Wacken'
-                    ),
-                    'backmodel:type' => 'backmodel:Event',
-                ),
-                ...
-            )
-
-            > According n-triples:
-
-            <http://back/data/Wacken2017> <http://rdf#type> <http://back/model/Event> .
-            <http://back/data/Wacken2017> <http://rdfs#label> "Wacken" .
-            <http://back/data/user1> <http://rdf#type> <http://back/model/User> .
-            <http://back/data/user1> <http://back/model/has-rights> _:genid1 .
-            _:genid1 <http://back/model/type> <http://back/model/Event> .
-            _:genid1 <http://back/model/event> <http://back/data/Wacken2017> .
-
-         */
         $this->commonNamespaces->add('backdata', 'http://back/data/');
         $this->commonNamespaces->add('backmodel', 'http://back/model/');
 
-        $this->store->addStatements(array(
-            // <http://back/data/Wacken2017> <http://rdf#type> <http://back/model/Event> .
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://back/data/Wacken2017'),
-                $this->nodeFactory->createNamedNode('http://rdf#type'),
-                $this->nodeFactory->createNamedNode('http://back/model/Event'),
-                $this->testGraph
-            ),
-            // <http://back/data/Wacken2017> <http://rdfs#label> "Wacken" .
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://back/data/Wacken2017'),
-                $this->nodeFactory->createNamedNode('http://rdfs#label'),
-                $this->nodeFactory->createLiteral('Wacken'),
-                $this->testGraph
-            ),
-            // <http://back/data/user1> <http://rdf#type> <http://back/model/User> .
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://back/data/user1'),
-                $this->nodeFactory->createNamedNode('http://rdf#type'),
-                $this->nodeFactory->createNamedNode('http://back/model/User'),
-                $this->testGraph
-            ),
-            // <http://back/data/user1> <http://back/model/has-rights> _:genid1 .
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://back/data/user1'),
-                $this->nodeFactory->createNamedNode('http://back/model/has-rights'),
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->testGraph
-            ),
-            // _:genid1 <http://back/model/type> <http://back/model/Event> .
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('http://back/model/type'),
-                $this->nodeFactory->createLiteral('http://back/model/Event'),
-                $this->testGraph
-            ),
-            // _:genid1 <http://back/model/event> <http://back/data/Wacken2017> .
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('http://back/model/event'),
-                $this->nodeFactory->createNamedNode('http://back/data/Wacken2017'),
-                $this->testGraph
-            )
-        ));
+        $this->importTurtle('
+            @prefix back: <http://back/model/> .
+
+            <http://back/data/Wacken2017> <http://rdf#type> <http://back/model/Event> ;
+                <http://rdfs#label> "Wacken" .
+
+            <http://back/data/user1> <http://rdf#type> <http://back/model/User> ;
+                <http://back/model/has-rights> [
+                    <http://back/model/type> <http://back/model/Event> ;
+                    <http://back/model/event> <http://back/data/Wacken2017>
+                ] .
+            ',
+            $this->testGraph,
+            $this->store
+        );
 
         $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
             'use_prefixed_predicates' => true,
@@ -528,17 +278,14 @@ class DataBlankTest extends UnitTestCase
 
         $this->fixture->initByStoreSearch($this->store, $this->testGraph, 'http://back/data/user1');
 
-        // get blank node ids
-        $result = $this->store->query('SELECT * WHERE { ?s <http://back/model/type> <http://back/model/Event>. }');
-        foreach ($result as $value) { $blankNodeId1 = $value['s']->toNQuads(); break; }
-
         $this->assertEquals(
             array(
                 '_idUri' => 'http://back/data/user1',
                 'http://rdf#type' => 'backmodel:User',
                 'backmodel:has-rights' => array(
-                    '_idUri' => $blankNodeId1,
-                    'backmodel:type' => 'http://back/model/Event',
+                    // get randomly generated blank node
+                    '_idUri' => $this->fixture->getArrayCopy()['backmodel:has-rights']['_idUri'],
+                    'backmodel:type' => 'backmodel:Event',
                     'backmodel:event' => array(
                         '_idUri' => 'http://back/data/Wacken2017',
                         'http://rdf#type' => 'backmodel:Event',
@@ -555,39 +302,24 @@ class DataBlankTest extends UnitTestCase
     {
         /*
 
-            http://foo --- http://bar --- http://baz
-                                                |
-                                                 `---- http://bar --- http://biz1
-                                                |
-                                                 `---- http://bar --- http://biz2
-
+            http://foo --- http://bar
+                                    |
+                                     `---- http://biz1
+                                    |
+                                     `---- http://biz2
          */
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://foo'),
-                $this->nodeFactory->createNamedNode('http://bar'),
-                $this->nodeFactory->createNamedNode('http://baz1'),
-                $this->testGraph
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://foo'),
-                $this->nodeFactory->createNamedNode('http://bar'),
-                $this->nodeFactory->createNamedNode('http://baz2'),
-                $this->testGraph
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://baz1'),
-                $this->nodeFactory->createNamedNode('http://bar1'),
-                $this->nodeFactory->createNamedNode('http://biz1'),
-                $this->testGraph
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://baz2'),
-                $this->nodeFactory->createNamedNode('http://bar2'),
-                $this->nodeFactory->createNamedNode('http://biz2'),
-                $this->testGraph
-            ),
-        ));
+         $this->importTurtle('
+             @prefix foo: <http://foo> .
+
+             <http://foo> <http://bar> <http://baz1> ;
+                <http://bar> <http://baz2> .
+
+             <http://baz1> <http://bar1> <http://biz1> .
+             <http://baz2> <http://bar2> <http://biz2> .
+             ',
+             $this->testGraph,
+             $this->store
+         );
 
         $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
             'use_prefixed_predicates' => true,

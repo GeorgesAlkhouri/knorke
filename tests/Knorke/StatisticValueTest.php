@@ -27,206 +27,175 @@ class StatisticValueTest extends UnitTestCase
         $this->fixture = new StatisticValue(
             $this->store,
             $this->commonNamespaces,
-            $this->rdfHelpers
+            $this->rdfHelpers,
+            $this->testGraph
         );
+
+        $this->store->dropGraph($this->testGraph);
+        $this->store->createGraph($this->testGraph);
+
+        $this->commonNamespaces->add('stat', 'http://stat/');
     }
 
     /*
      * Tests for compute
      */
 
-    public function testCompute()
+    public function testComputeTestWithSimpleRule()
     {
-        $this->commonNamespaces->add('stat', 'http://statValue/');
+        $this->importTurtle('
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
+            @prefix stat: <http://stat/> .
+            stat:2 rdf:type kno:StatisticValue ;
+                kno:computation-order [
+                    kno:_0 "[stat:1]*2" ;
+                    kno:_1 "+4"
+                ] .
+            ',
+            $this->testGraph,
+            $this->store
+        );
 
-        $this->store->addStatements(array(
-            // stat:1
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:1'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:1'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid1')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:2]*2')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('kno:_1'),
-                $this->nodeFactory->createLiteral('+4.5')
-            ),
-            // stat:2
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:2'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:2'),
-                $this->nodeFactory->createNamedNode('rdfs:label'),
-                $this->nodeFactory->createLiteral('Statistic Value 2')
-            ),
-            // stat:date
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:date'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:date'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid2')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid2'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:startdate]-4')
-            ),
-            // stat:days
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:days'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:days'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid3')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid3'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:startdate]-stat:date')
-            ),
+        // tell him, what you want to compute
+        $this->fixture->setStartMapping(array(
+            'stat:1' => 2,
         ));
+
+        $this->assertEquals(
+            array(
+                'stat:1' => 2,
+                'stat:2' => 8, // <----------,
+            ),                 //            |
+            $this->fixture->compute(array('stat:2'))
+        );
+    }
+
+    // test that missing values gets computated before usage
+    public function testComputeMissingValueComputation()
+    {
+        $this->importTurtle('
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
+            @prefix stat: <http://stat/> .
+            stat:2 rdf:type kno:StatisticValue ;
+                kno:computation-order [
+                    kno:_0 "[stat:3]+1" ;
+                    kno:_1 "+2"
+                ] .
+            stat:3 rdf:type kno:StatisticValue ;
+                kno:computation-order [
+                    kno:_0 "[stat:1]*5"
+                ] .
+            ',
+            $this->testGraph,
+            $this->store
+        );
 
         /*
          * check with non-prefixed keys in mapping
          */
-        $this->fixture->setMapping(array(
-            'stat:2' => 2,
-            'stat:startdate' => '2017-01-05'
+        $this->fixture->setStartMapping(array(
+            'stat:1' => 2
         ));
         $this->assertEquals(
             array(
-                'stat:1' => 8.5,
-                'stat:2' => 2,
-                'stat:date' => '2017-01-01',
-                'stat:days' => 4.0,
-                'stat:startdate' => '2017-01-05'
-            ),
-            $this->fixture->compute()
-        );
-
-        /*
-         * check with prefixed keys in mapping
-         */
-        $this->fixture->setMapping(array(
-            'stat:2' => 2,
-            'stat:startdate' => '2017-01-05'
-        ));
-        $this->assertEquals(
-            array(
-                'stat:1' => 8.5,
-                'stat:2' => 2,
-                'stat:date' => '2017-01-01',
-                'stat:days' => 4.0,
-                'stat:startdate' => '2017-01-05'
-            ),
-            $this->fixture->compute()
-        );
-    }
-
-    // if static value information is described using exented URIs, check prefixed version
-    public function testComputeCheckForPrefixedAndUnprefixedUri()
-    {
-        $this->commonNamespaces->add('stat', 'http://statValue/');
-
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/1'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid1')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:1]*2')
-            ),
-        ));
-
-        $this->fixture->setMapping(array(
-            'stat:1' => 5
-        ));
-
-        $this->assertEquals(
-            array(
-                'stat:1' => 5,
-                'stat:2' => 10
-            ),
-            $this->fixture->compute()
+                'stat:1' => 2,
+                'stat:2' => 13, // <--------,
+                'stat:3' => 10, // <--------|-----------,
+            ),                  //          |           |
+            $this->fixture->compute(array('stat:2', 'stat:3'))
         );
     }
 
     // test handling of if clauses
     public function testComputeIfClause()
     {
-        $this->commonNamespaces->add('stat', 'http://statValue/');
+        $this->commonNamespaces->add('stat', 'http://stat/');
 
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid1')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('IF([stat:1]>30, 1, 0)')
-            ),
+        $this->importTurtle('
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
+            @prefix stat: <http://stat/> .
+            stat:2 rdf:type kno:StatisticValue ;
+                kno:computation-order [
+                    kno:_0 "IF([stat:1]>30, 1, 0)"
+                ] .
+            ',
+            $this->testGraph,
+            $this->store
+        );
+
+        /*
+         * check for if option
+         */
+        $this->fixture->setStartMapping(array(
+            'stat:1' => 31
         ));
-
-        // check for if option
-        $this->fixture->setMapping(array('stat:1' => 31));
 
         $this->assertEquals(
             array(
                 'stat:1' => 31,
                 'stat:2' => 1
             ),
-            $this->fixture->compute()
+            $this->fixture->compute(array('stat:2'))
         );
 
-        // check for else option
-        $this->fixture->setMapping(array('stat:1' => 20));
+        /*
+         * check for else option
+         */
+        $this->fixture->setStartMapping(array(
+            'stat:1' => 20
+        ));
 
         $this->assertEquals(
             array(
                 'stat:1' => 20,
                 'stat:2' => 0
             ),
-            $this->fixture->compute()
+            $this->fixture->compute(array('stat:2'))
+        );
+    }
+
+    // test MAX(result, xxx) rule
+    public function testComputeMax()
+    {
+        $this->commonNamespaces->add('stat', 'http://stat/');
+
+        $this->importTurtle('
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
+            @prefix stat: <http://stat/> .
+            stat:2 rdf:type kno:StatisticValue ;
+                kno:computation-order [
+                    kno:_0 "[stat:1]*2" ;
+                    kno:_1 "MAX(result,2)"
+                ] .
+            ',
+            $this->testGraph,
+            $this->store
+        );
+
+        // check for result
+        $this->fixture->setStartMapping(array('stat:1' => 2));
+
+        $this->assertEquals(
+            array(
+                'stat:1' => 2,
+                'stat:2' => 4
+            ),
+            $this->fixture->compute(array('stat:2'))
+        );
+
+        // check for alternative
+        $this->fixture->setStartMapping(array('stat:1' => 0.4));
+
+        $this->assertEquals(
+            array(
+                'stat:1' => 0.4,
+                'stat:2' => 2
+            ),
+            $this->fixture->compute(array('stat:2'))
         );
     }
 
@@ -243,141 +212,79 @@ class StatisticValueTest extends UnitTestCase
             ),
         ));
 
-        $this->fixture->setMapping(array());
+        $this->fixture->setStartMapping(array());
 
-        $this->fixture->compute();
+        $this->fixture->compute(array());
     }
 
-    public function testComputeMax()
-    {
-        $this->commonNamespaces->add('stat', 'http://statValue/');
-
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid1')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:1]*2')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('kno:_1'),
-                $this->nodeFactory->createLiteral('MAX(result,2)')
-            ),
-        ));
-
-        // check for result
-        $this->fixture->setMapping(array('stat:1' => 2));
-
-        $this->assertEquals(
-            array(
-                'stat:1' => 2,
-                'stat:2' => 4
-            ),
-            $this->fixture->compute()
-        );
-
-        // check for alternative
-        $this->fixture->setMapping(array('stat:1' => 0.4));
-
-        $this->assertEquals(
-            array(
-                'stat:1' => 0.4,
-                'stat:2' => 2
-            ),
-            $this->fixture->compute()
-        );
-    }
-
+    // test ROUNDUP rule
     public function testComputeRoundUp()
     {
-        $this->commonNamespaces->add('stat', 'http://statValue/');
+        $this->commonNamespaces->add('stat', 'http://stat/');
 
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid1')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:1]*2')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('kno:_1'),
-                $this->nodeFactory->createLiteral('ROUNDUP')
-            ),
-        ));
+        $this->importTurtle('
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
+            @prefix stat: <http://stat/> .
+            stat:2 rdf:type kno:StatisticValue ;
+                kno:computation-order [
+                    kno:_0 "[stat:1]*2" ;
+                    kno:_1 "ROUNDUP"
+                ] .
+            ',
+            $this->testGraph,
+            $this->store
+        );
 
         // round up with <0.5
-        $this->fixture->setMapping(array('stat:1' => 0.2));
+        $this->fixture->setStartMapping(array('stat:1' => 0.2));
 
         $this->assertEquals(
             array(
                 'stat:1' => 0.2,
                 'stat:2' => 1
             ),
-            $this->fixture->compute()
+            $this->fixture->compute(array('stat:2'))
         );
 
         // round up with >0.5
-        $this->fixture->setMapping(array('stat:1' => 0.4));
+        $this->fixture->setStartMapping(array('stat:1' => 0.6));
 
         $this->assertEquals(
             array(
-                'stat:1' => 0.4,
-                'stat:2' => 1
+                'stat:1' => 0.6,
+                'stat:2' => 2
             ),
-            $this->fixture->compute()
+            $this->fixture->compute(array('stat:2'))
         );
     }
 
+    // test usage of a foreign value
     public function testComputeUseValue()
     {
-        $this->commonNamespaces->add('stat', 'http://statValue/');
+        $this->commonNamespaces->add('stat', 'http://stat/');
 
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('http://statValue/2'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid1')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:1]')
-            )
-        ));
+        $this->importTurtle('
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
+            @prefix stat: <http://stat/> .
+            stat:2 rdf:type kno:StatisticValue ;
+                kno:computation-order [
+                    kno:_0 "[stat:1]"
+                ] .
+            ',
+            $this->testGraph,
+            $this->store
+        );
 
-        $this->fixture->setMapping(array('stat:1' => 0.2));
+        $this->fixture->setStartMapping(array('stat:1' => 0.2));
 
         $this->assertEquals(
             array(
                 'stat:1' => 0.2,
                 'stat:2' => 0.2
             ),
-            $this->fixture->compute()
+            $this->fixture->compute(array('stat:2'))
         );
     }
 
@@ -387,215 +294,10 @@ class StatisticValueTest extends UnitTestCase
 
     public function testComputeValue()
     {
-        $this->fixture->setMapping(array());
+        $this->fixture->setStartMapping(array());
 
         $this->assertEquals('2017-01-10', $this->fixture->computeValue('2017-01-05', '+', 5));
         $this->assertEquals('2017-01-01', $this->fixture->computeValue('2017-01-06', '-', 5));
         $this->assertEquals(2,            $this->fixture->computeValue('2017-01-06', '-', '2017-01-04'));
-    }
-
-    /*
-     * Tests for computeValue
-     */
-
-    public function testExecuteComputationOrderWithDoubleValuesValueIsNumber()
-    {
-        $this->commonNamespaces->add('stat', 'http://statValue/');
-
-        $mapping = array('stat:1' => 3);
-        $this->fixture->setMapping($mapping);
-
-        $this->assertEquals(
-            6,
-            $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]*2'), $mapping, array())
-        );
-        $this->assertEquals(
-            5,
-            $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]+2'), $mapping, array())
-        );
-        $this->assertEquals(
-            1,
-            $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]-2'), $mapping, array())
-        );
-        $this->assertEquals(
-            1.5,
-            $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]/2'), $mapping, array())
-        );
-    }
-
-    public function testExecuteComputationOrderWithDoubleValuesValueIsUri()
-    {
-        $this->commonNamespaces->add('stat', 'http://statValue/');
-
-        $mapping = array('stat:1' => 3, 'stat:2' => 3);
-
-        $this->fixture->setMapping($mapping);
-
-        // multiple
-        $this->assertEquals(
-            9, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]*stat:2'), $mapping, array())
-        );
-        $this->assertEquals(
-            9, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]*stat:2'), $mapping, array())
-        );
-
-        // plus
-        $this->assertEquals(
-            6, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]+stat:2'), $mapping, array())
-        );
-        $this->assertEquals(
-            6, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]+stat:2'), $mapping, array())
-        );
-
-        // minus
-        $this->assertEquals(
-            0, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]-stat:2'), $mapping, array())
-        );
-        $this->assertEquals(
-            0, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]-stat:2'), $mapping, array())
-        );
-
-        // division
-        $this->assertEquals(
-            1, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]/stat:2'), $mapping, array())
-        );
-        $this->assertEquals(
-            1, $this->fixture->executeComputationOrder(array('kno:_0' => '[stat:1]/stat:2'), $mapping, array())
-        );
-    }
-
-    // check how the computation reacts if it has to use an uncomputed value in a computation
-    public function testExecuteComputationOrderWithNotYetComputedValue()
-    {
-        $this->commonNamespaces->add('stat', 'http://statValue/');
-
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:2'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:2'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid2')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid2'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:3]*2')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:3'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:3'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid3')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid3'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:1]+4')
-            ),
-        ));
-
-        $this->fixture->setMapping(array(/* doesnt matter */));
-        $this->assertEquals(
-            14,
-            $this->fixture->executeComputationOrder(
-                array(
-                    'kno:_0' => '[stat:3]*2'
-                ),
-                array('stat:1' => 3),
-                array(
-                    'stat:2' => array(
-                        'kno:_0' => '[stat:3]*2'
-                    ),
-                    'stat:3' => array(
-                        'kno:_0' => '[stat:1]+4'
-                    ),
-                )
-            )
-        );
-    }
-
-    /*
-     * Tests for getComputationOrderFor
-     */
-
-    public function testGetComputationOrderFor()
-    {
-        $this->commonNamespaces->add('stat', 'http://statValue/');
-
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:1'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:2'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid1')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid1'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:2]*2')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:2'),
-                $this->nodeFactory->createNamedNode('rdf:type'),
-                $this->nodeFactory->createNamedNode('kno:StatisticValue')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode('stat:2'),
-                $this->nodeFactory->createNamedNode('kno:computation-order'),
-                $this->nodeFactory->createBlankNode('genid2')
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('genid2'),
-                $this->nodeFactory->createNamedNode('kno:_0'),
-                $this->nodeFactory->createLiteral('[stat:0]+4')
-            ),
-        ));
-
-        // get namespace URI shortcuts
-        $nsKno = $this->commonNamespaces->getUri('kno');
-        $nsRdf = $this->commonNamespaces->getUri('rdf');
-
-        // get blank nodes or StatisticValue instances
-        $result = $this->store->query(
-            'SELECT * WHERE {
-                ?s ?p ?o.
-                ?s <'. $nsRdf .'type> <'. $nsKno .'StatisticValue> .
-            }'
-        );
-        $stat2Blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $stat2Blank->initBySetResult($result, 'stat:2');
-
-        // now we know the exact ID of the blank nodes which represent the computation orders
-
-        $this->assertEquals(
-            array(
-                'kno:_0' => '[stat:0]+4'
-            ),
-            $this->fixture->getComputationOrderFor(
-                'stat:2',
-                array(
-                    'stat:1' => array(
-                        'rdf:type' => 'kno:StatisticValue',
-                        'kno:computation-order' => $stat2Blank['kno:computation-order'][0]
-                    ),
-                    'stat:2' => array(
-                        'rdf:type' => 'kno:StatisticValue',
-                        'kno:computation-order' => $stat2Blank['kno:computation-order'][1]
-                    ),
-                )
-            )
-        );
     }
 }

@@ -4,29 +4,35 @@ namespace Knorke;
 
 use Knorke\Exception\KnorkeException;
 use Saft\Rdf\CommonNamespaces;
+use Saft\Rdf\NamedNode;
 use Saft\Rdf\RdfHelpers;
 use Saft\Store\Store;
 
 class StatisticValue
 {
     protected $commonNamespaces;
+    protected $graph;
     protected $mapping;
+    protected $rdfHelpers;
     protected $store;
 
     /**
      * @param Store $store
      * @param CommonNamespaces $commonNamespaces
      * @param RdfHelpers $rdfHelpers
+     * @param NamedNode $graph
      * @param array $mapping
      */
     public function __construct(
         Store $store,
         CommonNamespaces $commonNamespaces,
         RdfHelpers $rdfHelpers,
-        array $mapping = array()
+        NamedNode $graph,
+        array $startMapping = array()
     ) {
         $this->commonNamespaces = $commonNamespaces;
-        $this->mapping = $mapping;
+        $this->graph = $graph;
+        $this->startMapping = $startMapping;
         $this->rdfHelpers = $rdfHelpers;
         $this->store = $store;
     }
@@ -34,72 +40,62 @@ class StatisticValue
     /**
      * Computes all depending values based on the given $mapping of non-depending values.
      *
+     * @param array $valuesToCompute
      * @return array Complete mapping with computed values.
      * @throws KnorkeException if mapping is empty
      * @throws KnorkeException if non-depending values have no mapping
      */
-    public function compute()
+    public function compute(array $valuesToCompute)
     {
-        if (0 == count($this->mapping)) {
-            throw new KnorkeException('Parameter $mapping is empty.');
+        if (0 == count($this->startMapping)) {
+            throw new KnorkeException('Empty start mapping found.');
+        } elseif (0 == count($valuesToCompute)) {
+            throw new KnorkeException('Parameter $valuesToCompute is empty.');
+        }
+
+        $statisticValues = array();
+
+        // gather info for given values to compute
+        foreach ($valuesToCompute as $valueUri) {
+            // extend URI
+            $valueUri = $this->commonNamespaces->extendUri($valueUri);
+            $shortValueUri = $this->commonNamespaces->shortenUri($valueUri);
+
+            // create DataBlank instance which represents given value
+            $statisticValues[$shortValueUri] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+            $statisticValues[$shortValueUri]->initByStoreSearch($this->store, $this->graph, $valueUri);
         }
 
         $computedValues = array();
-
-        // gather all SPO for StasticValue instances
-        $statisticValueResult = $this->store->query(
-            'SELECT * WHERE {
-                ?s ?p ?o.
-                ?s rdf:type kno:StatisticValue .
-            }'
-        );
-
-        // collect subjects of all statistic value instances
-        // create datablank instances for each statistic value for easier usage later on
-        $statisticValues = array();
-        foreach ($statisticValueResult as $entry) {
-            $subjectUri = $entry['s']->getUri();
-            if (false == isset($statisticValues[$subjectUri])) {
-                $statisticValues[$subjectUri] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-                $statisticValues[$subjectUri]->initBySetResult($statisticValueResult, $subjectUri);
-            }
-        }
 
         // check that all non-depending values were defined
         foreach ($statisticValues as $uri => $statisticValue) {
             // check for values which have no computationOrder property but are part of the mapping
             if (false === isset($statisticValue['kno:computation-order'])
-                && false === isset($this->mapping[$this->commonNamespaces->shortenUri($uri)])
-                && false === isset($this->mapping[$this->commonNamespaces->extendUri($uri)])) {
-                $e = new KnorkeException('Statistic value ' . $uri . ' is non-depending, but has no mapping.');
+                && false === isset($this->startMapping[$this->commonNamespaces->shortenUri($uri)])
+                && false === isset($this->startMapping[$this->commonNamespaces->extendUri($uri)])) {
+                $e = new KnorkeException(
+                    'Statistic value ' . $uri . ' is part of the start mapping, but has no value.'
+                );
                 $e->setPayload($statisticValue);
                 throw $e;
             }
         }
 
-        // compute computationOrder for each statistical value
-        $statisticalValuesWithCompOrder = array();
-        foreach ($statisticValues as $uri => $statisticValue) {
-            if (isset($statisticValue['kno:computation-order'])) {
-                $statisticalValuesWithCompOrder[$this->commonNamespaces->shortenUri($uri)] =
-                    $this->getComputationOrderFor($uri, $statisticValues);
-            }
-        }
-
-        // extend all URI keys if neccessary
+        // shorten all URI keys if neccessary
         $computedValues = array();
-        foreach ($this->mapping as $uri => $value) {
+        foreach ($this->startMapping as $uri => $value) {
             $computedValues[$this->commonNamespaces->shortenUri($uri)] = $value;
         }
 
         // go through all statistic value instances with computationOrder property and compute related values
-        foreach ($statisticalValuesWithCompOrder as $uri => $computationOrder) {
-            // assumption: properties are something like "kno:_1" and ordered, therefore we ignore properties later on
+        foreach ($statisticValues as $uri => $statisticValue) {
+            // assumption: properties are something like "kno:_1" and ordered, therefore we ignore properties later on.
             // store computed value for statisticValue instance
             $computedValues[$this->commonNamespaces->shortenUri($uri)] = $this->executeComputationOrder(
-                $computationOrder,              // rule how to compute
-                $computedValues,                // already computed stuff from before
-                $statisticalValuesWithCompOrder // computation order per statistical value URI
+                $statisticValue['kno:computation-order'],   // rule how to compute
+                $computedValues,                            // already computed stuff from before
+                $statisticValues                            // computation order per statistical value URI
             );
         }
 
@@ -159,19 +155,24 @@ class StatisticValue
     }
 
     /**
-     * @param array $computationOrder Rules to compute one statistical value.
+     * @param DataBlank $computationOrder Rules to compute one statistical value.
      * @param array $computedValues Array with URI as key and according computed value of already computed values.
      * @param array $statisticalValuesWithCompOrder
      * @return float if computation works well
      * @throws KnorkeException if invalide rule was detected.
      * @todo handle the case that a required value is not available yet
+     * @todo move computation rules to separate function or class for easier maintenance
      */
     public function executeComputationOrder(
-        array $computationOrder,
-        array $computedValues,
-        array $statisticalValuesWithCompOrder
+        DataBlank $computationOrder,
+        $computedValues,
+        $statisticalValuesWithCompOrder
     ) {
         $lastComputedValue = null;
+
+        if (isset($computationOrder['_idUri'])) {
+            unset($computationOrder['_idUri']);
+        }
 
         foreach ($computationOrder as $computationRule) {
             $value1 = null;
@@ -235,7 +236,7 @@ class StatisticValue
                     } elseif (isset($statisticalValuesWithCompOrder[$statisticValue1Uri])) {
                         // get value because it wasn't computed yet
                         $value1 = $this->executeComputationOrder(
-                            $statisticalValuesWithCompOrder[$statisticValue1Uri],
+                            $statisticalValuesWithCompOrder[$statisticValue1Uri]['kno:computation-order'],
                             $computedValues,
                             $statisticalValuesWithCompOrder
                         );
@@ -268,7 +269,7 @@ class StatisticValue
                     // get value because it wasn't computed yet
                     if (false == isset($computedValues[$value2])) {
                         $value2 = $this->executeComputationOrder(
-                            $statisticalValuesWithCompOrder[$value2],
+                            $statisticalValuesWithCompOrder[$value2]['kno:computation-order'],
                             $computedValues,
                             $statisticalValuesWithCompOrder
                         );
@@ -316,18 +317,12 @@ class StatisticValue
         foreach ($statisticValues as $uri => $value) {
             $uri = $this->commonNamespaces->shortenUri($uri);
             if ($uri == $statisticValueUri) {
-                $result = $this->store->query(
-                    'SELECT * WHERE {'. $value['kno:computation-order'] .' ?p ?o.}'
+                $computationOrderBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+                $computationOrderBlank->initByStoreSearch(
+                    $this->store,
+                    $this->graph,
+                    $value['kno:computation-order']['_idUri']
                 );
-
-                $computationOrderBlank = new DataBlank(
-                    $this->commonNamespaces,
-                    $this->rdfHelpers,
-                    array(
-                        'add_internal_data_fields' => false
-                    )
-                );
-                $computationOrderBlank->initBySetResult($result, $value['kno:computation-order']);
 
                 // order entries by key
                 $computationOrder = $computationOrderBlank->getArrayCopy();
@@ -351,8 +346,8 @@ class StatisticValue
      *
      * @param array $mapping
      */
-    public function setMapping(array $mapping)
+    public function setStartMapping(array $mapping)
     {
-        $this->mapping = $mapping;
+        $this->startMapping = $mapping;
     }
 }

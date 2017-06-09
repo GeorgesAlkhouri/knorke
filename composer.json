@@ -2,7 +2,7 @@
     "name": "k00ni/knorke",
     "require": {
         "php": ">=7.0",
-        "paragonie/easydb": "2.*",
+        "saft/saft-arc2": ">=0.10.3",
         "saft/saft-data": ">=0.9",
         "saft/saft-hardf": ">=0.10",
         "saft/saft-rdf": ">=0.9",

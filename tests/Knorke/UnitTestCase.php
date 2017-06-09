@@ -5,8 +5,8 @@ namespace Tests\Knorke;
 use Knorke\DataBlankHelper;
 use Knorke\Importer;
 use Knorke\Data\ParserFactory;
-use Knorke\Store\InMemoryStore;
 use PHPUnit\Framework\TestCase;
+use Saft\Addition\ARC2\Store\ARC2;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NamedNode;
 use Saft\Rdf\NodeFactoryImpl;
@@ -16,6 +16,7 @@ use Saft\Rdf\StatementFactoryImpl;
 use Saft\Rdf\StatementIterator;
 use Saft\Rdf\StatementIteratorFactoryImpl;
 use Saft\Sparql\Query\QueryFactoryImpl;
+use Saft\Sparql\Result\ResultFactoryImpl;
 use Saft\Sparql\Result\SetResult;
 use Saft\Store\Store;
 
@@ -43,6 +44,8 @@ class UnitTestCase extends TestCase
 
     public function setUp()
     {
+        global $dbConfig;
+
         parent::setUp();
 
         $this->commonNamespaces = new CommonNamespaces();
@@ -59,15 +62,24 @@ class UnitTestCase extends TestCase
         );
         $this->testGraph = $this->nodeFactory->createNamedNode('http://knorke/testgraph/');
 
-        // basic in memory store
-        $this->store = new InMemoryStore(
+        // setup full fledged triple store
+        $this->store = new ARC2(
             $this->nodeFactory,
             $this->statementFactory,
             $this->queryFactory,
+            new ResultFactoryImpl(),
             $this->statementIteratorFactory,
+            $this->rdfHelpers,
             $this->commonNamespaces,
-            $this->rdfHelpers
+            array(
+                'username' => $dbConfig['user'],
+                'password' => $dbConfig['pass'],
+                'database' => $dbConfig['db'],
+                'host' => $dbConfig['host'],
+            )
         );
+        $this->store->emptyAllTables();
+        $this->store->createGraph($this->testGraph);
 
         $this->dataBlankHelper = new DataBlankHelper(
             $this->commonNamespaces,

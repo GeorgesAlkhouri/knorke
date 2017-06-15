@@ -218,6 +218,8 @@ class DataBlank extends \ArrayObject
      * @param Store $store
      * @param NamedNode $graph
      * @param string $resourceId
+     * @param int $maxDepth Optional, defines the number of hops you jump away from the original resource.
+     * @param int $currentDepth Optional, sets the current $depth. Only important, if $maxDepth is set.
      * @param string $parentPredicate Optional, only if $resourceId is a blank node
      * @param string $parentSubject Optional, only if $resourceId is a blank node
      */
@@ -225,6 +227,8 @@ class DataBlank extends \ArrayObject
         Store $store,
         array $graphs,
         string $resourceId,
+        int $maxDepth = -1,
+        int $currentDepth = 0,
         string $parentPredicate = null,
         string $parentSubject = null
     ) {
@@ -234,6 +238,14 @@ class DataBlank extends \ArrayObject
         if (!$this->rdfHelpers->simpleCheckURI($resourceId)
             && !$this->rdfHelpers->simpleCheckBlankNodeId($resourceId)) {
             throw new KnorkeException('Invalid $resourceId given (must be an URI or blank node): '. $resourceId);
+        }
+
+        // in case $maxDepth and $currentDepth are in use ...
+        if (-1 < $maxDepth && 0 < $currentDepth) {
+            // .. and $currentDepth is greater than $maxDepth, stop execution.
+            if ($currentDepth > $maxDepth) {
+                return;
+            }
         }
 
         // set internal _idUri field
@@ -291,7 +303,13 @@ class DataBlank extends \ArrayObject
                  * check if behind the URI are more triples
                  */
                 $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-                $dataBlank->initByStoreSearch($store, $graphs, $o->getUri());
+                $dataBlank->initByStoreSearch(
+                    $store,
+                    $graphs,
+                    $o->getUri(),
+                    $maxDepth,
+                    $currentDepth+1
+                );
 
                 // if more than one data entry is in the data blank, we use it
                 // if not, it only contains an _idUri value and is worthless
@@ -301,10 +319,19 @@ class DataBlank extends \ArrayObject
 
             /*
              * object is blank node (check for more triples behind it)
+             * TODO support that?!
              */
             } elseif ($o->isBlank()) {
                 $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-                $dataBlank->initByStoreSearch($store, $graphs, $o->toNQuads(), $p->getUri(), $resourceId);
+                $dataBlank->initByStoreSearch(
+                    $store,
+                    $graphs,
+                    $o->toNQuads(),
+                    $maxDepth,
+                    $currentDepth+1,
+                    $p->getUri(),
+                    $resourceId
+                );
 
                 // if more than one data entry is in the data blank, we use it
                 // if not, it only contains an _idUri value and is worthless

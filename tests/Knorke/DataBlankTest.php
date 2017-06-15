@@ -345,4 +345,123 @@ class DataBlankTest extends UnitTestCase
             $this->fixture->getArrayCopy()
         );
     }
+
+    // tests if max depth and current depth were honored
+    public function testInitByStoreSearchMaxDepthAndCurrentDepth()
+    {
+        $this->importTurtle('
+            @prefix back: <http://back/model/> .
+
+            <http://s> <http://p> <http://o> .
+            <http://o> <http://p1> <http://o1> .
+            <http://o1> <http://p2> <http://o2> .
+            <http://o2> <http://p3> <http://o3> .
+            ',
+            $this->testGraph,
+            $this->store
+        );
+
+        $this->fixture = new DataBlank(
+            $this->commonNamespaces,
+            $this->rdfHelpers,
+            array(
+                'use_prefixed_predicates' => true,
+                'use_prefixed_objects' => true,
+            )
+        );
+
+        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://s', 1);
+
+        $this->assertEquals(
+            array(
+                '_idUri' => 'http://s',
+                'http://p' => array(
+                    '_idUri' => 'http://o',
+                    'http://p1' => 'http://o1'
+                )
+            ),
+            $this->fixture->getArrayCopy()
+        );
+    }
+
+    // tests if max depth and current depth were honored
+    // test maxDepth = 0
+    public function testInitByStoreSearchMaxDepthAndCurrentDepth2()
+    {
+        $this->importTurtle('
+            @prefix back: <http://back/model/> .
+
+            <http://s> <http://p> <http://o> .
+            <http://o> <http://p1> <http://o1> .
+            <http://o1> <http://p2> <http://o2> .
+            <http://o2> <http://p3> <http://o3> .
+            ',
+            $this->testGraph,
+            $this->store
+        );
+
+        $this->fixture = new DataBlank(
+            $this->commonNamespaces,
+            $this->rdfHelpers,
+            array(
+                'use_prefixed_predicates' => true,
+                'use_prefixed_objects' => true,
+            )
+        );
+
+        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://s', 0);
+
+        $this->assertEquals(
+            array(
+                '_idUri' => 'http://s',
+                'http://p' => 'http://o'
+            ),
+            $this->fixture->getArrayCopy()
+        );
+    }
+
+    // tests if max depth and current depth were honored
+    // test maxDepth = -1, so no border
+    public function testInitByStoreSearchMaxDepthAndCurrentDepth3()
+    {
+        $this->importTurtle('
+            @prefix back: <http://back/model/> .
+
+            <http://s> <http://p> <http://o> .
+            <http://o> <http://p1> <http://o1> .
+            <http://o1> <http://p2> <http://o2> .
+            <http://o2> <http://p3> <http://o3> .
+            ',
+            $this->testGraph,
+            $this->store
+        );
+
+        $this->fixture = new DataBlank(
+            $this->commonNamespaces,
+            $this->rdfHelpers,
+            array(
+                'use_prefixed_predicates' => true,
+                'use_prefixed_objects' => true,
+            )
+        );
+
+        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://s', -1);
+
+        $this->assertEquals(
+            array(
+                '_idUri' => 'http://s',
+                'http://p' => array(
+                    '_idUri' => 'http://o',
+                    'http://p1' => array(
+                        '_idUri' => 'http://o1',
+                        'http://p2' => array(
+                            '_idUri' => 'http://o2',
+                            'http://p3' => 'http://o3'
+                        )
+                    )
+                )
+            ),
+            $this->fixture->getArrayCopy()
+        );
+    }
 }

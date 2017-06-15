@@ -28,6 +28,7 @@ class StatisticValueTest extends UnitTestCase
             $this->store,
             $this->commonNamespaces,
             $this->rdfHelpers,
+            $this->dataBlankHelper,
             array($this->testGraph)
         );
 

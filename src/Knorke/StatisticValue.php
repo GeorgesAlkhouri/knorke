@@ -11,6 +11,7 @@ use Saft\Store\Store;
 class StatisticValue
 {
     protected $commonNamespaces;
+    protected $dataBlankHelper;
     protected $graphs;
     protected $mapping;
     protected $rdfHelpers;
@@ -20,6 +21,7 @@ class StatisticValue
      * @param Store $store
      * @param CommonNamespaces $commonNamespaces
      * @param RdfHelpers $rdfHelpers
+     * @param DataBlankHelper $dataBlankHelper
      * @param array $graphs
      * @param array $mapping
      */
@@ -27,10 +29,12 @@ class StatisticValue
         Store $store,
         CommonNamespaces $commonNamespaces,
         RdfHelpers $rdfHelpers,
+        DataBlankHelper $dataBlankHelper,
         array $graphs,
         array $startMapping = array()
     ) {
         $this->commonNamespaces = $commonNamespaces;
+        $this->dataBlankHelper = $dataBlankHelper;
         $this->graphs = $graphs;
         $this->startMapping = $startMapping;
         $this->rdfHelpers = $rdfHelpers;
@@ -62,8 +66,7 @@ class StatisticValue
             $shortValueUri = $this->commonNamespaces->shortenUri($valueUri);
 
             // create DataBlank instance which represents given value
-            $statisticValues[$shortValueUri] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-            $statisticValues[$shortValueUri]->initByStoreSearch($this->store, $this->graphs, $valueUri);
+            $statisticValues[$shortValueUri] = $this->dataBlankHelper->load($valueUri);
         }
 
         $computedValues = array();
@@ -317,12 +320,7 @@ class StatisticValue
         foreach ($statisticValues as $uri => $value) {
             $uri = $this->commonNamespaces->shortenUri($uri);
             if ($uri == $statisticValueUri) {
-                $computationOrderBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-                $computationOrderBlank->initByStoreSearch(
-                    $this->store,
-                    $this->graph,
-                    $value['kno:computation-order']['_idUri']
-                );
+                $computationOrderBlank = $this->dataBlankHelper->load($value['kno:computation-order']['_idUri']);
 
                 // order entries by key
                 $computationOrder = $computationOrderBlank->getArrayCopy();

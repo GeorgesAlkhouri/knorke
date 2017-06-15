@@ -16,6 +16,7 @@ class DataBlankHelper
     protected $commonNamespaces;
     protected $graphs;
     protected $nodeFactory;
+    protected $options;
     protected $statementFactory;
     protected $store;
 
@@ -25,11 +26,15 @@ class DataBlankHelper
         NodeFactory $nodeFactory,
         RdfHelpers $rdfHelpers,
         Store $store,
-        array $graphs
+        array $graphs,
+        array $options = array()
     ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->graphs = $graphs;
         $this->nodeFactory = $nodeFactory;
+        $this->options = array_merge(array(
+            'max_depth' => 2
+        ), $options);
         $this->rdfHelpers = $rdfHelpers;
         $this->statementFactory = $statementFactory;
         $this->store = $store;
@@ -88,7 +93,12 @@ class DataBlankHelper
             }
 
             $blanks[$resourceId] = $this->createDataBlank();
-            $blanks[$resourceId]->initByStoreSearch($this->store, $this->graphs, $resourceId);
+            $blanks[$resourceId]->initByStoreSearch(
+                $this->store,
+                $this->graphs,
+                $resourceId,
+                $this->options['max_depth']
+            );
         }
 
         return $blanks;
@@ -156,7 +166,7 @@ class DataBlankHelper
     public function load(string $resourceUri) : DataBlank
     {
         $dataBlank = $this->createDataBlank();
-        $dataBlank->initByStoreSearch($this->store, $this->graphs, $resourceUri);
+        $dataBlank->initByStoreSearch($this->store, $this->graphs, $resourceUri, $this->options['max_depth']);
 
         return $dataBlank;
     }

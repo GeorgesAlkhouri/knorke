@@ -60,7 +60,7 @@ class DataBlankHelper
      */
     public function createDataBlank(array $options = array()) : DataBlank
     {
-        return new DataBlank($this->commonNamespaces, $this->rdfHelpers, $options);
+        return new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->store, $this->graphs, $options);
     }
 
     /**
@@ -93,12 +93,7 @@ class DataBlankHelper
             }
 
             $blanks[$resourceId] = $this->createDataBlank();
-            $blanks[$resourceId]->initByStoreSearch(
-                $this->store,
-                $this->graphs,
-                $resourceId,
-                $this->options['max_depth']
-            );
+            $blanks[$resourceId]->initByStoreSearch($resourceId);
         }
 
         return $blanks;
@@ -166,7 +161,7 @@ class DataBlankHelper
     public function load(string $resourceUri) : DataBlank
     {
         $dataBlank = $this->createDataBlank();
-        $dataBlank->initByStoreSearch($this->store, $this->graphs, $resourceUri, $this->options['max_depth']);
+        $dataBlank->initByStoreSearch($resourceUri);
 
         return $dataBlank;
     }

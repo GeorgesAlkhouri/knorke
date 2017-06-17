@@ -41,7 +41,7 @@ use Saft\Store\Store;
  *
  *      $blank['rdf:type'] = 'owl:Class';
  */
-class DataBlank extends \ArrayObject
+class DataBlank implements \ArrayAccess, \Iterator
 {
     /**
      * @var CommonNamespaces
@@ -50,10 +50,11 @@ class DataBlank extends \ArrayObject
 
     protected $data = array();
 
-    /**
-     * @var array
-     */
-    protected $options;
+    protected $graphs = array();
+
+    protected $options = array();
+
+    protected $position = 0;
 
     /**
      * @var RdfHelpers
@@ -61,17 +62,28 @@ class DataBlank extends \ArrayObject
     protected $rdfHelpers;
 
     /**
+     * @var Store
+     */
+    protected $store;
+
+    /**
      * @param CommonNamespaces $commonNamespaces
      * @param RdfHelpers $rdfHelpers
-     * @param array $options optional, default=array()
+     * @param Store $store
+     * @param array $graphs
+     * @param array $options
      */
     public function __construct(
         CommonNamespaces $commonNamespaces,
         RdfHelpers $rdfHelpers,
+        Store $store,
+        array $graphs,
         array $options = array()
     ) {
         $this->commonNamespaces = $commonNamespaces;
+        $this->graphs = $graphs;
         $this->rdfHelpers = $rdfHelpers;
+        $this->store = $store;
         $this->options = array_merge(
             array(
                 'add_internal_data_fields' => true, // if set to true, fields like _idUri gets created
@@ -104,36 +116,9 @@ class DataBlank extends \ArrayObject
         return count($this->data);
     }
 
-    /**
-     * Helper function to allow content gathering by using full URIs or prefixed ones.
-     * If the indirect way worked, the previously try $property will be applied to.
-     *
-     * @param string|number $property
-     * @return mixed
-     */
-    public function get($property)
+    public function current()
     {
-        // found? ok, return back!
-        if (isset($this->data[$property])) {
-            return $this->data[$property];
-        } else {
-            // if not found, try the prefixed version resp. the full URI
-            if (false !== strpos($property, 'http://')) { // full URI
-                $shortendProperty = $this->commonNamespaces->shortenUri($property);
-                if (isset($this->data[$shortendProperty])) {
-                    $this->data[$property] = $this->data[$shortendProperty];
-                    return $this->data[$shortendProperty];
-                }
-            } else { // shorted version
-                $extendedProperty = $this->commonNamespaces->extendUri($property);
-                if (isset($this->data[$extendedProperty])) {
-                    $this->data[$property] = $this->data[$extendedProperty];
-                    return $this->data[$extendedProperty];
-                }
-            }
-        }
-
-        return null;
+        return array_values($this->data)[$this->position];
     }
 
     /**
@@ -214,24 +199,32 @@ class DataBlank extends \ArrayObject
         return null;
     }
 
+    public function key()
+    {
+        return array_keys($this->data)[$this->position];
+    }
+
     /**
-     * @param Store $store
-     * @param NamedNode $graph
-     * @param string $resourceId
-     * @param int $maxDepth Optional, defines the number of hops you jump away from the original resource.
-     * @param int $currentDepth Optional, sets the current $depth. Only important, if $maxDepth is set.
-     * @param string $parentPredicate Optional, only if $resourceId is a blank node
-     * @param string $parentSubject Optional, only if $resourceId is a blank node
+     * Inits this instance be searching for ?p ?o of its own _idUri.
+     *
+     * @throws KnorkeException if _idUri is not set.
      */
-    public function initByStoreSearch(
-        Store $store,
-        array $graphs,
-        string $resourceId,
-        int $maxDepth = -1,
-        int $currentDepth = 0,
-        string $parentPredicate = null,
-        string $parentSubject = null
-    ) {
+    public function initBySelfSearch()
+    {
+        if (isset($this->data['_idUri'])) {
+            $resourceId = $this->data['_idUri'];
+            unset($this->data['_idUri']);
+            $this->initByStoreSearch($resourceId);
+        } else {
+            throw new KnorkeException('Cant init, because _idUri is not set.');
+        }
+    }
+
+    /**
+     * @param string $resourceId
+     */
+    public function initByStoreSearch(string $resourceId)
+    {
         /*
          * check parameter $resourceId
          */
@@ -240,43 +233,17 @@ class DataBlank extends \ArrayObject
             throw new KnorkeException('Invalid $resourceId given (must be an URI or blank node): '. $resourceId);
         }
 
-        // in case $maxDepth and $currentDepth are in use ...
-        if (-1 < $maxDepth && 0 < $currentDepth) {
-            // .. and $currentDepth is greater than $maxDepth, stop execution.
-            if ($currentDepth > $maxDepth) {
-                return;
-            }
-        }
-
         // set internal _idUri field
         if ($this->options['add_internal_data_fields']) {
             $this->offsetSet('_idUri', $resourceId);
         }
 
-        $graphFromList = $this->buildGraphsList($graphs);
+        $graphFromList = $this->buildGraphsList($this->graphs);
 
-        /*
-         * Parameter $resourceId is an URI
-         */
-        if ($this->rdfHelpers->simpleCheckURI($resourceId)) {
-            $resourceId = $this->commonNamespaces->extendUri($resourceId);
+        $resourceId = $this->commonNamespaces->extendUri($resourceId);
 
-            // get direct neighbours of $resourceId
-            $result = $store->query('SELECT * '. $graphFromList .' WHERE {<'. $resourceId .'> ?p ?o .}');
-
-        /*
-         * Parameter $resourceId is a blank node
-         *
-         * we assume, that we are in a recursion and this function was called before with
-         * resourceId as URI
-         */
-        } else {
-            // get direct neighbours of related blank node (?blank)
-            $result = $store->query('SELECT * '. $graphFromList .' WHERE {
-                <'. $parentSubject .'> <'. $parentPredicate .'> ?blank .
-                ?blank ?p ?o .
-            }');
-        }
+        // get direct neighbours of $resourceId
+        $result = $this->store->query('SELECT * '. $graphFromList .' WHERE {<'. $resourceId .'> ?p ?o .}');
 
         // go through neighbours
         foreach ($result as $entry) {
@@ -290,7 +257,6 @@ class DataBlank extends \ArrayObject
                 ? $this->commonNamespaces->shortenUri($p->getUri())
                 : $this->commonNamespaces->extendUri($p->getUri());
 
-
             /*
              * object is URI (check for more triples behind it)
              */
@@ -299,47 +265,7 @@ class DataBlank extends \ArrayObject
                     ? $this->commonNamespaces->shortenUri($o->getUri())
                     : $this->commonNamespaces->extendUri($o->getUri());
 
-                /*
-                 * check if behind the URI are more triples
-                 */
-                $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-                $dataBlank->initByStoreSearch(
-                    $store,
-                    $graphs,
-                    $o->getUri(),
-                    $maxDepth,
-                    $currentDepth+1
-                );
-
-                // if more than one data entry is in the data blank, we use it
-                // if not, it only contains an _idUri value and is worthless
-                if (1 < count($dataBlank)) {
-                    $value = $dataBlank;
-                }
-
-            /*
-             * object is blank node (check for more triples behind it)
-             * TODO support that?!
-             */
-            } elseif ($o->isBlank()) {
-                $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-                $dataBlank->initByStoreSearch(
-                    $store,
-                    $graphs,
-                    $o->toNQuads(),
-                    $maxDepth,
-                    $currentDepth+1,
-                    $p->getUri(),
-                    $resourceId
-                );
-
-                // if more than one data entry is in the data blank, we use it
-                // if not, it only contains an _idUri value and is worthless
-                if (1 < count($dataBlank)) {
-                    $value = $dataBlank;
-                }
-
-            } else {
+            } elseif ($o->isLiteral()) {
                 $value = $this->getNodeValue($o);
             }
 
@@ -348,12 +274,17 @@ class DataBlank extends \ArrayObject
         }
     }
 
+    public function next()
+    {
+        ++$this->position;
+    }
+
     /**
      * @param mixed $key
      */
     public function offsetExists($key)
     {
-        return isset($this->data[$key]);
+        return true === isset($this->data[$key]);
     }
 
     /**
@@ -361,7 +292,44 @@ class DataBlank extends \ArrayObject
      */
     public function offsetGet($key)
     {
-        return $this->data[$key];
+        // if set, return value
+        if (isset($this->data[$key])) {
+            return $this->data[$key];
+
+        // if not set, check if it points to an URI. if so, try load it
+        } elseif (isset($this->data['_idUri']) && $this->rdfHelpers->simpleCheckURI($key)) {
+            $predicateUri = $this->commonNamespaces->extendUri($key);
+
+            $graphFromList = $this->buildGraphsList($this->graphs);
+
+            $result = $this->store->query('SELECT * '. $graphFromList .' WHERE {
+                <'. $this->data['_idUri'] .'> <'. $predicateUri .'> ?o .
+            }');
+
+            foreach ($result as $entry) {
+                if ($this->rdfHelpers->simpleCheckURI($entry['o'])) {
+                    $dataBlank = new DataBlank(
+                        $this->commonNamespaces,
+                        $this->rdfHelpers,
+                        $this->store,
+                        $this->graphs
+                    );
+                    $dataBlank->initByStoreSearch($entry['o']);
+                    $this->offsetSet($key, $dataBlank);
+
+                    return $this->offsetGet($key);
+
+                // assume a literal
+                } elseif (false === $this->rdfsHelpers->simpleCheckBlankNodeId($entry['o'])) {
+                    $this->offsetSet($key, $entry['o']);
+                    return $this->offsetGet($key);
+                }
+                // blank nodes will be ignored
+            }
+
+        } else {
+            throw new KnorkeException('No data found for key: '. $key);
+        }
     }
 
     /**
@@ -370,18 +338,48 @@ class DataBlank extends \ArrayObject
      */
     public function offsetSet($key, $value)
     {
-        // value already set, but is not the same we already stored
-        if (isset($this->data[$key]) && $this->data[$key] !== $value) {
-            // is already an array, add further item
-            if (is_array($this->data[$key])) {
-                array_push($this->data[$key], $value);
-            // if current entry is set but its not an array, make it to array
+        if (!isset($this->data[$key])) {
+            // if $value is an URI, prepare for further loads
+            if ($this->rdfHelpers->simpleCheckURI($key)
+                && is_string($value) && $this->rdfHelpers->simpleCheckURI($value)) {
+                $this->data[$key] = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->store, $this->graphs);
+                $this->data[$key]->offsetSet('_idUri', $value);
             } else {
-                $this->data[$key] = array(0 => $this->data[$key], 1 => $value);
+                $this->data[$key] = $value;
             }
-        // value not set already
+
         } else {
-            $this->data[$key] = $value;
+            // if datablank instance found, put it into a list
+            if ($this->data[$key] instanceof DataBlank) {
+                // create array of DataBlank instances
+                if ($this->rdfHelpers->simpleCheckURI($key) && $this->rdfHelpers->simpleCheckURI($value)) {
+                    $blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->store, $this->graphs);
+                    $blank->offsetSet('_idUri', $value);
+
+                    $this->data[$key] = array(
+                        0 => $this->data[$key],
+                        1 => $blank
+                    );
+                }
+
+            // extend list
+            } elseif (is_array($this->data[$key])) {
+                // if value is an URI, add DataBlank instance
+                if ($this->rdfHelpers->simpleCheckURI($value)) {
+                    $blank = new DataBlank($this->commonNamespaces, $this->rdfHelpers, $this->store, $this->graphs);
+                    $blank->offsetSet('_idUri', $value);
+                    $value = $blank;
+                }
+
+                $this->data[$key][] = $value;
+
+            // assume only a single value was stored before, so put it and the new guy into an array
+            } else {
+                $this->data[$key] = array(
+                    0 => $this->data[$key],
+                    1 => $value
+                );
+            }
         }
     }
 
@@ -391,6 +389,16 @@ class DataBlank extends \ArrayObject
     public function offsetUnset($key)
     {
         unset($this->data[$key]);
+    }
+
+    public function rewind()
+    {
+        $this->position = 0;
+    }
+
+    public function valid()
+    {
+        return isset(array_values($this->data)[$this->position]);
     }
 
     /**

@@ -28,7 +28,12 @@ class DataBlankTest extends UnitTestCase
 
     protected function getFixtureInstance()
     {
-        return new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        return new DataBlank(
+            $this->commonNamespaces,
+            $this->rdfHelpers,
+            $this->store,
+            array($this->testGraph)
+        );
     }
 
     protected function initFixture()
@@ -68,47 +73,36 @@ class DataBlankTest extends UnitTestCase
         $this->assertEquals('cool', $blank['foaf:knows']['foaf:name']);
     }
 
-    // test that getting http://...#label results in rdfs:label property is set as well
-    public function testGetterMagic()
-    {
-        $blank = $this->getFixtureInstance();
-        $blank['rdfs:label'] = 'label';
-        $this->assertEquals($blank->get('http://www.w3.org/2000/01/rdf-schema#label'), 'label');
-
-        $blank = $this->getFixtureInstance();
-        $blank['http://www.w3.org/2000/01/rdf-schema#label'] = 'label';
-        $this->assertEquals($blank->get('rdfs:label'), 'label');
-    }
-
     /*
      * Tests how it reacts if underlying store data got updated
      */
 
     public function testDataLoadingAfterUpdatesInUnderlyingStore()
     {
-        $subjectNode = $this->nodeFactory->createNamedNode('http://s');
+        $this->importTurtle('
+            @prefix foo: <http://foo> .
 
-        $this->store->createGraph($this->testGraph);
-
-        $this->store->addStatements(array(
-            $this->statementFactory->createStatement(
-                $subjectNode,
-                $this->nodeFactory->createNamedNode('http://p'),
-                $this->nodeFactory->createNamedNode('http://o'),
-                $this->testGraph
-            ),
-        ));
+            <http://s> <http://p> <http://o> .
+            ',
+            $this->testGraph,
+            $this->store
+        );
 
         $blank = $this->getFixtureInstance();
-        $blank->initByStoreSearch($this->store, array($this->testGraph), 'http://s');
+        $blank->initByStoreSearch('http://s');
 
-        $this->assertEquals('http://o', $blank['http://p']);
+        $expectedBlank = $this->getFixtureInstance();
+        $expectedBlank['_idUri'] = 'http://s';
+        $expectedBlank['http://p'] = $this->getFixtureInstance();
+        $expectedBlank['http://p']['_idUri'] = 'http://o';
+
+        $this->assertEquals($expectedBlank, $blank);
 
         /*
          * update store to later, if it gathers latest data
          */
         $this->store->deleteMatchingStatements($this->statementFactory->createStatement(
-            $subjectNode,
+            $this->nodeFactory->createNamedNode('http://s'),
             $this->nodeFactory->createAnyPattern(),
             $this->nodeFactory->createAnyPattern(),
             $this->testGraph
@@ -116,7 +110,7 @@ class DataBlankTest extends UnitTestCase
 
         $this->store->addStatements(array(
             $this->statementFactory->createStatement(
-                $subjectNode,
+                $this->nodeFactory->createNamedNode('http://s'),
                 $this->nodeFactory->createNamedNode('http://p'),
                 $this->nodeFactory->createNamedNode('http://new'),
                 $this->testGraph
@@ -124,11 +118,14 @@ class DataBlankTest extends UnitTestCase
         ));
 
         $blank = $this->getFixtureInstance();
-        $blank->initByStoreSearch($this->store, array($this->testGraph), 'http://s');
+        $blank->initByStoreSearch('http://s');
 
-        $this->store->dropGraph($this->testGraph);
+        $expectedBlank = $this->getFixtureInstance();
+        $expectedBlank['_idUri'] = 'http://s';
+        $expectedBlank['http://p'] = $this->getFixtureInstance();
+        $expectedBlank['http://p']['_idUri'] = 'http://new';
 
-        $this->assertEquals('http://new', $blank['http://p']);
+        $this->assertEquals($expectedBlank, $blank);
     }
 
     /*
@@ -162,11 +159,6 @@ class DataBlankTest extends UnitTestCase
     // tests usage of datablanks stored as object in a datablank
     public function testInitByStoreSearchAndRecursiveDataBlankUsage()
     {
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
-            'use_prefixed_predicates' => true,
-            'use_prefixed_objects' => true,
-        ));
-
         $this->store->addStatements(array(
             $this->statementFactory->createStatement(
                 $this->nodeFactory->createNamedNode('http://s'),
@@ -182,123 +174,20 @@ class DataBlankTest extends UnitTestCase
             )
         ));
 
-        $dataBlank = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
-        $dataBlank->initByStoreSearch($this->store, array($this->testGraph), 'http://s');
+        $dataBlank = $this->getFixtureInstance();
+        $dataBlank->initByStoreSearch('http://s');
 
-        $dataBlankToCheckAgainst = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $dataBlankToCheckAgainst = $this->getFixtureInstance();
         $dataBlankToCheckAgainst['_idUri'] = 'http://s';
-        $dataBlankToCheckAgainst['http://p'] = new DataBlank($this->commonNamespaces, $this->rdfHelpers);
+        $dataBlankToCheckAgainst['http://p'] = $this->getFixtureInstance();
         // sub datablank
         $dataBlankToCheckAgainst['http://p']['_idUri'] = 'http://o';
-        $dataBlankToCheckAgainst['http://p']['http://p2'] = 'http://o2';
 
         $this->assertEquals($dataBlank, $dataBlankToCheckAgainst);
     }
 
-    public function testInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode1()
-    {
-        $this->importTurtle('
-            @prefix back: <http://back/model/> .
-
-            <http://s> <http://p> <http://o> ;
-                        <http://p> <http://o-standalone> ;
-                        <http://p> "o-standalone" ;
-                        <http://p> [
-                            <http://p2> <http://o2>
-                        ] .
-
-            <http://o> <http://p3> <http://o3> .
-            ',
-            $this->testGraph,
-            $this->store
-        );
-
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
-            'use_prefixed_predicates' => true,
-            'use_prefixed_objects' => true,
-        ));
-
-        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://s');
-
-        // get blank node id
-        $result = $this->store->query('SELECT * WHERE { ?s <http://p2> <http://o2>. }');
-        foreach ($result as $value) { $blankNodeId = $value['s']->toNQuads(); break; }
-
-        // TODO the following merges two structures which have to be separate!
-        //      if more time, investigate if hardf turtle parser is faulty or our implementation
-        //      expected behavior: p2--o2 and p3--o3 are separate!
-        $this->assertEquals(
-            array(
-                '_idUri' => 'http://s',
-                'http://p' => array(
-                    array(
-                        '_idUri' => $this->fixture->getArrayCopy()['http://p'][0]['_idUri'],
-                        'http://p3' => 'http://o3'
-                    ),
-                    'http://o-standalone',
-                    'o-standalone',
-                    array(
-                        '_idUri' => $this->fixture->getArrayCopy()['http://p'][3]['_idUri'],
-                        'http://p2'=> 'http://o2',
-                        'http://p3'=> 'http://o3'
-                    ),
-                )
-            ),
-            $this->fixture->getArrayCopy()
-        );
-    }
-
-    // test special case with sub blank nodes. thats a regression check, because we expirienced
-    // it only in a productive environment.
-    public function testInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode2()
-    {
-        $this->commonNamespaces->add('backdata', 'http://back/data/');
-        $this->commonNamespaces->add('backmodel', 'http://back/model/');
-
-        $this->importTurtle('
-            @prefix back: <http://back/model/> .
-
-            <http://back/data/Wacken2017> <http://rdf#type> <http://back/model/Event> ;
-                <http://rdfs#label> "Wacken" .
-
-            <http://back/data/user1> <http://rdf#type> <http://back/model/User> ;
-                <http://back/model/has-rights> [
-                    <http://back/model/type> <http://back/model/Event> ;
-                    <http://back/model/event> <http://back/data/Wacken2017>
-                ] .
-            ',
-            $this->testGraph,
-            $this->store
-        );
-
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
-            'use_prefixed_predicates' => true,
-            'use_prefixed_objects' => true,
-        ));
-
-        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://back/data/user1');
-
-        $this->assertEquals(
-            array(
-                '_idUri' => 'http://back/data/user1',
-                'http://rdf#type' => 'backmodel:User',
-                'backmodel:has-rights' => array(
-                    // get randomly generated blank node
-                    '_idUri' => $this->fixture->getArrayCopy()['backmodel:has-rights']['_idUri'],
-                    'backmodel:type' => 'backmodel:Event',
-                    'backmodel:event' => array(
-                        '_idUri' => 'http://back/data/Wacken2017',
-                        'http://rdf#type' => 'backmodel:Event',
-                        'http://rdfs#label' => 'Wacken'
-                    )
-                )
-            ),
-            $this->fixture->getArrayCopy()
-        );
-    }
-
     // test case with a list of entries related to one resource, focus on array handling
-    public function testInitByStoreSearchAndRecursiveDataBlankUsageWithBlankNode3()
+    public function testInitByStoreSearchAndRecursiveDataBlankUsage2()
     {
         /*
 
@@ -308,25 +197,31 @@ class DataBlankTest extends UnitTestCase
                                     |
                                      `---- http://biz2
          */
-         $this->importTurtle('
-             @prefix foo: <http://foo> .
+        $this->importTurtle('
+            @prefix foo: <http://foo> .
 
-             <http://foo> <http://bar> <http://baz1> ;
-                <http://bar> <http://baz2> .
+            <http://foo> <http://bar> <http://baz1> ;
+                         <http://bar> <http://baz2> .
 
-             <http://baz1> <http://bar1> <http://biz1> .
-             <http://baz2> <http://bar2> <http://biz2> .
-             ',
-             $this->testGraph,
-             $this->store
-         );
+            <http://baz1> <http://bar1> <http://biz1> .
+            <http://baz2> <http://bar2> <http://biz2> .
+            ',
+            $this->testGraph,
+            $this->store
+        );
 
-        $this->fixture = new DataBlank($this->commonNamespaces, $this->rdfHelpers, array(
-            'use_prefixed_predicates' => true,
-            'use_prefixed_objects' => true,
-        ));
+        $this->fixture = new DataBlank(
+            $this->commonNamespaces,
+            $this->rdfHelpers,
+            $this->store,
+            array($this->testGraph),
+                array(
+                'use_prefixed_predicates' => true,
+                'use_prefixed_objects' => true,
+            )
+        );
 
-        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://foo');
+        $this->fixture->initByStoreSearch('http://foo');
 
         $this->assertEquals(
             array(
@@ -334,11 +229,9 @@ class DataBlankTest extends UnitTestCase
                 'http://bar' => array(
                     array(
                         '_idUri' => 'http://baz1',
-                        'http://bar1' => 'http://biz1'
                     ),
                     array(
                         '_idUri' => 'http://baz2',
-                        'http://bar2' => 'http://biz2'
                     )
                 )
             ),
@@ -346,122 +239,82 @@ class DataBlankTest extends UnitTestCase
         );
     }
 
-    // tests if max depth and current depth were honored
-    public function testInitByStoreSearchMaxDepthAndCurrentDepth()
+    // tests performance on dense and complex tree
+    public function testInitByStoreSearchPerformanceOnDenseTree()
     {
-        $this->importTurtle('
-            @prefix back: <http://back/model/> .
-
-            <http://s> <http://p> <http://o> .
-            <http://o> <http://p1> <http://o1> .
-            <http://o1> <http://p2> <http://o2> .
-            <http://o2> <http://p3> <http://o3> .
-            ',
+        $this->importTurtle(
+            file_get_contents(__DIR__.'/../example-files/dense-resource-tree.ttl'),
             $this->testGraph,
             $this->store
         );
 
-        $this->fixture = new DataBlank(
-            $this->commonNamespaces,
-            $this->rdfHelpers,
-            array(
-                'use_prefixed_predicates' => true,
-                'use_prefixed_objects' => true,
-            )
-        );
+        $this->fixture = $this->getFixtureInstance();
 
-        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://s', 1);
-
-        $this->assertEquals(
-            array(
-                '_idUri' => 'http://s',
-                'http://p' => array(
-                    '_idUri' => 'http://o',
-                    'http://p1' => 'http://o1'
-                )
-            ),
-            $this->fixture->getArrayCopy()
-        );
+        $this->fixture->initByStoreSearch('http://foo/1');
+        $this->assertEquals(13, count($this->fixture->getArrayCopy()['http://foo/2']));
     }
 
-    // tests if max depth and current depth were honored
-    // test maxDepth = 0
-    public function testInitByStoreSearchMaxDepthAndCurrentDepth2()
+    // tests if reloading further data works
+    public function testInitByStoreSearchReloadFurtherData()
     {
-        $this->importTurtle('
-            @prefix back: <http://back/model/> .
-
-            <http://s> <http://p> <http://o> .
-            <http://o> <http://p1> <http://o1> .
-            <http://o1> <http://p2> <http://o2> .
-            <http://o2> <http://p3> <http://o3> .
-            ',
+        $this->importTurtle(
+            file_get_contents(__DIR__.'/../example-files/dense-resource-tree.ttl'),
             $this->testGraph,
             $this->store
         );
 
-        $this->fixture = new DataBlank(
-            $this->commonNamespaces,
-            $this->rdfHelpers,
-            array(
-                'use_prefixed_predicates' => true,
-                'use_prefixed_objects' => true,
-            )
-        );
+        $this->fixture = $this->getFixtureInstance();
 
-        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://s', 0);
+        $this->fixture->initByStoreSearch('http://foo/1');
 
-        $this->assertEquals(
-            array(
-                '_idUri' => 'http://s',
-                'http://p' => 'http://o'
-            ),
-            $this->fixture->getArrayCopy()
-        );
+        $this->assertTrue($this->fixture['http://foo/2'][0]['http://foo/4'] instanceof DataBlank);
+        $this->assertEquals('http://foo/4', $this->fixture['http://foo/2'][0]['http://foo/4']['_idUri']);
     }
 
-    // tests if max depth and current depth were honored
-    // test maxDepth = -1, so no border
-    public function testInitByStoreSearchMaxDepthAndCurrentDepth3()
-    {
-        $this->importTurtle('
-            @prefix back: <http://back/model/> .
+    /*
+     *
+     */
 
-            <http://s> <http://p> <http://o> .
-            <http://o> <http://p1> <http://o1> .
-            <http://o1> <http://p2> <http://o2> .
-            <http://o2> <http://p3> <http://o3> .
+    // test if DataBlank instance is iterable
+    public function testInstanceIsIterable()
+    {
+        $this->importTurtle(
+            '@prefix foo: <http://foo/>.
+
+            foo:1 foo:2 foo:3 ;
+                foo:2 foo:4 .
             ',
             $this->testGraph,
             $this->store
         );
 
-        $this->fixture = new DataBlank(
-            $this->commonNamespaces,
-            $this->rdfHelpers,
-            array(
-                'use_prefixed_predicates' => true,
-                'use_prefixed_objects' => true,
-            )
-        );
+        $this->fixture = $this->getFixtureInstance();
 
-        $this->fixture->initByStoreSearch($this->store, array($this->testGraph), 'http://s', -1);
+        $this->fixture->initByStoreSearch('http://foo/1');
 
-        $this->assertEquals(
-            array(
-                '_idUri' => 'http://s',
-                'http://p' => array(
-                    '_idUri' => 'http://o',
-                    'http://p1' => array(
-                        '_idUri' => 'http://o1',
-                        'http://p2' => array(
-                            '_idUri' => 'http://o2',
-                            'http://p3' => 'http://o3'
-                        )
-                    )
-                )
-            ),
-            $this->fixture->getArrayCopy()
-        );
+        $inLoop = false;
+
+        foreach ($this->fixture as $key => $value) {
+            $inLoop = true;
+            $this->assertTrue('_idUri' == $key  || 'http://foo/2' == $key);
+            $this->assertTrue(is_string($value) || is_array($value));
+
+            if (is_array($value)) {
+                $this->assertEquals(2, count($value));
+
+                $expected = array(
+                    $this->getFixtureInstance(),
+                    $this->getFixtureInstance()
+                );
+                $expected[0]['_idUri'] = 'http://foo/3';
+                $expected[1]['_idUri'] = 'http://foo/4';
+
+                $this->assertEquals($expected, $value);
+            } else {
+                $this->assertEquals('http://foo/1', $value);
+            }
+        }
+
+        $this->assertTrue($inLoop);
     }
 }

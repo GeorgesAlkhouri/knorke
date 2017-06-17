@@ -90,10 +90,9 @@ class StatisticValueTest extends UnitTestCase
             @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
             @prefix stat: <http://stat/> .
             stat:2 rdf:type kno:StatisticValue ;
-                kno:computation-order [
-                    kno:_0 "[stat:1]*2" ;
-                    kno:_1 "+4"
-                ] .
+                kno:computation-order stat:co1 .
+            stat:co1 kno:_0 "[stat:1]*2" ;
+                    kno:_1 "+4" .
             ',
             $this->testGraph,
             $this->store
@@ -120,15 +119,15 @@ class StatisticValueTest extends UnitTestCase
             @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
             @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
             @prefix stat: <http://stat/> .
+
             stat:2 rdf:type kno:StatisticValue ;
-                kno:computation-order [
-                    kno:_0 "[stat:3]+1" ;
-                    kno:_1 "+2"
-                ] .
+                kno:computation-order stat:co1 .
+            stat:co1 kno:_0 "[stat:3]+1" ;
+                    kno:_1 "+2" .
+
             stat:3 rdf:type kno:StatisticValue ;
-                kno:computation-order [
-                    kno:_0 "[stat:1]*5"
-                ] .
+                kno:computation-order stat:co2 .
+            stat:co2 kno:_0 "[stat:1]*5" .
             ',
             $this->testGraph,
             $this->store
@@ -160,14 +159,12 @@ class StatisticValueTest extends UnitTestCase
             @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
             @prefix stat: <http://stat/> .
             stat:2 rdf:type kno:StatisticValue ;
-                kno:computation-order [
-                    kno:_0 "IF([stat:1]>30, 1, 0)"
-                ] .
+                kno:computation-order stat:co1 .
+            stat:co1 kno:_0 "IF([stat:1]>30, 1, 0)" .
 
             stat:3 rdf:type kno:StatisticValue ;
-                kno:computation-order [
-                    kno:_0 "IF([stat:2]<1, 1, 0)"
-                ] .
+                kno:computation-order stat:co2 .
+            stat:co2 kno:_0 "IF([stat:2]<1, 1, 0)" .
             ',
             $this->testGraph,
             $this->store
@@ -216,10 +213,10 @@ class StatisticValueTest extends UnitTestCase
             @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
             @prefix stat: <http://stat/> .
             stat:2 rdf:type kno:StatisticValue ;
-                kno:computation-order [
-                    kno:_0 "[stat:1]*2" ;
-                    kno:_1 "MAX(result,2)"
-                ] .
+                kno:computation-order stat:co1 .
+
+            stat:co1 kno:_0 "[stat:1]*2" ;
+                    kno:_1 "MAX(result,2)" .
             ',
             $this->testGraph,
             $this->store
@@ -276,10 +273,9 @@ class StatisticValueTest extends UnitTestCase
             @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
             @prefix stat: <http://stat/> .
             stat:2 rdf:type kno:StatisticValue ;
-                kno:computation-order [
-                    kno:_0 "[stat:1]*2" ;
-                    kno:_1 "ROUNDUP"
-                ] .
+                kno:computation-order stat:co1 .
+            stat:co1 kno:_0 "[stat:1]*2" ;
+                    kno:_1 "ROUNDUP".
             ',
             $this->testGraph,
             $this->store
@@ -318,9 +314,8 @@ class StatisticValueTest extends UnitTestCase
             @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
             @prefix stat: <http://stat/> .
             stat:2 rdf:type kno:StatisticValue ;
-                kno:computation-order [
-                    kno:_0 "[stat:1]"
-                ] .
+                kno:computation-order stat:co1 .
+            stat:co1 kno:_0 "[stat:1]" .
             ',
             $this->testGraph,
             $this->store

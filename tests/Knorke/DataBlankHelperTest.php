@@ -65,35 +65,18 @@ class DataBlankHelperTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('http://bar'),
                 $this->testGraph
             ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode($resourceUri),
-                $this->nodeFactory->createNamedNode('http://foo'),
-                $this->nodeFactory->createBlankNode('bn1'),
-                $this->testGraph
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('bn1'),
-                $this->nodeFactory->createNamedNode('http://foobar'),
-                $this->nodeFactory->createNamedNode('http://baz')
-            )
         ));
-
-        // get blank node ID
-        $result = $this->store->query('SELECT * WHERE { ?s <http://foobar> <http://baz> . }');
-        $blankNodeId = array_values($result->getArrayCopy())[0]['s']->toNQuads();
 
         // compare
         $this->assertEquals(
             array(
                 $resourceUri => array(
                     '_idUri' => $resourceUri,
-                    'rdf:type' => 'foaf:Person',
+                    'rdf:type' => array(
+                        '_idUri' => 'foaf:Person'
+                    ),
                     'http://foo' => array(
-                        'http://bar',
-                        array(
-                            '_idUri' => $blankNodeId,
-                            'http://foobar' => 'http://baz'
-                        )
+                        '_idUri' => 'http://bar'
                     )
                 )
             ),
@@ -120,17 +103,6 @@ class DataBlankHelperTest extends UnitTestCase
                 $this->nodeFactory->createNamedNode('http://bar'),
                 $this->testGraph
             ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createNamedNode($resourceUri),
-                $this->nodeFactory->createNamedNode('http://foo'),
-                $this->nodeFactory->createBlankNode('bn1'),
-                $this->testGraph
-            ),
-            $this->statementFactory->createStatement(
-                $this->nodeFactory->createBlankNode('bn1'),
-                $this->nodeFactory->createNamedNode('http://foobar'),
-                $this->nodeFactory->createNamedNode('http://baz')
-            ),
             /*
              * another resource
              */
@@ -148,10 +120,6 @@ class DataBlankHelperTest extends UnitTestCase
             )
         ));
 
-        // get blank node ID
-        $result = $this->store->query('SELECT * WHERE { ?s <http://foobar> <http://baz> . }');
-        $blankNodeId = array_values($result->getArrayCopy())[0]['s']->toNQuads();
-
         $persons = array_values($this->fixture->find('foaf:Person'));
 
         // compare
@@ -159,18 +127,18 @@ class DataBlankHelperTest extends UnitTestCase
             array(
                 $resourceUri => array(
                     '_idUri' => $resourceUri,
-                    'rdf:type' => 'foaf:Person',
+                    'rdf:type' => array(
+                        '_idUri' => 'foaf:Person'
+                    ),
                     'http://foo' => array(
-                        'http://bar',
-                        array(
-                            '_idUri' => $blankNodeId,
-                            'http://foobar' => 'http://baz'
-                        )
+                        '_idUri' => 'http://bar'
                     )
                 ),
                 $resourceUri . '/another-one' => array(
                     '_idUri' => $resourceUri . '/another-one',
-                    'rdf:type' => 'foaf:Person',
+                    'rdf:type' => array(
+                        '_idUri' => 'foaf:Person'
+                    ),
                     'rdfs:label' => 'Another Person'
                 )
             ),
@@ -219,7 +187,9 @@ class DataBlankHelperTest extends UnitTestCase
             array(
                 $resourceUri => array(
                     '_idUri' => $resourceUri,
-                    'rdf:type' => 'foaf:Person',
+                    'rdf:type' => array(
+                        '_idUri' => 'foaf:Person'
+                    ),
                     'rdfs:label' => 'foobar'
                 )
             ),
@@ -279,7 +249,9 @@ class DataBlankHelperTest extends UnitTestCase
         $this->assertEquals(
             array(
                 '_idUri' => $resourceUri,
-                'rdf:type' => 'foaf:Person',
+                'rdf:type' => array(
+                    '_idUri' => 'foaf:Person'
+                ),
                 'http://foo' => 'bar'
             ),
             $this->fixture->findOne('foaf:Person', '?s <http://foo> "bar".')->getArrayCopy()
@@ -340,6 +312,6 @@ class DataBlankHelperTest extends UnitTestCase
         $dataBlank = $this->fixture->load($resourceUri);
 
         $this->assertEquals('http://foobar/foaf-person/id/foobar', $dataBlank['_idUri']);
-        $this->assertEquals('foaf:Person', $dataBlank['rdf:type']);
+        $this->assertEquals('foaf:Person', $dataBlank['rdf:type']['_idUri']);
     }
 }

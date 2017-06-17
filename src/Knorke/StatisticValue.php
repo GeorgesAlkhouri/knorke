@@ -96,9 +96,9 @@ class StatisticValue
             // assumption: properties are something like "kno:_1" and ordered, therefore we ignore properties later on.
             // store computed value for statisticValue instance
             $computedValues[$this->commonNamespaces->shortenUri($uri)] = $this->executeComputationOrder(
-                $statisticValue['kno:computation-order'],   // rule how to compute
-                $computedValues,                            // already computed stuff from before
-                $statisticValues                            // computation order per statistical value URI
+                $statisticValue['kno:computation-order']['_idUri'],
+                $computedValues,                                    // already computed stuff from before
+                $statisticValues                                    // computation order per statistical value URI
             );
         }
 
@@ -158,7 +158,7 @@ class StatisticValue
     }
 
     /**
-     * @param DataBlank $computationOrder Rules to compute one statistical value.
+     * @param string $computationOrderUri
      * @param array $computedValues Array with URI as key and according computed value of already computed values.
      * @param array $statisticalValuesWithCompOrder
      * @return float if computation works well
@@ -167,17 +167,16 @@ class StatisticValue
      * @todo move computation rules to separate function or class for easier maintenance
      */
     public function executeComputationOrder(
-        DataBlank $computationOrder,
+        string $computationOrderUri,
         $computedValues,
         $statisticalValuesWithCompOrder
     ) {
+        $computationOrder = $this->dataBlankHelper->load($computationOrderUri);
         $lastComputedValue = null;
 
-        if (isset($computationOrder['_idUri'])) {
-            unset($computationOrder['_idUri']);
-        }
+        foreach ($computationOrder as $key => $computationRule) {
+            if ('_idUri' == $key) continue;
 
-        foreach ($computationOrder as $computationRule) {
             $value1 = null;
             $value2 = null;
             $operation = null;
@@ -239,7 +238,7 @@ class StatisticValue
                     } elseif (isset($statisticalValuesWithCompOrder[$statisticValue1Uri])) {
                         // get value because it wasn't computed yet
                         $value1 = $this->executeComputationOrder(
-                            $statisticalValuesWithCompOrder[$statisticValue1Uri]['kno:computation-order'],
+                            $statisticalValuesWithCompOrder[$statisticValue1Uri]['kno:computation-order']['_idUri'],
                             $computedValues,
                             $statisticalValuesWithCompOrder
                         );

@@ -333,7 +333,7 @@ class DataValidatorTest extends UnitTestCase
     }
 
     // test that it cares about type info in restriction-reference-is-of-type
-    public function testValidateSubStructuresExplicitTypeCheck()
+    public function testValidateSubStructuresExplicitTypeCheck1()
     {
         // load knorke data
         $this->importer->importFile(__DIR__ .'/../../knowledge/knorke.ttl', $this->testGraph);

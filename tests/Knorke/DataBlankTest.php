@@ -254,6 +254,46 @@ class DataBlankTest extends UnitTestCase
         $this->assertEquals(13, count($this->fixture->getArrayCopy()['http://foo/2']));
     }
 
+    // tests how it handles a prefixed _idUriKey
+    public function testInitByStoreSearchPrefixedAndUnprefixedIdUriKey()
+    {
+        $this->importTurtle(
+            file_get_contents(__DIR__.'/../example-files/dense-resource-tree.ttl'),
+            $this->testGraph,
+            $this->store
+        );
+
+        $this->commonNamespaces->add('foo', 'http://foo/');
+
+        /*
+         * try prefixed _idUri
+         */
+        $this->fixture = $this->getFixtureInstance();
+        $this->fixture->initByStoreSearch('foo:1');
+        $this->assertEquals(13, count($this->fixture['http://foo/2']));
+
+        /*
+         * try unprefixed _idUri
+         */
+        $fixture2 = $this->getFixtureInstance();
+        $fixture2->initByStoreSearch('http://foo/1');
+        $this->assertEquals(13, count($fixture2['http://foo/2']));
+
+        /*
+         * try prefix key
+         */
+        $fixture3 = $this->getFixtureInstance();
+        $fixture3->initByStoreSearch('http://foo/1');
+        $this->assertEquals(13, count($fixture3['foo:2']));
+
+        /*
+         * try unprefix key
+         */
+        $fixture4 = $this->getFixtureInstance();
+        $fixture4->initByStoreSearch('http://foo/1');
+        $this->assertEquals(13, count($fixture4['http://foo/2']));
+    }
+
     // tests if reloading further data works
     public function testInitByStoreSearchReloadFurtherData()
     {
@@ -269,6 +309,26 @@ class DataBlankTest extends UnitTestCase
 
         $this->assertTrue($this->fixture['http://foo/2'][0]['http://foo/4'] instanceof DataBlank);
         $this->assertEquals('http://foo/4', $this->fixture['http://foo/2'][0]['http://foo/4']['_idUri']);
+    }
+
+    // tests if reloading further data works
+    public function testInitByStoreSearchReloadFurtherData2()
+    {
+        $this->importTurtle(
+            file_get_contents(__DIR__.'/../example-files/dense-resource-tree.ttl'),
+            $this->testGraph,
+            $this->store
+        );
+
+        $this->fixture = $this->getFixtureInstance();
+        $this->fixture->initByStoreSearch('http://foo/1');
+
+        $this->assertEquals(
+            array(
+                '_idUri' => 'http://foo/b'
+            ),
+            $this->fixture['http://foo/extra']['http://foo/a']->getArrayCopy()
+        );
     }
 
     /*

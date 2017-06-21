@@ -199,6 +199,9 @@ class DataBlank implements \ArrayAccess, \Iterator
         return null;
     }
 
+    /**
+     * @return int|string
+     */
     public function key()
     {
         return array_keys($this->data)[$this->position];
@@ -212,8 +215,10 @@ class DataBlank implements \ArrayAccess, \Iterator
     public function initBySelfSearch()
     {
         if (isset($this->data['_idUri'])) {
+            // dont keep _idUri, otherwise it would be doubled later on
             $resourceId = $this->data['_idUri'];
             unset($this->data['_idUri']);
+
             $this->initByStoreSearch($resourceId);
         } else {
             throw new KnorkeException('Cant init, because _idUri is not set.');
@@ -228,9 +233,8 @@ class DataBlank implements \ArrayAccess, \Iterator
         /*
          * check parameter $resourceId
          */
-        if (!$this->rdfHelpers->simpleCheckURI($resourceId)
-            && !$this->rdfHelpers->simpleCheckBlankNodeId($resourceId)) {
-            throw new KnorkeException('Invalid $resourceId given (must be an URI or blank node): '. $resourceId);
+        if (!$this->rdfHelpers->simpleCheckURI($resourceId)) {
+            throw new KnorkeException('Invalid $resourceId given, must be an URI: '. $resourceId);
         }
 
         // set internal _idUri field
@@ -292,18 +296,26 @@ class DataBlank implements \ArrayAccess, \Iterator
      */
     public function offsetGet($key)
     {
+        $extendedKey = $this->commonNamespaces->extendUri($key);
+        $shortenedKey = $this->commonNamespaces->shortenUri($key);
+
         // if set, return value
         if (isset($this->data[$key])) {
             return $this->data[$key];
 
+        // if $key is an URI try extended and shortened version
+        } elseif($this->rdfHelpers->simpleCheckURI($key)
+            && (isset($this->data[$extendedKey]) || isset($this->data[$shortenedKey]))) {
+            return isset($this->data[$extendedKey])
+                ? $this->data[$extendedKey]
+                : $this->data[$shortenedKey];
+
         // if not set, check if it points to an URI. if so, try load it
         } elseif (isset($this->data['_idUri']) && $this->rdfHelpers->simpleCheckURI($key)) {
-            $predicateUri = $this->commonNamespaces->extendUri($key);
-
             $graphFromList = $this->buildGraphsList($this->graphs);
 
             $result = $this->store->query('SELECT * '. $graphFromList .' WHERE {
-                <'. $this->data['_idUri'] .'> <'. $predicateUri .'> ?o .
+                <'. $this->commonNamespaces->extendUri($this->data['_idUri']) .'> <'. $extendedKey .'> ?o .
             }');
 
             foreach ($result as $entry) {
@@ -320,7 +332,7 @@ class DataBlank implements \ArrayAccess, \Iterator
                     return $this->offsetGet($key);
 
                 // assume a literal
-                } elseif (false === $this->rdfsHelpers->simpleCheckBlankNodeId($entry['o'])) {
+                } elseif (false === $this->rdfHelpers->simpleCheckBlankNodeId($entry['o'])) {
                     $this->offsetSet($key, $entry['o']);
                     return $this->offsetGet($key);
                 }

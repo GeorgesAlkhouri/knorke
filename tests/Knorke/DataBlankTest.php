@@ -377,4 +377,27 @@ class DataBlankTest extends UnitTestCase
 
         $this->assertTrue($inLoop);
     }
+
+    /*
+     * Tests for offsetExists
+     */
+
+    public function testOffsetExists()
+    {
+        $this->importTurtle(
+            file_get_contents(__DIR__.'/../example-files/dense-resource-tree.ttl'),
+            $this->testGraph,
+            $this->store
+        );
+
+        $this->commonNamespaces->add('foo', 'http://foo/');
+
+        $this->fixture = $this->getFixtureInstance();
+        $this->fixture->initByStoreSearch('foo:1');
+
+        $this->assertTrue(isset($this->fixture['http://foo/2']));
+        $this->assertTrue(isset($this->fixture['foo:2']));
+
+        $this->assertFalse(isset($this->fixture['not:available']));
+    }
 }

@@ -288,7 +288,12 @@ class DataBlank implements \ArrayAccess, \Iterator
      */
     public function offsetExists($key)
     {
-        return true === isset($this->data[$key]);
+        if(isset($this->data[$key])) {
+            return true;
+        } else {
+            $this->offsetGet($key);
+            return null !== $this->offsetGet($key);
+        }
     }
 
     /**

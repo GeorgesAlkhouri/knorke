@@ -92,8 +92,7 @@ class DataBlankHelper
                 $resourceId = $this->commonNamespaces->extendUri($entry['s']->getUri());
             }
 
-            $blanks[$resourceId] = $this->createDataBlank();
-            $blanks[$resourceId]->initByStoreSearch($resourceId);
+            $blanks[$resourceId] = $this->load($resourceId);
         }
 
         return $blanks;

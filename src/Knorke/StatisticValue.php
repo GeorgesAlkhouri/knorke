@@ -271,7 +271,7 @@ class StatisticValue
                     // get value because it wasn't computed yet
                     if (false == isset($computedValues[$value2])) {
                         $value2 = $this->executeComputationOrder(
-                            $statisticalValuesWithCompOrder[$value2]['kno:computation-order'],
+                            $statisticalValuesWithCompOrder[$value2]['kno:computation-order']['_idUri'],
                             $computedValues,
                             $statisticalValuesWithCompOrder
                         );

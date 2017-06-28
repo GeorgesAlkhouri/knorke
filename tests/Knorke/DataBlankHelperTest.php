@@ -292,6 +292,40 @@ class DataBlankHelperTest extends UnitTestCase
     }
 
     /*
+     * Tests for isArrayOfDataBlanks
+     */
+
+    public function testIsArrayOfDataBlanks()
+    {
+        $array = array(
+            $this->fixture->createDataBlank(),
+            $this->fixture->createDataBlank(),
+        );
+
+        $this->assertTrue($this->fixture->isArrayOfDataBlanks($array));
+    }
+
+    public function testIsArrayOfDataBlanksInvalidElement()
+    {
+        $array = array(
+            $this->fixture->createDataBlank(),
+            1
+        );
+
+        $this->assertFalse($this->fixture->isArrayOfDataBlanks($array));
+    }
+
+    public function testIsArrayOfDataBlanksInvalidElement2()
+    {
+        $array = array(
+            'invalid',
+            1
+        );
+
+        $this->assertFalse($this->fixture->isArrayOfDataBlanks($array));
+    }
+
+    /*
      * Tests for load
      */
 

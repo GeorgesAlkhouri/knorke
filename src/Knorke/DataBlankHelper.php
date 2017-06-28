@@ -154,6 +154,30 @@ class DataBlankHelper
     }
 
     /**
+     * Checks if a given array contains only DataBlank instances.
+     *
+     * @param array $arrayToCheck Array to check
+     * @return bool
+     */
+    public function isArrayOfDataBlanks(array $arrayToCheck) : bool
+    {
+        $inloop = false;
+
+        foreach ($arrayToCheck as $value) {
+            $inloop = true;
+            if (!$value instanceof DataBlank) {
+                return false;
+            }
+        }
+
+        if ($inloop) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * @param string $resourceUri
      * @return DataBlank
      */

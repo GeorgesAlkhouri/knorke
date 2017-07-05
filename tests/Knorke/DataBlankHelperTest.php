@@ -348,4 +348,39 @@ class DataBlankHelperTest extends UnitTestCase
         $this->assertEquals('http://foobar/foaf-person/id/foobar', $dataBlank['_idUri']);
         $this->assertEquals('foaf:Person', $dataBlank['rdf:type']['_idUri']);
     }
+
+    /*
+     * Tests for remove
+     */
+
+    public function testRemove()
+    {
+        $resourceUri = 'http://foobar/foaf-person/id/foobar';
+
+        $this->store->addStatements(array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode($resourceUri),
+                $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                $this->nodeFactory->createNamedNode('http://xmlns.com/foaf/0.1/Person'),
+                $this->testGraph
+            )
+        ));
+
+        $this->assertEquals(1, count($this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}')));
+        $this->assertEquals(
+            array(
+                '_idUri' => $resourceUri,
+                'rdf:type' => array(
+                    '_idUri' => 'foaf:Person'
+                )
+            ),
+            $this->fixture->load($resourceUri)->getArrayCopy()
+        );
+
+        // removes entry
+        $this->fixture->remove($resourceUri, $this->testGraph);
+
+        // check that store is empty
+        $this->assertEquals(0, count($this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {?s ?p ?o.}')));
+    }
 }

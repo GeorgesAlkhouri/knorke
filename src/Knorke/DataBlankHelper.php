@@ -188,4 +188,30 @@ class DataBlankHelper
 
         return $dataBlank;
     }
+
+    /**
+     * Removes all triples of a datablank, but not indirect connections!
+     *
+     * @param string $resourceUri
+     * @param NamedNode $graph
+     */
+    public function remove(string $resourceUri, NamedNode $graph)
+    {
+        $dataBlank = $this->load($resourceUri);
+
+        // if only 1 entry, its _idUri set, so nothing to do here
+        if (1 == count($dataBlank->getArrayCopy())) {
+            return false;
+
+        } else {
+            $this->store->deleteMatchingStatements(
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode($resourceUri),
+                    $this->nodeFactory->createAnyPattern(),
+                    $this->nodeFactory->createAnyPattern(),
+                    $graph
+                )
+            );
+        }
+    }
 }

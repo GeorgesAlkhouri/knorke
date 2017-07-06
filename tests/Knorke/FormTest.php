@@ -34,13 +34,16 @@ class FormTest extends UnitTestCase
             form:has-areas
                 kno:restriction-reference-is-of-type form:Area .
 
-            form:Area
-                kno:has-property form:label ;
-                kno:has-property form:comment .
-
             form:located-in
                 rdfs:label "Findet statt in"@de ;
                 rdfs:label "Located in"@en .
+
+            form:Area
+                kno:has-property rdfs:label ;
+                kno:has-property form:comment .
+
+            rdfs:label
+                rdfs:label "Title"@en .
             ',
             $this->testGraph,
             $this->store
@@ -51,16 +54,24 @@ class FormTest extends UnitTestCase
         $this->assertEquals(
 '<form action="" method="post">
     <input type="hidden" name="rdf:type" value="form:Event">
-    <br/><label for="form_located_in">Findet statt in</label>
-    <input type="text" id="form_located_in" name="form:located-in" value="" required="required">
+
+    <br/>
+    <label for="form_located_in">Findet statt in</label>
+        <input type="text" id="form_located_in" name="form:located-in" value="" required="required">
+
     <div id="form_has_areas__container">
         <div id="form:has-areas__entry_1">
             <input type="hidden" name="rdf:type__1" value="form:Area">
-            <br/><input type="text" id="form_label__1" name="form:label__1" value="" required="required">
-            <br/><input type="text" id="form_comment__1" name="form:comment__1" value="" required="required">
+
+            <br/>
+            <label for="rdfs_label__1">Title</label>
+            <input type="text" id="rdfs_label__1" name="rdfs:label__1" value="" required="required">
+
+            <br/>
+            <input type="text" id="form_comment__1" name="form:comment__1" value="" required="required">
         </div>
     </div>
-    <input type="hidden" name="form_has_areas__number"/>
+    <input type="hidden" name="form_has_areas__number" value="1"/>
     <button class="btn btn-primary" id="form_has_areas__btn" type="button">Add</button>
 </form>
 
@@ -78,8 +89,13 @@ class FormTest extends UnitTestCase
                 <br/>
         <div id="form:has-areas__entry_1">
             <input type="hidden" name="rdf:type__1" value="form:Area">
-            <br/><input type="text" id="form_label__1" name="form:label__1" value="" required="required">
-            <br/><input type="text" id="form_comment__1" name="form:comment__1" value="" required="required">
+
+            <br/>
+            <label for="rdfs_label__1">Title</label>
+            <input type="text" id="rdfs_label__1" name="rdfs:label__1" value="" required="required">
+
+            <br/>
+            <input type="text" id="form_comment__1" name="form:comment__1" value="" required="required">
         </div>
             `.replace("_entry_1", "_entry_" + form_has_areas__number));
 

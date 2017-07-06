@@ -118,7 +118,7 @@ class Form
             if (isset($propertyBlank['kno:restriction-reference-is-of-type'])) {
                 $propId = $this->getHtmlFriendlyUri($propertyUri);
 
-                $html .= PHP_EOL . $spacesBefore . '<div id="'. $propId .'__container">';
+                $html .= PHP_EOL . PHP_EOL . $spacesBefore . '<div id="'. $propId .'__container">';
 
                 /*
                  * add sub form
@@ -133,7 +133,7 @@ class Form
 
                 $html .= PHP_EOL . $spacesBefore . '</div>';
 
-                $html .= PHP_EOL . $spacesBefore . '<input type="hidden" name="'. $propId .'__number"/>';
+                $html .= PHP_EOL . $spacesBefore . '<input type="hidden" name="'. $propId .'__number" value="1"/>';
 
                 // button to add more
                 $html .= PHP_EOL . $spacesBefore . $this->generateButton($propId, 'Add');
@@ -142,7 +142,8 @@ class Form
                 $javascript .= PHP_EOL . $this->generateJavascriptForSubResources($propId, $subForm);
 
             } else {
-                $html .= PHP_EOL . $spacesBefore . '<br/>' . $this->getInputTextFor($propertyUri, '', $level);
+                $html .= PHP_EOL . PHP_EOL . $spacesBefore . '<br/>';
+                $html .= PHP_EOL . $spacesBefore . $this->getInputTextFor($propertyUri, '', $level);
             }
 
             // TODO kno:restriction-one-of as select?
@@ -197,12 +198,12 @@ class Form
     }
 
     /**
-     * @param string $name
+     * @param string $propertyUri
      * @param string $value Optional, default is ''
      * @param string $level Optional, default is 1
      * @return string Ready-to-use HTML with given values.
      */
-    public function getInputTextFor(string $name, string $value = '', int $level = 1) : string
+    public function getInputTextFor(string $propertyUri, string $value = '', int $level = 1) : string
     {
         // suffix for property name like rdfs:label ==> rdfs:label
         $suffix = '';
@@ -210,15 +211,15 @@ class Form
             $suffix = '__'. ($level-1);
         }
 
-        $id = $this->getHtmlFriendlyUri($name) . $suffix;
-        $name = $name . $suffix;
+        $id = $this->getHtmlFriendlyUri($propertyUri) . $suffix;
+        $name = $propertyUri . $suffix;
 
         $spacesBefore = '';
         for ($i = 0; $i < $level*4; $i++) { $spacesBefore .= ' '; }
 
         $html = '';
-        if ($this->rdfHelpers->simpleCheckURI($name)) {
-            $blank = $this->dataBlankHelper->load($name);
+        if ($this->rdfHelpers->simpleCheckURI($propertyUri)) {
+            $blank = $this->dataBlankHelper->load($propertyUri);
 
             // TODO add title helper here
             if (isset($blank['rdfs:label'])) {
@@ -228,7 +229,7 @@ class Form
                     $label = $blank['rdfs:label'];
                 }
                 $html = '<label for="'. $id .'">'. $label .'</label>';
-                $html .= PHP_EOL . $spacesBefore;
+                $html .= PHP_EOL . $spacesBefore . '    ';
             }
         }
 

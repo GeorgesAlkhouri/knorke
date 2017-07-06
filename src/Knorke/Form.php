@@ -118,7 +118,7 @@ class Form
             if (isset($propertyBlank['kno:restriction-reference-is-of-type'])) {
                 $propId = $this->getHtmlFriendlyUri($propertyUri);
 
-                $html .= PHP_EOL . $spacesBefore . '<div id="'. $propertyUri .'__container">';
+                $html .= PHP_EOL . $spacesBefore . '<div id="'. $propId .'__container">';
 
                 /*
                  * add sub form
@@ -142,7 +142,7 @@ class Form
                 $javascript .= PHP_EOL . $this->generateJavascriptForSubResources($propId, $subForm);
 
             } else {
-                $html .= PHP_EOL . $spacesBefore . $this->getInputTextFor($propertyUri, '', $level);
+                $html .= PHP_EOL . $spacesBefore . '<br/>' . $this->getInputTextFor($propertyUri, '', $level);
             }
 
             // TODO kno:restriction-one-of as select?
@@ -170,17 +170,17 @@ class Form
     {
         return
 '<script type="text/javascript">
-    var number_of_'. $id .' = 1;
+    var '. $id .'__number = 1;
     $(document).ready(function(){
         /*
          * dynamically add further area fields
          */
-        $("#'. $id .'").on("click", function(){
-            ++number_of_'. $id .';
+        $("#'. $id .'"__btn).on("click", function(){
+            ++'. $id .'__number;
 
-            $("#'. $id .'__btn").append(`
+            $("#'. $id .'__container").append(`
                 <br/>'. PHP_EOL . $subFormHTML .'
-            `.replace("_entry_1", "_entry_" + number_of_'. $id .'));
+            `.replace("_entry_1", "_entry_" + '. $id .'__number));
 
             $("#'. $id .'__number").val('. $id .'__number);
         });

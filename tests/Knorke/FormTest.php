@@ -51,13 +51,13 @@ class FormTest extends UnitTestCase
         $this->assertEquals(
 '<form action="   " method="post">
     <input type="hidden" name="rdf:type" value="form:Event">
-    <label for="form_located_in">Findet statt in</label>
+    <br/><label for="form_located_in">Findet statt in</label>
     <input type="text" id="form_located_in" name="form:located-in" value="" required="required">
-    <div id="form:has-areas__container">
+    <div id="form_has_areas__container">
         <div id="form:has-areas__entry_1">
             <input type="hidden" name="rdf:type__1" value="form:Area">
-            <input type="text" id="form_label__1" name="form:label__1" value="" required="required">
-            <input type="text" id="form_comment__1" name="form:comment__1" value="" required="required">
+            <br/><input type="text" id="form_label__1" name="form:label__1" value="" required="required">
+            <br/><input type="text" id="form_comment__1" name="form:comment__1" value="" required="required">
         </div>
     </div>
     <input type="hidden" name="form_has_areas__number"/>
@@ -65,22 +65,22 @@ class FormTest extends UnitTestCase
 </form>
 
 <script type="text/javascript">
-    var number_of_form_has_areas = 1;
+    var form_has_areas__number = 1;
     $(document).ready(function(){
         /*
          * dynamically add further area fields
          */
-        $("#form_has_areas").on("click", function(){
-            ++number_of_form_has_areas;
+        $("#form_has_areas"__btn).on("click", function(){
+            ++form_has_areas__number;
 
-            $("#form_has_areas__btn").append(`
+            $("#form_has_areas__container").append(`
                 <br/>
         <div id="form:has-areas__entry_1">
             <input type="hidden" name="rdf:type__1" value="form:Area">
-            <input type="text" id="form_label__1" name="form:label__1" value="" required="required">
-            <input type="text" id="form_comment__1" name="form:comment__1" value="" required="required">
+            <br/><input type="text" id="form_label__1" name="form:label__1" value="" required="required">
+            <br/><input type="text" id="form_comment__1" name="form:comment__1" value="" required="required">
         </div>
-            `.replace("_entry_1", "_entry_" + number_of_form_has_areas));
+            `.replace("_entry_1", "_entry_" + form_has_areas__number));
 
             $("#form_has_areas__number").val(form_has_areas__number);
         });

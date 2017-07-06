@@ -99,7 +99,10 @@ class FormTest extends UnitTestCase
             <br/>
             <input type="text" id="form_comment__1" name="form:comment__1" value="" required="required">
         </div>
-            `.replace("_entry_1", "_entry_" + form_has_areas__number));
+                `
+                .replace(/_entry_(\d)/g, "_entry_" + backmodel_has_areas__number)
+                .replace(/__\d"/g, "__" + backmodel_has_areas__number + "\"")
+            );
 
             $("#form_has_areas__number").val(form_has_areas__number);
         });

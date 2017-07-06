@@ -190,7 +190,10 @@ class Form
 
             $("#'. $id .'__container").append(`
                 <br/>'. PHP_EOL . $subFormHTML .'
-            `.replace("_entry_1", "_entry_" + '. $id .'__number));
+                `
+                .replace(/_entry_(\d)/g, "_entry_" + backmodel_has_areas__number)
+                .replace(/__\d"/g, "__" + backmodel_has_areas__number + "\"")
+            );
 
             $("#'. $id .'__number").val('. $id .'__number);
         });

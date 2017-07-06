@@ -222,7 +222,12 @@ class Form
 
             // TODO add title helper here
             if (isset($blank['rdfs:label'])) {
-                $html = '<label for="'. $id .'">'. $blank['rdfs:label'][0] .'</label>';
+                if (is_array($blank['rdfs:label'])) {
+                    $label = $blank['rdfs:label'][0];
+                } else {
+                    $label = $blank['rdfs:label'];
+                }
+                $html = '<label for="'. $id .'">'. $label .'</label>';
                 $html .= PHP_EOL . $spacesBefore;
             }
         }

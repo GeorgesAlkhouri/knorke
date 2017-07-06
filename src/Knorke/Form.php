@@ -47,6 +47,10 @@ class Form
         return implode(' ', $fromGraphList);
     }
 
+    /**
+     * @paraam string $id
+     * @paraam string $label
+     */
     protected function generateButton(string $id, string $label)
     {
         return '<button class="btn btn-primary" id="'. $id .'__btn" type="button">'. $label .'</button>';
@@ -151,6 +155,10 @@ class Form
         }
 
         if (!$this->rdfHelpers->simpleCheckUri($parentTypeUri)) {
+            // add submit button
+            $html .= PHP_EOL . PHP_EOL . $spacesBefore;
+            $html .= '<button class="btn btn-primary" type="submit">Submit</button>';
+
             $html .= PHP_EOL . '</form>';
         } else {
             $html .= PHP_EOL . substr($spacesBefore, 4) . '</div>';

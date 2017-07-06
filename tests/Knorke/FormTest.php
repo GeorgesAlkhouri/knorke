@@ -73,6 +73,8 @@ class FormTest extends UnitTestCase
     </div>
     <input type="hidden" name="form_has_areas__number" value="1"/>
     <button class="btn btn-primary" id="form_has_areas__btn" type="button">Add</button>
+
+    <button class="btn btn-primary" type="submit">Submit</button>
 </form>
 
 

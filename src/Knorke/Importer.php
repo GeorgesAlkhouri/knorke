@@ -87,6 +87,7 @@ class Importer
     /**
      * @param string $value
      * @return Node
+     * @throws \Exception if blank node was given.
      */
     protected function getNodeForGivenValue(string $value) : Node
     {
@@ -96,7 +97,7 @@ class Importer
 
         // blank node
         } elseif ($this->rdfHelpers->simpleCheckBlankNodeId($value)) {
-            return $this->nodeFactory->createBlankNode(substr($value, 2));
+            throw new \Exception('Blank nodes are not supported anymore: ' . $value);
 
         // literal
         } else {
@@ -189,65 +190,196 @@ class Importer
     }
 
     /**
+     * @param array $array
+     */
+    protected function isStringList(array $array) : bool
+    {
+        foreach ($array as $value) {
+            if (false === is_string($value)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns true, if given $array contains at least 1 resource array.
+     *
+     * @param array $array
+     */
+    protected function isMixedListOfStringsOrResourceArrays(array $array) : bool
+    {
+        foreach ($array as $value) {
+            if (is_string($value) ) {
+                // OK
+            } elseif (isset($value['_idUri'])) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @param NodeNamed|BlankNode $startResource
      * @param array $array
      * @return array
      */
     public function transformPhpArrayToStatementArray(Node $startResource, array $array) : array
     {
-        if (0 == count($array)) {
-            throw new KnorkeException('Parameter $array is empty.');
-        }
-
         if (false == $startResource->isNamed() && false == $startResource->isBlank()) {
             throw new KnorkeException('Parameter $startResource needs to be of type NamedNode or BlankNode.');
         }
 
         $result = array();
 
-        foreach ($array as $uri => $value) {
-            if ($this->rdfHelpers->simpleCheckUri($uri)) {
-                $extendedUri = $this->commonNamespaces->extendUri($uri);
-            } else {
-                throw new KnorkeException('Array key needs to be an URI: '. $uri);
-            }
+        /*
+            example $array given as parameter:
 
-            if (is_array($value)) {
-                // assume array with key-value pairs
-                if (is_string(array_keys($value)[0])) {
-                    // $referenceNode = $this->nodeFactory->createBlankNode(hash('sha256', time() . rand(0, 1000)));
-                    $referenceNode = $this->nodeFactory->createNamedNode('bn://' . hash('sha256', microtime() . rand(0, 1000)));
+            array(
+                'http://1/' => 'http://1/2',
+                'http://2/' => array(
+                    0 => 'http://2/1',
+                    'http://2/2',
+                ),
+                'http://3/' => array(
+                    // resource 1
+                    'http://3/1',
 
+                    // resource in list with properties and objects
+                    array(
+                        '_idUri' => 'http://3/2',
+                        'http://3/3' => array (
+                            // should force function to use this URI instead of a generated one
+                            '_idUri' => 'http://3/4',
+                            'http://3/5' => 'http://3/6'
+                        )
+                    )
+                ),
+                'http://4/' => array(
+                    '_idUri' => 'http://4/1',
+                    'http://4/2' => 'http://4/3',
+                ),
+            )
+         */
+        foreach ($array as $propertyOfStartResource => $value) {
+            /*
+                $array = array(
+                    'http://foobar/' => ...
+                )
+             */
+            if ($this->rdfHelpers->simpleCheckUri($propertyOfStartResource)) {
+                /*
+                    array(
+                        'http://1/' => 'http://1/2',
+                 */
+                if (is_string($value)) {
                     $result[] = $this->statementFactory->createStatement(
                         $startResource,
-                        $this->nodeFactory->createNamedNode($extendedUri),
-                        $referenceNode
+                        $this->nodeFactory->createNamedNode($propertyOfStartResource),
+                        $this->getNodeForGivenValue($value)
                     );
 
-                    $result = array_merge($this->transformPhpArrayToStatementArray($referenceNode, $value), $result);
+                /*
+                    $value = array(
+                        '_idUri' => 'http://id/uri/',
+                        ...
+                    )
+                 */
+                } elseif (isset($value['_idUri'])) {
+                    // connect startResource with sub resource
+                    $result[] = $this->statementFactory->createStatement(
+                        $startResource,
+                        $this->nodeFactory->createNamedNode($propertyOfStartResource),
+                        $this->getNodeForGivenValue($value['_idUri'])
+                    );
 
-                // assume array of array
-                } else {
-                    foreach ($value as $entry) {
-                        // $referenceNode = $this->nodeFactory->createBlankNode(hash('sha256', time() . rand(0, 1000)));
-                        $referenceNode = $this->nodeFactory->createNamedNode('bn://' . hash('sha256', microtime() . rand(0, 1000)));
+                    $valueCopy = $value;
+                    unset($valueCopy['_idUri']);
 
+                    $result = array_merge(
+                        $this->transformPhpArrayToStatementArray(
+                            $this->nodeFactory->createNamedNode($value['_idUri']),
+                            $valueCopy
+                        ),
+                        $result
+                    );
+
+                /*
+                    'http://2/' => array(
+                        0 => 'http://2/1',
+                        'http://2/2',
+                    ),
+                 */
+                } elseif (is_array($value) && $this->isStringList($value)) {
+                    foreach ($value as $string) {
                         $result[] = $this->statementFactory->createStatement(
                             $startResource,
-                            $this->nodeFactory->createNamedNode($extendedUri),
-                            $referenceNode
+                            $this->nodeFactory->createNamedNode($propertyOfStartResource),
+                            $this->getNodeForGivenValue($string)
                         );
+                    }
 
-                        $result = array_merge($this->transformPhpArrayToStatementArray($referenceNode, $entry), $result);
+                /*
+                    'http://3/' => array(
+                        'http://3/1',
+                        array(
+                            '_idUri' => 'http://3/2',
+                            ...
+                        )
+                    ),
+                 */
+                } elseif (is_array($value) && $this->isMixedListOfStringsOrResourceArrays($value)) {
+                    foreach ($value as $entry) {
+                        // e.g. 'http://3/1',
+                        if (is_string($entry)) {
+                            $result[] = $this->statementFactory->createStatement(
+                                $startResource,
+                                $this->nodeFactory->createNamedNode($propertyOfStartResource),
+                                $this->getNodeForGivenValue($entry)
+                            );
+
+                        /*
+                            $entry = array(
+                                '_idUri' => 'http://3/2',
+                                ...
+                         */
+                        } else {
+                            // create connection between start resource and sub resource (via _idUri)
+                            $result[] = $this->statementFactory->createStatement(
+                                $startResource,
+                                $this->nodeFactory->createNamedNode($propertyOfStartResource),
+                                $this->nodeFactory->createNamedNode($entry['_idUri'])
+                            );
+
+                            // recursive call of transformPhpArrayToStatementArray
+                            $entryCopyWithoutIdUri = $entry;
+                            unset($entryCopyWithoutIdUri['_idUri']);
+                            $result = array_merge(
+                                $this->transformPhpArrayToStatementArray(
+                                    $this->nodeFactory->createNamedNode($entry['_idUri']),
+                                    $entryCopyWithoutIdUri
+                                ),
+                                $result
+                            );
+                        }
                     }
                 }
 
-            } else {
-                $result[] = $this->statementFactory->createStatement(
-                    $startResource,
-                    $this->nodeFactory->createNamedNode($extendedUri),
-                    $this->getNodeForGivenValue($value)
-                );
+            /*
+                array(
+                    ...
+                    array(
+                        '_idUri' => 'http://9',
+                        'http://10' => 'http://11'
+                    )
+                )
+             */
+            } elseif (is_array($value) && isset($value['_idUri'])) {
+                throw new KnorkeException('Missing property, because $key is not an URI: '. $propertyOfStartResource);
             }
         }
 

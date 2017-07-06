@@ -3,6 +3,7 @@
 namespace Tests\Knorke;
 
 use Knorke\Importer;
+use Knorke\Exception\KnorkeException;
 use Saft\Sparql\Result\SetResultImpl;
 
 class ImporterTest extends UnitTestCase
@@ -55,25 +56,24 @@ class ImporterTest extends UnitTestCase
 
         $this->fixture->importDataValidationArray(
             array(
-                'rdf:type' => 'foo:User',
-                'foo:has-rights' => array(
+                'http://1' => 'http://2',           // x
+                'http://3' => array(
                     array(
-                        'rdfs:label' => 'foo',
-                        'foo:knows' => array(
-                            'http://rdf/type' => 'http://foaf/Person'
-                        )
+                        '_idUri' => 'http://4',     // x
+                        'http://5' => '6',          // x
+                        'http://7' => 'http://8'    // x
                     ),
-                    array(
-                        'rdfs:label' => 'bar',
-                        'foo:a-number' => 43
-                    )
+                ),
+                'http://9' => array(
+                    '_idUri' => 'http://10',
+                    'http://11' => 'http://12'
                 )
             ),
             $startResource,
             $this->testGraph
         );
 
-        $this->assertCountStatementIterator(8, $this->store->query($selectAll));
+        $this->assertCountStatementIterator(6, $this->store->query($selectAll));
 
         // get referenced blank node
         $result = $this->store->query('SELECT * FROM <'. $this->testGraph .'> WHERE {<'.$startResource.'> ?p ?o.}');
@@ -87,47 +87,34 @@ class ImporterTest extends UnitTestCase
         $expectedResult = new SetResultImpl(array(
             array(
                 's' => $startResource,
-                'p' => $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('rdf') .'type'),
-                'o' => $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('foo') .'User')
+                'p' => $this->nodeFactory->createNamedNode('http://1'),
+                'o' => $this->nodeFactory->createNamedNode('http://2'),
             ),
-                // has-rights entry 1
-                array(
-                    's' => $startResource,
-                    'p' => $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('foo') .'has-rights'),
-                    'o' => $blankNode1
-                ),
-                array(
-                    's' => $blankNode1,
-                    'p' => $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('rdfs') .'label'),
-                    'o' => $this->nodeFactory->createLiteral('foo')
-                ),
-                array(
-                    's' => $blankNode1,
-                    'p' => $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('foo') .'knows'),
-                    'o' => $blankNode3
-                ),
-                    // sub reference
-                    array(
-                        's' => $blankNode3,
-                        'p' => $this->nodeFactory->createNamedNode('http://rdf/type'),
-                        'o' => $this->nodeFactory->createNamedNode('http://foaf/Person')
-                    ),
-                // has-rights entry 2
-                array(
-                    's' => $startResource,
-                    'p' => $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('foo') .'has-rights'),
-                    'o' => $blankNode2
-                ),
-                array(
-                    's' => $blankNode2,
-                    'p' => $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('rdfs') .'label'),
-                    'o' => $this->nodeFactory->createLiteral('bar')
-                ),
-                array(
-                    's' => $blankNode2,
-                    'p' => $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('foo') .'a-number'),
-                    'o' => $this->nodeFactory->createLiteral('43')
-                ),
+            array(
+                's' => $startResource,
+                'p' => $this->nodeFactory->createNamedNode('http://3'),
+                'o' => $this->nodeFactory->createNamedNode('http://4'),
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://4'),
+                'p' => $this->nodeFactory->createNamedNode('http://5'),
+                'o' => $this->nodeFactory->createLiteral('6'),
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://4'),
+                'p' => $this->nodeFactory->createNamedNode('http://7'),
+                'o' => $this->nodeFactory->createNamedNode('http://8'),
+            ),
+            array(
+                's' => $startResource,
+                'p' => $this->nodeFactory->createNamedNode('http://9'),
+                'o' => $this->nodeFactory->createNamedNode('http://10'),
+            ),
+            array(
+                's' => $this->nodeFactory->createNamedNode('http://10'),
+                'p' => $this->nodeFactory->createNamedNode('http://11'),
+                'o' => $this->nodeFactory->createNamedNode('http://12'),
+            ),
         ));
         $expectedResult->setVariables(array('s', 'p', 'o'));
 
@@ -135,13 +122,6 @@ class ImporterTest extends UnitTestCase
             $expectedResult,
             $this->store->query($selectAll)
         );
-    }
-
-    public function testImportDataValidationArrayEmptyArrayAsParameter()
-    {
-        $this->expectException('\Knorke\Exception\KnorkeException');
-
-        $this->fixture->importDataValidationArray(array(), $this->testGraph, $this->testGraph);
     }
 
     /*
@@ -153,100 +133,97 @@ class ImporterTest extends UnitTestCase
         $result = $this->fixture->transformPhpArrayToStatementArray(
             $this->testGraph,
             array(
-                'http://foo/' => 'http://foo/Person',
-                'http://foo/1' => array(
+                'http://1' => 'http://2',
+                'http://3' => array(
+                    0 => 'http://4',
+                    'http://5',
+                ),
+                'http://6' => array(
+                    // resource 1
+                    'http://7',
+
+                    // resource in list with properties and objects
                     array(
-                        'http://bar/1' => 'http://baz/1',
-                        'http://bar/2' => 'http://baz/1',
-                        'http://bar/3' => 'literal1'
-                    ),
-                    array(
-                        'http://bar/4' => 'http://baz/2',
-                        'http://bar/5' => 'http://baz/2',
-                        'http://bar/6' => 'literal2'
+                        '_idUri' => 'http://8',
+                        'http://9' => array (
+                            // should force function to use this URI instead of a generated one
+                            '_idUri' => 'http://10',
+                            'http://11' => 'http://12'
+                        )
                     )
                 ),
-                'http://foo/2' => array(
-                    'http://bar/7' => 'http://baz/3',
-                    'http://bar/8' => 'http://baz/3',
-                    'http://bar/9' => 'literal3'
+                'http://13' => array(
+                    '_idUri' => 'http://14',
+                    'http://15' => '16',
                 ),
             )
         );
 
         $this->assertEquals(
             array(
-                // block 1
                 $this->statementFactory->createStatement(
-                    $result[0]->getSubject(),
-                    $this->nodeFactory->createNamedNode('http://bar/7'),
-                    $this->nodeFactory->createNamedNode('http://baz/3')
+                    $this->nodeFactory->createNamedNode('http://14'),
+                    $this->nodeFactory->createNamedNode('http://15'),
+                    $this->nodeFactory->createLiteral('16')
                 ),
                 $this->statementFactory->createStatement(
-                    $result[0]->getSubject(),
-                    $this->nodeFactory->createNamedNode('http://bar/8'),
-                    $this->nodeFactory->createNamedNode('http://baz/3')
+                    $this->nodeFactory->createNamedNode('http://10'),
+                    $this->nodeFactory->createNamedNode('http://11'),
+                    $this->nodeFactory->createNamedNode('http://12')
                 ),
                 $this->statementFactory->createStatement(
-                    $result[0]->getSubject(),
-                    $this->nodeFactory->createNamedNode('http://bar/9'),
-                    $this->nodeFactory->createLiteral('literal3')
-                ),
-                // block 2
-                $this->statementFactory->createStatement(
-                    $result[4]->getSubject(),
-                    $this->nodeFactory->createNamedNode('http://bar/4'),
-                    $this->nodeFactory->createNamedNode('http://baz/2')
-                ),
-                $this->statementFactory->createStatement(
-                    $result[4]->getSubject(),
-                    $this->nodeFactory->createNamedNode('http://bar/5'),
-                    $this->nodeFactory->createNamedNode('http://baz/2')
-                ),
-                $this->statementFactory->createStatement(
-                    $result[4]->getSubject(),
-                    $this->nodeFactory->createNamedNode('http://bar/6'),
-                    $this->nodeFactory->createLiteral('literal2')
-                ),
-                // block 3
-                $this->statementFactory->createStatement(
-                    $result[6]->getSubject(),
-                    $this->nodeFactory->createNamedNode('http://bar/1'),
-                    $this->nodeFactory->createNamedNode('http://baz/1')
-                ),
-                $this->statementFactory->createStatement(
-                    $result[6]->getSubject(),
-                    $this->nodeFactory->createNamedNode('http://bar/2'),
-                    $this->nodeFactory->createNamedNode('http://baz/1')
-                ),
-                $this->statementFactory->createStatement(
-                    $result[6]->getSubject(),
-                    $this->nodeFactory->createNamedNode('http://bar/3'),
-                    $this->nodeFactory->createLiteral('literal1')
-                ),
-                // block 4
-                $this->statementFactory->createStatement(
-                    $this->testGraph,
-                    $this->nodeFactory->createNamedNode('http://foo/'),
-                    $this->nodeFactory->createNamedNode('http://foo/Person')
+                    $this->nodeFactory->createNamedNode('http://8'),
+                    $this->nodeFactory->createNamedNode('http://9'),
+                    $this->nodeFactory->createNamedNode('http://10')
                 ),
                 $this->statementFactory->createStatement(
                     $this->testGraph,
-                    $this->nodeFactory->createNamedNode('http://foo/1'),
-                    $result[6]->getSubject()
+                    $this->nodeFactory->createNamedNode('http://1'),
+                    $this->nodeFactory->createNamedNode('http://2')
                 ),
                 $this->statementFactory->createStatement(
                     $this->testGraph,
-                    $this->nodeFactory->createNamedNode('http://foo/1'),
-                    $result[4]->getSubject()
+                    $this->nodeFactory->createNamedNode('http://3'),
+                    $this->nodeFactory->createNamedNode('http://4')
                 ),
                 $this->statementFactory->createStatement(
                     $this->testGraph,
-                    $this->nodeFactory->createNamedNode('http://foo/2'),
-                    $result[0]->getSubject()
+                    $this->nodeFactory->createNamedNode('http://3'),
+                    $this->nodeFactory->createNamedNode('http://5')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->testGraph,
+                    $this->nodeFactory->createNamedNode('http://6'),
+                    $this->nodeFactory->createNamedNode('http://7')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->testGraph,
+                    $this->nodeFactory->createNamedNode('http://6'),
+                    $this->nodeFactory->createNamedNode('http://8')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->testGraph,
+                    $this->nodeFactory->createNamedNode('http://13'),
+                    $this->nodeFactory->createNamedNode('http://14')
                 ),
             ),
             $result
+        );
+    }
+
+    // test that exception is thrown for sub resource array, which has no valid property
+    public function testTransformPhpArrayToStatementArrayCheckForSubResourceException()
+    {
+        $this->expectException('Knorke\Exception\KnorkeException');
+
+        $result = $this->fixture->transformPhpArrayToStatementArray(
+            $this->testGraph,
+            array(
+                /* a property URI is missing here */array(
+                    '_idUri' => 'http://9',
+                    'http://10' => 'http://11'
+                )
+            )
         );
     }
 }

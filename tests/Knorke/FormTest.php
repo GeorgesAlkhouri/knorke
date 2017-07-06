@@ -49,7 +49,7 @@ class FormTest extends UnitTestCase
         $this->commonNamespaces->add('form', 'http://form/');
 
         $this->assertEquals(
-'<form action="   " method="post">
+'<form action="" method="post">
     <input type="hidden" name="rdf:type" value="form:Event">
     <br/><label for="form_located_in">Findet statt in</label>
     <input type="text" id="form_located_in" name="form:located-in" value="" required="required">
@@ -64,13 +64,14 @@ class FormTest extends UnitTestCase
     <button class="btn btn-primary" id="form_has_areas__btn" type="button">Add</button>
 </form>
 
+
 <script type="text/javascript">
     var form_has_areas__number = 1;
     $(document).ready(function(){
         /*
          * dynamically add further area fields
          */
-        $("#form_has_areas"__btn).on("click", function(){
+        $("#form_has_areas__btn").on("click", function(){
             ++form_has_areas__number;
 
             $("#form_has_areas__container").append(`

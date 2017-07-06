@@ -96,7 +96,7 @@ class Form
 
         // no parent type given, add form head
         if (!$this->rdfHelpers->simpleCheckUri($parentTypeUri)) {
-            $html = '<form action="   " method="post">';
+            $html = '<form action="" method="post">';
 
         // if given, put div container around properties
         } else {
@@ -168,14 +168,14 @@ class Form
      */
     protected function generateJavascriptForSubResources(string $id, string $subFormHTML, int $number = 1)
     {
-        return
-'<script type="text/javascript">
+        return '
+<script type="text/javascript">
     var '. $id .'__number = 1;
     $(document).ready(function(){
         /*
          * dynamically add further area fields
          */
-        $("#'. $id .'"__btn).on("click", function(){
+        $("#'. $id .'__btn").on("click", function(){
             ++'. $id .'__number;
 
             $("#'. $id .'__container").append(`

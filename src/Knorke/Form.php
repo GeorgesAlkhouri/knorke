@@ -137,7 +137,8 @@ class Form
 
                 $html .= PHP_EOL . $spacesBefore . '</div>';
 
-                $html .= PHP_EOL . $spacesBefore . '<input type="hidden" name="'. $propId .'__number" value="1"/>';
+                $html .= PHP_EOL . $spacesBefore;
+                $html .= '<input type="hidden" id="'. $propId .'__number" name="'. $propertyUri .'__number" value="1"/>';
 
                 // button to add more
                 $html .= PHP_EOL . $spacesBefore . $this->generateButton($propId, 'Add');

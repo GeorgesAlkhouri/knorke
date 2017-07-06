@@ -71,7 +71,7 @@ class FormTest extends UnitTestCase
             <input type="text" id="form_comment__1" name="form:comment__1" value="" required="required">
         </div>
     </div>
-    <input type="hidden" name="form_has_areas__number" value="1"/>
+    <input type="hidden" id="form_has_areas__number" name="form:has-areas__number" value="1"/>
     <button class="btn btn-primary" id="form_has_areas__btn" type="button">Add</button>
 
     <button class="btn btn-primary" type="submit">Submit</button>

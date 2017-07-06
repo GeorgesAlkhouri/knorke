@@ -238,7 +238,11 @@ class Form
                     $label = $blank['rdfs:label'];
                 }
                 $html = '<label for="'. $id .'">'. $label .'</label>';
-                $html .= PHP_EOL . $spacesBefore . '    ';
+                $html .= PHP_EOL . $spacesBefore;
+
+                if (1 < $level) {
+                     $html .= '    ';
+                }
             }
         }
 

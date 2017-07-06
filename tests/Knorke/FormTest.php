@@ -57,7 +57,7 @@ class FormTest extends UnitTestCase
 
     <br/>
     <label for="form_located_in">Findet statt in</label>
-        <input type="text" id="form_located_in" name="form:located-in" value="" required="required">
+    <input type="text" id="form_located_in" name="form:located-in" value="" required="required">
 
     <div id="form_has_areas__container">
         <div id="form:has-areas__entry_1">

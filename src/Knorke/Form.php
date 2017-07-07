@@ -515,7 +515,7 @@ class Form
 
                 // for each sub entry
                 $numberOfSubEntries = $formInput[$propertyUri . '__number'];
-                for ($subEntryIndex = 1; $subEntryIndex <= $numberOfSubEntries; ++$subEntryIndex) {
+                for ($subEntryIndex = 0; $subEntryIndex < $numberOfSubEntries; ++$subEntryIndex) {
                     foreach ($properties as $blank) {
                         // e.g. $formInput['foo:Area__foo:label__1']
                         $reducedFormInput[$blank['_idUri']]

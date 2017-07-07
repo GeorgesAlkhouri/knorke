@@ -468,6 +468,14 @@ class Form
                         "foo:type1__foo:label__1"  => "area1"
                         "foo:has-x__number"        => "1"
 
+                            -- or --
+
+                    array(
+                        "foo:has-x__type"          => "foo:type2"
+                        "foo:type1____idUri__1"    => "http://area/1"
+                        "foo:type1__foo:label__1"  => "area1"
+                        "foo:has-x__number"        => "1"
+
                     to objective is to remove prefixes (e.g. foo:has-x) and call this function
                     with adapted values again and merge result later on.
                  */
@@ -475,9 +483,12 @@ class Form
 
                 // put reduction into a seperate function
                 $reducedFormInput = array(
-                    '__type'        => $formInput[$propertyUri . '__type'],
-                    '__uriSchema'   => $formInput[$propertyUri . '__uriSchema']
+                    '__type'        => $formInput[$propertyUri . '__type']
                 );
+
+                if (isset($formInput[$propertyUri . '__uriSchema'])) {
+                    $reducedFormInput['__uriSchema'] = $formInput[$propertyUri . '__uriSchema'];
+                }
 
                 $subPropertyBlank = $this->dataBlankHelper->load($reducedFormInput['__type']);
 
@@ -509,6 +520,11 @@ class Form
                         // e.g. $formInput['foo:Area__foo:label__1']
                         $reducedFormInput[$blank['_idUri']]
                             = $formInput[$reducedFormInput['__type'] .'__'. $blank['_idUri'] .'__'. $subEntryIndex];
+                    }
+
+                    // add __idUri information, if available
+                    if (isset($formInput[$reducedFormInput['__type'] .'____idUri__'. $subEntryIndex])) {
+                        $reducedFormInput['__idUri'] = $formInput[$reducedFormInput['__type'] .'____idUri__'. $subEntryIndex];
                     }
 
                     /*

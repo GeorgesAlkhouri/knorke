@@ -301,8 +301,9 @@ class FormTest extends UnitTestCase
             'foo:label'                 => 'label',
             // from a sub formular, which contains data for resources of type foo:type2
             'foo:has-type2__type'       => 'foo:type2',
-            'foo:has-type2__uriSchema'  => '%root-uri%area/?foo:label?',
+            'foo:type2____idUri__1'     => 'http://area/1',
             'foo:type2__foo:label__1'   => 'area1',
+            'foo:type2____idUri__2'     => 'http://area/2',
             'foo:type2__foo:label__2'   => 'area2',
             'foo:has-type2__number'     => '2',
         );
@@ -316,11 +317,11 @@ class FormTest extends UnitTestCase
                 'foo:label'         => 'label',
                 'foo:has-type2'     => array(
                     array(
-                        '_idUri'    => 'http://existing/resource/area/area1',
+                        '_idUri'    => 'http://area/1',
                         'foo:label' => 'area1'
                     ),
                     array(
-                        '_idUri'    => 'http://existing/resource/area/area2',
+                        '_idUri'    => 'http://area/2',
                         'foo:label' => 'area2'
                     ),
                 )

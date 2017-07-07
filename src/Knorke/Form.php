@@ -102,7 +102,12 @@ class Form
         if (!$this->rdfHelpers->simpleCheckUri($parentTypeUri)) {
             $html = '<form action="" method="post">';
 
-        // if given, put div container around properties
+            // type info
+            $html .= PHP_EOL . $spacesBefore . '<input type="hidden" name="_type" value="'. $typeUri .'">';
+            $html .= PHP_EOL . $spacesBefore . '<input type="hidden" name="_uriSchema" value="">';
+
+
+        // if parent type given, put div container around properties
         } else {
             $html = $spacesBefore;
             $html .= '<div id="'. $propertyUri .'__entry_'. ($level-1) .'">';
@@ -111,24 +116,28 @@ class Form
             $suffix = '__' . ($level-1);
         }
 
-        // type info
-        $html .= PHP_EOL . $spacesBefore . '<input type="hidden" name="rdf:type'. $suffix .'" value="'. $typeUri .'">';
-
         // go through required properties
         foreach ($typeHasToHaveProperties as $propertyUri) {
             $propertyBlank = $this->dataBlankHelper->load($propertyUri);
 
             // handle restriction-reference-is-of-type on a property
             if (isset($propertyBlank['kno:restriction-reference-is-of-type'])) {
-                $propId = $this->getHtmlFriendlyUri($propertyUri);
 
-                $html .= PHP_EOL . PHP_EOL . $spacesBefore . '<div id="'. $propId .'__container">';
+                $propId = $this->getHtmlFriendlyUri($propertyUri);
+                $referenceTypeUri = $propertyBlank['kno:restriction-reference-is-of-type']['_idUri'];
+
+                $html .= PHP_EOL . PHP_EOL . $spacesBefore;
+                $html .= '<div id="'. $propId .'__container">';
+
+                // type info and uri schema for elements of the sub form
+                $html .= PHP_EOL . $spacesBefore . '    <input type="hidden" name="'. $propertyUri .'__type" value="'. $referenceTypeUri .'">';
+                $html .= PHP_EOL . $spacesBefore . '    <input type="hidden" name="'. $propertyUri .'__uriSchema" value="">';
 
                 /*
                  * add sub form
                  */
                 $subForm = $this->generateFormFor(
-                    $propertyBlank['kno:restriction-reference-is-of-type']['_idUri'],
+                    $referenceTypeUri,
                     $propertyUri,
                     $typeUri,
                     $level+1
@@ -158,7 +167,8 @@ class Form
         if (!$this->rdfHelpers->simpleCheckUri($parentTypeUri)) {
             // add submit button
             $html .= PHP_EOL . PHP_EOL . $spacesBefore;
-            $html .= '<button class="btn btn-primary" type="submit">Submit</button>';
+            $html .= '<br/><br/>' . PHP_EOL;
+            $html .= $spacesBefore . '<button class="btn btn-primary" type="submit">Submit</button>';
 
             $html .= PHP_EOL . '</form>';
         } else {
@@ -183,7 +193,7 @@ class Form
     var '. $id .'__number = 1;
     $(document).ready(function(){
         /*
-         * dynamically add further area fields
+         * dynamically add further fields to #'. $id .'__container
          */
         $("#'. $id .'__btn").on("click", function(){
             ++'. $id .'__number;

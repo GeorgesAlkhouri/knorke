@@ -51,17 +51,21 @@ class FormTest extends UnitTestCase
 
         $this->commonNamespaces->add('form', 'http://form/');
 
+        // echo PHP_EOL . PHP_EOL . $this->fixture->generateFormFor('form:Event'); return;
+
         $this->assertEquals(
 '<form action="" method="post">
-    <input type="hidden" name="rdf:type" value="form:Event">
+    <input type="hidden" name="_type" value="form:Event">
+    <input type="hidden" name="_uriSchema" value="">
 
     <br/>
     <label for="form_located_in">Findet statt in</label>
     <input type="text" id="form_located_in" name="form:located-in" value="" required="required">
 
     <div id="form_has_areas__container">
+        <input type="hidden" name="form:has-areas__type" value="form:Area">
+        <input type="hidden" name="form:has-areas__uriSchema" value="">
         <div id="form:has-areas__entry_1">
-            <input type="hidden" name="rdf:type__1" value="form:Area">
 
             <br/>
             <label for="rdfs_label__1">Title</label>
@@ -74,6 +78,7 @@ class FormTest extends UnitTestCase
     <input type="hidden" id="form_has_areas__number" name="form:has-areas__number" value="1"/>
     <button class="btn btn-primary" id="form_has_areas__btn" type="button">Add</button>
 
+    <br/><br/>
     <button class="btn btn-primary" type="submit">Submit</button>
 </form>
 
@@ -82,7 +87,7 @@ class FormTest extends UnitTestCase
     var form_has_areas__number = 1;
     $(document).ready(function(){
         /*
-         * dynamically add further area fields
+         * dynamically add further fields to #form_has_areas__container
          */
         $("#form_has_areas__btn").on("click", function(){
             ++form_has_areas__number;
@@ -90,7 +95,6 @@ class FormTest extends UnitTestCase
             $("#form_has_areas__container").append(`
                 <br/>
         <div id="form:has-areas__entry_1">
-            <input type="hidden" name="rdf:type__1" value="form:Area">
 
             <br/>
             <label for="rdfs_label__1">Title</label>

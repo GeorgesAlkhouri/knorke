@@ -317,10 +317,14 @@ class UnitTestCase extends TestCase
     /**
      * @param string $rdf
      * @param NamedNode $graph
-     * @param Store $store
+     * @param Store $store Optional, default null
      */
-    protected function importTurtle(string $rdf, NamedNode $graph, Store $store)
+    protected function importTurtle(string $rdf, NamedNode $graph, Store $store = null)
     {
+        if (null == $store) {
+            $store = $this->store;
+        }
+
         $importer = new Importer(
             $store,
             $this->parserFactory,

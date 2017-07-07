@@ -41,7 +41,7 @@ use Saft\Store\Store;
  *
  *      $blank['rdf:type'] = 'owl:Class';
  */
-class DataBlank implements \ArrayAccess, \Iterator
+class DataBlank implements \ArrayAccess, \Iterator, \Countable
 {
     /**
      * @var CommonNamespaces

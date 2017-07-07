@@ -379,6 +379,17 @@ class DataBlankTest extends UnitTestCase
     }
 
     /*
+     * Tests that datablank is instance of certain interfaces
+     */
+
+    public function testInstancesOf()
+    {
+        $this->assertTrue($this->fixture instanceof \ArrayAccess);
+        $this->assertTrue($this->fixture instanceof \Countable);
+        $this->assertTrue($this->fixture instanceof \Iterator);
+    }
+
+    /*
      * Tests for offsetExists
      */
 

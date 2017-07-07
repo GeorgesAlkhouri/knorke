@@ -270,10 +270,15 @@ class Form
 
     /**
      * Because rdfs:label sucks as ID in HTML, we need something like rdfs_label.
+     *
+     * @param string $uri
+     * @return string HTML friendly URI which can be used as name or ID for HTML DOM elements.
      */
     protected function getHtmlFriendlyUri(string $uri) : string
     {
-        return preg_replace('/\W+/', '_', $uri);
+        $uri = preg_replace('/\W+/', '_', $uri);
+        $uri = str_replace(' ', '_', $uri);
+        return $uri;
     }
 
     /**

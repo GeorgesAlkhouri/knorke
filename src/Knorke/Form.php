@@ -67,7 +67,7 @@ class Form
         }
 
         // if schema looks like %root-uri%/?rdfs:label?, replace root-uri placeholder
-        if ($this->rdfHelpers->simpleCheckUri($rootUri)) {
+        if ($this->rdfHelpers->simpleCheckUri($rootUri) || false !== strpos($schema, ':')) {
             $schema = str_replace('%root-uri%', $rootUri, $schema);
         }
 
@@ -86,7 +86,7 @@ class Form
 
         foreach ($placeholders as $value) {
             if (isset($rawFormInput[$value[0]])) {
-                $uri = str_replace('?'. $value[0] .'?', $rawFormInput[$value[0]], $uri);
+                $uri = str_replace('?'. $value[0] .'?', $this->getHtmlFriendlyIdentifier($rawFormInput[$value[0]]), $uri);
             } else {
                 throw new KnorkeException(
                     'Placeholder '. $value[0] .' could not be replaced in URI schema: ' . $schema
@@ -175,7 +175,7 @@ class Form
             if (isset($propertyBlank['kno:restriction-reference-is-of-type'])
                 && $level < 3) {
 
-                $propId = $this->getHtmlFriendlyUri($propertyUri);
+                $propId = $this->getHtmlFriendlyIdentifier($propertyUri);
                 $referenceTypeUri = $propertyBlank['kno:restriction-reference-is-of-type']['_idUri'];
 
                 $html .= PHP_EOL . PHP_EOL . $spacesBefore;
@@ -274,11 +274,9 @@ class Form
      * @param string $uri
      * @return string HTML friendly URI which can be used as name or ID for HTML DOM elements.
      */
-    protected function getHtmlFriendlyUri(string $uri) : string
+    protected function getHtmlFriendlyIdentifier(string $uri) : string
     {
-        $uri = preg_replace('/\W+/', '_', $uri);
-        $uri = str_replace(' ', '_', $uri);
-        return $uri;
+        return preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uri);
     }
 
     /**
@@ -301,10 +299,10 @@ class Form
         }
 
         if (null !== $typeUri) {
-            $id = $this->getHtmlFriendlyUri($typeUri) .'__'. $this->getHtmlFriendlyUri($propertyUri) . $suffix;
+            $id = $this->getHtmlFriendlyIdentifier($typeUri) .'__'. $this->getHtmlFriendlyIdentifier($propertyUri) . $suffix;
             $name = $typeUri .'__'. $propertyUri . $suffix;
         } else {
-            $id = $this->getHtmlFriendlyUri($propertyUri) . $suffix;
+            $id = $this->getHtmlFriendlyIdentifier($propertyUri) . $suffix;
             $name = $propertyUri . $suffix;
         }
 

@@ -100,10 +100,10 @@ class FormTest extends UnitTestCase
     <input type="hidden" name="__uriSchema" value="">
 
     <br/>
-    <label for="form_located_in">Findet statt in</label>
-    <input type="text" id="form_located_in" name="form:located-in" value="" required="required">
+    <label for="form_located-in">Findet statt in</label>
+    <input type="text" id="form_located-in" name="form:located-in" value="" required="required">
 
-    <div id="form_has_areas__container">
+    <div id="form_has-areas__container">
         <input type="hidden" name="form:has-areas__type" value="form:Area">
         <input type="hidden" name="form:has-areas__uriSchema" value="">
         <div id="form:has-areas__entry_1">
@@ -116,8 +116,8 @@ class FormTest extends UnitTestCase
             <input type="text" id="form_Area__form_comment__1" name="form:Area__form:comment__1" value="" required="required">
         </div>
     </div>
-    <input type="hidden" id="form_has_areas__number" name="form:has-areas__number" value="1"/>
-    <button class="btn btn-primary" id="form_has_areas__btn" type="button">Add</button>
+    <input type="hidden" id="form_has-areas__number" name="form:has-areas__number" value="1"/>
+    <button class="btn btn-primary" id="form_has-areas__btn" type="button">Add</button>
 
     <br/><br/>
     <button class="btn btn-primary" type="submit">Submit</button>
@@ -125,15 +125,15 @@ class FormTest extends UnitTestCase
 
 
 <script type="text/javascript">
-    var form_has_areas__number = 1;
+    var form_has-areas__number = 1;
     $(document).ready(function(){
         /*
-         * dynamically add further fields to #form_has_areas__container
+         * dynamically add further fields to #form_has-areas__container
          */
-        $("#form_has_areas__btn").on("click", function(){
-            ++form_has_areas__number;
+        $("#form_has-areas__btn").on("click", function(){
+            ++form_has-areas__number;
 
-            $("#form_has_areas__container").append(`
+            $("#form_has-areas__container").append(`
                 <br/>
         <div id="form:has-areas__entry_1">
 
@@ -149,7 +149,7 @@ class FormTest extends UnitTestCase
                 .replace(/__\d"/g, "__" + backmodel_has_areas__number + "\"")
             );
 
-            $("#form_has_areas__number").val(form_has_areas__number);
+            $("#form_has-areas__number").val(form_has-areas__number);
         });
     });
 </script>',

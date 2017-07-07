@@ -266,4 +266,66 @@ class FormTest extends UnitTestCase
             $res
         );
     }
+
+    public function testTransformParameterArrayToDataValidationArraySimulateSubFormExistingData()
+    {
+        /*
+         * prepare test data set
+         */
+        $this->commonNamespaces->add('foo', 'http://foo/');
+
+        $this->importTurtle('
+            @prefix foo: <'. $this->commonNamespaces->getUri('foo') .'> .
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+
+            foo:type1
+                kno:has-property foo:root-prop1 ;
+                kno:has-property foo:label ;
+                kno:has-property foo:has-type2 .
+
+            foo:type2
+                kno:has-property foo:label .
+
+            ',
+            $this->testGraph
+        );
+
+        /*
+         * set parameters for function to test
+         */
+        $typeUri = 'foo:type1';
+        $formInput = array(
+            '__idUri'                   => 'http://existing/resource/',
+            '__type'                    => 'foo:type1',
+            'foo:root-prop1'            => 'prop1',
+            'foo:label'                 => 'label',
+            // from a sub formular, which contains data for resources of type foo:type2
+            'foo:has-type2__type'       => 'foo:type2',
+            'foo:has-type2__uriSchema'  => '%root-uri%area/?foo:label?',
+            'foo:type2__foo:label__1'   => 'area1',
+            'foo:type2__foo:label__2'   => 'area2',
+            'foo:has-type2__number'     => '2',
+        );
+
+        $res = $this->fixture->transformParameterArrayToDataValidationArray($formInput, $typeUri);
+
+        $this->assertEquals(
+            array(
+                '_idUri'            => 'http://existing/resource/',
+                'foo:root-prop1'    => 'prop1',
+                'foo:label'         => 'label',
+                'foo:has-type2'     => array(
+                    array(
+                        '_idUri'    => 'http://existing/resource/area/area1',
+                        'foo:label' => 'area1'
+                    ),
+                    array(
+                        '_idUri'    => 'http://existing/resource/area/area2',
+                        'foo:label' => 'area2'
+                    ),
+                )
+            ),
+            $res
+        );
+    }
 }

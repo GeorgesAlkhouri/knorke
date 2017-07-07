@@ -395,7 +395,9 @@ class Form
             );
         }
 
-        if (false == isset($formInput['__uriSchema'])) {
+        if (isset($formInput['__idUri'])) {
+            // existing resource given
+        } elseif (false == isset($formInput['__uriSchema'])) {
             throw new KnorkeException(
                 'Field __uriSchema on root level of $formInput missing. I dont know the type of the root resource.'
             );
@@ -418,15 +420,19 @@ class Form
             throw new KnorkeException('$typeUri has no has-property properties: '. $typeUri);
         }
 
-        // set uri of root entry
-        $result = array(
-            '_idUri' => $this->buildUriByUriSchema(
+        if (false == isset($formInput['__idUri'])) {
+            $resourceUri = $this->buildUriByUriSchema(
                 $formInput['__uriSchema'],
                 $typeBlank,
                 $formInput,
                 $rootElementUri
-            )
-        );
+            );
+        } else {
+            $resourceUri = $formInput['__idUri'];
+        }
+
+        // set uri of root entry
+        $result = array('_idUri' => $resourceUri);
 
         $rootProperties = array();
         // property is directly accessible
@@ -467,8 +473,6 @@ class Form
                  */
                 // TODO check that all meta data are available in an extra function
 
-                $numberOfSubEntries = $formInput[$propertyUri . '__number'];
-
                 // put reduction into a seperate function
                 $reducedFormInput = array(
                     '__type'        => $formInput[$propertyUri . '__type'],
@@ -498,18 +502,30 @@ class Form
                     $properties = $subPropertyBlank['kno:has-property'];
                 }
 
+                // for each sub entry
+                $numberOfSubEntries = $formInput[$propertyUri . '__number'];
                 for ($subEntryIndex = 1; $subEntryIndex <= $numberOfSubEntries; ++$subEntryIndex) {
                     foreach ($properties as $blank) {
                         // e.g. $formInput['foo:Area__foo:label__1']
                         $reducedFormInput[$blank['_idUri']]
                             = $formInput[$reducedFormInput['__type'] .'__'. $blank['_idUri'] .'__'. $subEntryIndex];
                     }
-                }
 
-                $result[$propertyUri][] = $this->transformParameterArrayToDataValidationArray(
-                    $reducedFormInput,
-                    $result['_idUri']
-                );
+                    /*
+                        extends structures like:
+
+                        'foo:has-type2'     => array(
+                            array(
+                                '_idUri'    => 'http://existing/resource/area/area1',
+                                'foo:label' => 'area1'
+                            ),
+                            ...
+                     */
+                    $result[$propertyUri][] = $this->transformParameterArrayToDataValidationArray(
+                        $reducedFormInput,
+                        $result['_idUri']
+                    );
+                }
             }
         }
 

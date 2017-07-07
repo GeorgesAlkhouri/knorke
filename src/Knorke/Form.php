@@ -209,7 +209,12 @@ class Form
 
             } else {
                 $html .= PHP_EOL . PHP_EOL . $spacesBefore . '<br/>';
-                $html .= PHP_EOL . $spacesBefore . $this->getInputTextFor($propertyUri, '', $typeUri, $level);
+
+                if (1 == $level) {
+                    $html .= PHP_EOL . $spacesBefore . $this->getInputTextFor($propertyUri);
+                } else {
+                    $html .= PHP_EOL . $spacesBefore . $this->getInputTextFor($propertyUri, '', $typeUri, $level);
+                }
             }
 
             // TODO kno:restriction-one-of as select?
@@ -268,7 +273,7 @@ class Form
      */
     protected function getHtmlFriendlyUri(string $uri) : string
     {
-        return preg_replace('/\W+/', '_', strtolower($uri));
+        return preg_replace('/\W+/', '_', $uri);
     }
 
     /**
@@ -290,8 +295,13 @@ class Form
             $suffix = '__'. ($level-1);
         }
 
-        $id = $this->getHtmlFriendlyUri($typeUri) .'__'. $this->getHtmlFriendlyUri($propertyUri) . $suffix;
-        $name = $typeUri .'__'. $propertyUri . $suffix;
+        if (null !== $typeUri) {
+            $id = $this->getHtmlFriendlyUri($typeUri) .'__'. $this->getHtmlFriendlyUri($propertyUri) . $suffix;
+            $name = $typeUri .'__'. $propertyUri . $suffix;
+        } else {
+            $id = $this->getHtmlFriendlyUri($propertyUri) . $suffix;
+            $name = $propertyUri . $suffix;
+        }
 
         $spacesBefore = '';
         for ($i = 0; $i < $level*4; $i++) { $spacesBefore .= ' '; }

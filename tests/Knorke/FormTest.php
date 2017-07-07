@@ -100,8 +100,8 @@ class FormTest extends UnitTestCase
     <input type="hidden" name="__uriSchema" value="">
 
     <br/>
-    <label for="form_event__form_located_in">Findet statt in</label>
-    <input type="text" id="form_event__form_located_in" name="form:Event__form:located-in" value="" required="required">
+    <label for="form_located_in">Findet statt in</label>
+    <input type="text" id="form_located_in" name="form:located-in" value="" required="required">
 
     <div id="form_has_areas__container">
         <input type="hidden" name="form:has-areas__type" value="form:Area">
@@ -109,11 +109,11 @@ class FormTest extends UnitTestCase
         <div id="form:has-areas__entry_1">
 
             <br/>
-            <label for="form_area__rdfs_label__1">Title</label>
-            <input type="text" id="form_area__rdfs_label__1" name="form:Area__rdfs:label__1" value="" required="required">
+            <label for="form_Area__rdfs_label__1">Title</label>
+            <input type="text" id="form_Area__rdfs_label__1" name="form:Area__rdfs:label__1" value="" required="required">
 
             <br/>
-            <input type="text" id="form_area__form_comment__1" name="form:Area__form:comment__1" value="" required="required">
+            <input type="text" id="form_Area__form_comment__1" name="form:Area__form:comment__1" value="" required="required">
         </div>
     </div>
     <input type="hidden" id="form_has_areas__number" name="form:has-areas__number" value="1"/>
@@ -138,11 +138,11 @@ class FormTest extends UnitTestCase
         <div id="form:has-areas__entry_1">
 
             <br/>
-            <label for="form_area__rdfs_label__1">Title</label>
-            <input type="text" id="form_area__rdfs_label__1" name="form:Area__rdfs:label__1" value="" required="required">
+            <label for="form_Area__rdfs_label__1">Title</label>
+            <input type="text" id="form_Area__rdfs_label__1" name="form:Area__rdfs:label__1" value="" required="required">
 
             <br/>
-            <input type="text" id="form_area__form_comment__1" name="form:Area__form:comment__1" value="" required="required">
+            <input type="text" id="form_Area__form_comment__1" name="form:Area__form:comment__1" value="" required="required">
         </div>
                 `
                 .replace(/_entry_(\d)/g, "_entry_" + backmodel_has_areas__number)

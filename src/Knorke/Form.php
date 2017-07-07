@@ -350,13 +350,11 @@ class Form
      *          ...
      *
      * @param array $formInput
-     * @param string $typeUri
      * @param string $rootElementUri Optional, default is null
      * @return array
      */
     public function transformParameterArrayToDataValidationArray(
         array $formInput,
-        string $typeUri,
         string $rootElementUri = null
     ) : array {
         /*
@@ -390,9 +388,9 @@ class Form
             );
         }
 
-        $typeUri = $this->commonNamespaces->extendUri($typeUri);
+        $typeUri = $this->commonNamespaces->extendUri($formInput['__type']);
         if (false == $this->rdfHelpers->simpleCheckURI($typeUri)) {
-            throw new KnorkeException('Parameter $typeUri is not a valid URI: '. $typeUri);
+            throw new KnorkeException('$formInput[__type] is not a valid URI: '. $typeUri);
         }
 
         // check given $typeUri, if further data about it are available
@@ -497,7 +495,6 @@ class Form
 
                 $result[$propertyUri][] = $this->transformParameterArrayToDataValidationArray(
                     $reducedFormInput,
-                    $reducedFormInput['__type'],
                     $result['_idUri']
                 );
             }

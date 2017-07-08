@@ -70,16 +70,16 @@ class FormTest extends UnitTestCase
 
             form:Event ;
                 kno:has-property form:located-in ;
-                kno:has-property form:has-areas .
+                kno:has-property form:has-x .
 
-            form:has-areas
-                kno:restriction-reference-is-of-type form:Area .
+            form:has-x
+                kno:restriction-reference-is-of-type form:X .
 
             form:located-in
                 rdfs:label "Findet statt in"@de ;
                 rdfs:label "Located in"@en .
 
-            form:Area
+            form:X
                 kno:has-property rdfs:label ;
                 kno:has-property form:comment .
 
@@ -99,25 +99,45 @@ class FormTest extends UnitTestCase
     <input type="hidden" name="__type" value="form:Event">
     <input type="hidden" name="__uriSchema" value="">
 
-    <br/>
+    <br/><br/>
     <label for="form_located-in">Findet statt in</label>
-    <input type="text" id="form_located-in" name="form:located-in" value="" required="required">
+    <input type="text" id="form_located-in" name="form:located-in" value="{% if sub_item["form:located-in"] is defined %}{{ sub_item["form:located-in"] }}{% endif %}" required="required">
 
-    <div id="form_has-areas__container">
-        <input type="hidden" name="form:has-areas__type" value="form:Area">
-        <input type="hidden" name="form:has-areas__uriSchema" value="">
-        <div id="form:has-areas__entry_1">
+    <div id="form_has-x__container">
+        <input type="hidden" name="form:has-x__type" value="form:X">
+        <input type="hidden" name="form:has-x__uriSchema" value="">
+        {% if root_item["form:has-x"] is defined %}
+            {% for key,sub_item in root_item["form:has-x"] %}
+            <div id="form:has-x__entry_{{key}}">
+                <input type="hidden" name="form:X____idUri__{{key}}" value="{{ sub_item["_idUri"] }}">
 
-            <br/>
-            <label for="form_Area__rdfs_label__1">Title</label>
-            <input type="text" id="form_Area__rdfs_label__1" name="form:Area__rdfs:label__1" value="" required="required">
+                <label for="form_X__rdfs_label__{{key}}">Titel</label>
+                <input type="text" id="backmodel_Area__rdfs_label__{{key}}"
+                    name="form:X__rdfs:label__{{key}}" value="{{ sub_item["rdfs:label"] }}" required="required">
 
-            <br/>
-            <input type="text" id="form_Area__form_comment__1" name="form:Area__form:comment__1" value="" required="required">
+                <label for="form_X__form_comment__{{key}}">Titel</label>
+                <input type="text" id="backmodel_Area__form_comment__{{key}}"
+                    name="form:X__form:comment__{{key}}" value="{{ sub_item["form:comment"] }}" required="required">
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <div id="form:has-x__entry_1">
+
+            <br/><br/>
+            <label for="form_X__rdfs_label__1">Title</label>
+            <input type="text" id="form_X__rdfs_label__1" name="form:X__rdfs:label__1" value="{% if sub_item["rdfs:label"] is defined %}{{ sub_item["rdfs:label"] }}{% endif %}" required="required">
+
+            <br/><br/>
+            <input type="text" id="form_X__form_comment__1" name="form:X__form:comment__1" value="{% if sub_item["form:comment"] is defined %}{{ sub_item["form:comment"] }}{% endif %}" required="required">
         </div>
     </div>
-    <input type="hidden" id="form_has-areas__number" name="form:has-areas__number" value="1"/>
-    <button class="btn btn-primary" id="form_has-areas__btn" type="button">Add</button>
+    {% if root_item["form:has-x"] is defined %}
+        <input type="hidden" id="form_has-x__number" name="form:has-x__number" value="{{ root_item["form:has-x"]|length }}"/>
+    {% else %}
+        <input type="hidden" id="form_has-x__number" name="form:has-x__number" value="1"/>
+    {% endif %}
+    <button class="btn btn-primary" id="form_has-x__btn" type="button">Add</button>
 
     <br/><br/>
     <button class="btn btn-primary" type="submit">Submit</button>
@@ -125,31 +145,31 @@ class FormTest extends UnitTestCase
 
 
 <script type="text/javascript">
-    var form_has-areas__number = 1;
+    var form_has-x__number = 1;
     $(document).ready(function(){
         /*
-         * dynamically add further fields to #form_has-areas__container
+         * dynamically add further fields to #form_has-x__container
          */
-        $("#form_has-areas__btn").on("click", function(){
-            ++form_has-areas__number;
+        $("#form_has-x__btn").on("click", function(){
+            ++form_has-x__number;
 
-            $("#form_has-areas__container").append(`
+            $("#form_has-x__container").append(`
                 <br/>
-        <div id="form:has-areas__entry_1">
+        <div id="form:has-x__entry_1">
 
-            <br/>
-            <label for="form_Area__rdfs_label__1">Title</label>
-            <input type="text" id="form_Area__rdfs_label__1" name="form:Area__rdfs:label__1" value="" required="required">
+            <br/><br/>
+            <label for="form_X__rdfs_label__1">Title</label>
+            <input type="text" id="form_X__rdfs_label__1" name="form:X__rdfs:label__1" value="{% if sub_item["rdfs:label"] is defined %}{{ sub_item["rdfs:label"] }}{% endif %}" required="required">
 
-            <br/>
-            <input type="text" id="form_Area__form_comment__1" name="form:Area__form:comment__1" value="" required="required">
+            <br/><br/>
+            <input type="text" id="form_X__form_comment__1" name="form:X__form:comment__1" value="{% if sub_item["form:comment"] is defined %}{{ sub_item["form:comment"] }}{% endif %}" required="required">
         </div>
                 `
                 .replace(/_entry_(\d)/g, "_entry_" + backmodel_has_areas__number)
                 .replace(/__\d"/g, "__" + backmodel_has_areas__number + "\"")
             );
 
-            $("#form_has-areas__number").val(form_has-areas__number);
+            $("#form_has-x__number").val(form_has-x__number);
         });
     });
 </script>',

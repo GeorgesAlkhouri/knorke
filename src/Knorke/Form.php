@@ -176,14 +176,54 @@ class Form
                 && $level < 3) {
 
                 $propId = $this->getHtmlFriendlyIdentifier($propertyUri);
+                $referencedTypeBlank = $propertyBlank['kno:restriction-reference-is-of-type'];
+                $referencedTypeBlank->initBySelfSearch();
                 $referenceTypeUri = $propertyBlank['kno:restriction-reference-is-of-type']['_idUri'];
 
                 $html .= PHP_EOL . PHP_EOL . $spacesBefore;
                 $html .= '<div id="'. $propId .'__container">';
 
                 // type info and uri schema for elements of the sub form
-                $html .= PHP_EOL . $spacesBefore . '    <input type="hidden" name="'. $propertyUri .'__type" value="'. $referenceTypeUri .'">';
-                $html .= PHP_EOL . $spacesBefore . '    <input type="hidden" name="'. $propertyUri .'__uriSchema" value="">';
+                $html .= PHP_EOL . $spacesBefore . '    ';
+                $html .= '<input type="hidden" name="'. $propertyUri .'__type" value="'. $referenceTypeUri .'">';
+                $html .= PHP_EOL . $spacesBefore . '    ';
+                $html .= '<input type="hidden" name="'. $propertyUri .'__uriSchema" value="">';
+
+                $html .= PHP_EOL . $spacesBefore . '    ';
+                $html .= '{% if root_item["'. $propertyUri .'"] is defined %}';
+                $html .= PHP_EOL . $spacesBefore . '        ';
+                $html .= '{% for key,sub_item in root_item["'. $propertyUri .'"] %}';
+                $html .= PHP_EOL . $spacesBefore . '        ';
+                $html .= '<div id="'. $propertyUri .'__entry_{{key}}">';
+                $html .= PHP_EOL . $spacesBefore . '            ';
+                $html .= '<input type="hidden" name="'. $referenceTypeUri .'____idUri__{{key}}" value="{{ sub_item["_idUri"] }}">';
+
+                /*
+                 * add loop to show existing entries for this property relation, if available
+                 */
+                $htmlFriendlyRefTypeUri = $this->getHtmlFriendlyIdentifier($referenceTypeUri); // e.g. foo:BarClass
+                $htmlFriendlyPropUri = $this->getHtmlFriendlyIdentifier($referenceTypeUri);   // e.g. foo:bazProperty;
+                unset($referencedTypeBlank['_idUri']);
+                foreach ($referencedTypeBlank->getPropertyAsArrayOfItems('kno:has-property') as $entry) {
+                    $uri = $entry['_idUri'];
+                    $htmlFriendlyUri = $this->getHtmlFriendlyIdentifier($entry['_idUri']);
+
+                    // go through sub_item properties
+                    $for = $htmlFriendlyRefTypeUri .'__'. $htmlFriendlyUri .'__{{key}}';
+                    $html .= PHP_EOL . PHP_EOL . $spacesBefore . $spacesBefore . $spacesBefore . $spacesBefore;
+                    $html .= '<label for="'. $for .'">Titel</label>';
+                    $html .= PHP_EOL . $spacesBefore . $spacesBefore . $spacesBefore . $spacesBefore;
+                    $html .= '<input type="text" id="backmodel_Area__'. $htmlFriendlyUri .'__{{key}}"';
+                    $html .= PHP_EOL . $spacesBefore . $spacesBefore . $spacesBefore . $spacesBefore;
+                    $html .= '    name="'. $referenceTypeUri .'__'. $uri .'__{{key}}" value="{{ sub_item["'. $uri .'"] }}" required="required">';
+                }
+
+                $html .= PHP_EOL . $spacesBefore .'        ';
+                $html .= '</div>';
+                $html .= PHP_EOL . $spacesBefore .'        ';
+                $html .= '{% endfor %}';
+                $html .= PHP_EOL . $spacesBefore .'    ';
+                $html .= '{% endif %}';
 
                 /*
                  * add sub form
@@ -194,12 +234,24 @@ class Form
                     $typeUri,
                     $level+1
                 );
-                $html .= PHP_EOL . $subForm;
+                $html .= PHP_EOL . PHP_EOL . $subForm;
 
                 $html .= PHP_EOL . $spacesBefore . '</div>';
 
+                /*
+                 * add if else block to provide either a fresh __number field or one for existing values
+                 */
                 $html .= PHP_EOL . $spacesBefore;
+                $html .= '{% if root_item["'. $propertyUri .'"] is defined %}';
+                $html .= PHP_EOL . $spacesBefore .'    ';
+                $html .= '<input type="hidden" id="'. $propId .'__number" name="'. $propertyUri .'__number" ';
+                $html .=    'value="{{ root_item["'. $propertyUri .'"]|length }}"/>';
+                $html .= PHP_EOL . $spacesBefore;
+                $html .= '{% else %}';
+                $html .= PHP_EOL . $spacesBefore .'    ';
                 $html .= '<input type="hidden" id="'. $propId .'__number" name="'. $propertyUri .'__number" value="1"/>';
+                $html .= PHP_EOL . $spacesBefore;
+                $html .= '{% endif %}';
 
                 // button to add more
                 $html .= PHP_EOL . $spacesBefore . $this->generateButton($propId, 'Add');
@@ -208,12 +260,12 @@ class Form
                 $javascript .= PHP_EOL . $this->generateJavascriptForSubResources($propId, $subForm);
 
             } else {
-                $html .= PHP_EOL . PHP_EOL . $spacesBefore . '<br/>';
+                $html .= PHP_EOL . PHP_EOL . $spacesBefore . '<br/><br/>';
 
                 if (1 == $level) {
                     $html .= PHP_EOL . $spacesBefore . $this->getInputTextFor($propertyUri);
                 } else {
-                    $html .= PHP_EOL . $spacesBefore . $this->getInputTextFor($propertyUri, '', $typeUri, $level);
+                    $html .= PHP_EOL . $spacesBefore . $this->getInputTextFor($propertyUri, $typeUri, $level);
                 }
             }
 
@@ -288,7 +340,6 @@ class Form
      */
     public function getInputTextFor(
         string $propertyUri,
-        string $value = '',
         string $typeUri = null,
         int $level = 1
     ) : string {
@@ -328,6 +379,8 @@ class Form
                 }
             }
         }
+
+        $value = '{% if sub_item["'. $propertyUri .'"] is defined %}{{ sub_item["'. $propertyUri .'"] }}{% endif %}';
 
         $html .= '<input type="text" id="'. $id .'" name="'. $name .'" value="'. $value .'" required="required">';
 

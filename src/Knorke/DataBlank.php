@@ -200,6 +200,34 @@ class DataBlank implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
+     * Makes working with references easier. Usually, you don't know, if the reference is an
+     * array or a datablank instance. In that case, call this function, it will return an array
+     * so you can use a certain property as it is a list.
+     *
+     * @param string $property
+     * @return array
+     * @throws KnorkeException if property reference is invalid
+     * @throws KnorkeException if property is not set
+     */
+    public function getPropertyAsArrayOfItems(string $property) : array
+    {
+        if (isset($this[$property])) {
+            // if direct reference, put in an array
+            if (isset($this[$property]['_idUri'])) {
+                return array($this[$property]);
+
+            // if property is already an array
+            } elseif (is_array($this[$property])) {
+                return $this[$property];
+            } else {
+                throw new KnorkeException('Property has invalid reference: '. $property);
+            }
+        } else {
+            throw new KnorkeException('Property is not set: '. $property);
+        }
+    }
+
+    /**
      * @return int|string
      */
     public function key()

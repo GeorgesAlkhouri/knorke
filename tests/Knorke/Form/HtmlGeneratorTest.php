@@ -27,6 +27,12 @@ class HtmlGeneratorTest extends UnitTestCase
                 '<div>',
                     'cool here!',
                 '</div>',
+                '<select>',
+                    '<option>1</option>',
+                '</select>',
+                '<span>',
+                    'some stuff',
+                '</span>',
             '</form>',
         );
 
@@ -38,9 +44,30 @@ class HtmlGeneratorTest extends UnitTestCase
     <div>
         cool here!
     </div>
+    <select>
+        <option>1</option>
+    </select>
+    <span>
+        some stuff
+    </span>
 </form>',
             $this->fixture->transformFormArrayToCoolHtml($formArray)
         );
+    }
+
+    // expect exception because of different levels at the end
+    public function testTransformFormArrayToCoolHtmlExceptException()
+    {
+        $formArray = array(
+            '<form>',
+                '<input type=""/>',
+            // </form> is missing here
+        );
+
+        // expect exception because </form> is missing and therefore different levels
+        $this->expectException('Knorke\Exception\KnorkeException');
+
+        $this->fixture->transformFormArrayToCoolHtml($formArray);
     }
 
     public function testTransformFormArrayToCoolHtmlNon0Level()

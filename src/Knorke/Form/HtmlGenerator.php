@@ -12,6 +12,9 @@ class HtmlGenerator
     protected $tabLengthInWhitespaces = 0;
     protected $whitespaces = '';
 
+    /**
+     * @param int $tabLengthInWhitespaces Optional, default is 4
+     */
     public function __construct(int $tabLengthInWhitespaces = 4)
     {
         $this->tabLengthInWhitespaces = $tabLengthInWhitespaces;
@@ -21,7 +24,10 @@ class HtmlGenerator
     }
 
     /**
+     * Generates whitespaces based on a given $level. One level is 4 indentations (4 whitespaces).
+     *
      * @param int $level Controls the number of whitespaces generated.
+     * @return string Generated white spaces, based on given $level.
      */
     protected function genWSpaces(int $level = 0)
     {
@@ -33,6 +39,10 @@ class HtmlGenerator
         return $spaces;
     }
 
+    /**
+     * @param string $formArrayElement
+     * @return string Found type.
+     */
     protected function getElementType(string $formArrayElement) : string
     {
         $types = array(
@@ -67,7 +77,8 @@ class HtmlGenerator
 
         return 'form-close' == $type
             || 'div-close'  == $type
-            || 'span-close' == $type;
+            || 'span-close' == $type
+            || 'select-close' == $type;
     }
 
     /**
@@ -82,7 +93,8 @@ class HtmlGenerator
 
         return 'form-open' == $type
             || 'div-open'  == $type
-            || 'span-open' == $type;
+            || 'span-open' == $type
+            || 'select-open' == $type;
     }
 
     /**

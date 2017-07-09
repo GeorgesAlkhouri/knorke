@@ -4,6 +4,7 @@ namespace Knorke;
 
 use Knorke\DataBlankHelper;
 use Knorke\Exception\KnorkeException;
+use Knorke\Form\TwigHtmlGenerator;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\RdfHelpers;
 use Saft\Store\Store;
@@ -11,6 +12,7 @@ use Saft\Store\Store;
 class Form
 {
     protected $commonNamespaces;
+    protected $configuration;
     protected $dataBlankHelper;
     protected $graphs;
     protected $rdfHelpers;
@@ -25,13 +27,27 @@ class Form
         array $graphs,
         DataBlankHelper $dataBlankHelper,
         RdfHelpers $rdfHelpers,
-        CommonNamespaces $commonNamespaces
+        CommonNamespaces $commonNamespaces,
+        array $configuration = array()
     ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->dataBlankHelper = $dataBlankHelper;
         $this->graphs = $graphs;
         $this->rdfHelpers = $rdfHelpers;
         $this->store = $store;
+
+        // configuration
+        $this->configuration = array_merge(
+            array(
+                'form' => array(
+                    'action_url' => null,
+                    'root_item_uri_variable' => null,
+                )
+            ),
+            $configuration
+        );
+
+        $this->htmlGenerator = new TwigHtmlGenerator();
     }
 
     /**
@@ -110,19 +126,21 @@ class Form
      * @param string $typeUri
      * @param string $parentTypeUri Optional, default is null
      * @param int $level Optional, default is 1
-     * @return string Generated HTML representing one form
+     * @return array|string
      */
     public function generateFormFor(
         string $typeUri,
         string $propertyUri = null,
         string $parentTypeUri = null,
         int $level = 1
-    ) : string {
+    ) {
+
         $blank = $this->dataBlankHelper->load($typeUri);
 
+        /*
+         * collect all has-property objects
+         */
         $typeHasToHaveProperties = array();
-
-        // collect all has-property objects
         foreach ($blank as $key => $value) {
             if ('kno:has-property' == $key) {
                 if (!is_array($value)) {
@@ -137,32 +155,38 @@ class Form
 
         if (0 == count($typeHasToHaveProperties)) return '';
 
-        $spacesBefore = '';
-        for ($i = 0; $i < $level*4; $i++) { $spacesBefore .= ' '; }
-
         /*
          * based on the has-property information, we build the form
          */
 
-        $html = '';
+        $htmlElements = array();
         $javascript = '';
         $suffix = '';
 
         // no parent type given, add form head
         if (!$this->rdfHelpers->simpleCheckUri($parentTypeUri)) {
-            $html = '<form action="" method="post">';
+
+            $url = $this->configuration['form']['action_url'];
+            $htmlElements[] = '<form method="post"'. PHP_EOL .
+                '    action="'. $url .'{% if root_item["_idUri"] is defined %}{{ root_item["_idUri"] }}{% endif %}">';
 
             // type info
-            $html .= PHP_EOL . $spacesBefore . '<input type="hidden" name="__type" value="'. $typeUri .'">';
-            $html .= PHP_EOL . $spacesBefore . '<input type="hidden" name="__uriSchema" value="">';
+            $htmlElements[] = '<input type="hidden" name="__type" value="'. $typeUri .'">';
 
+            /*
+             * add either uri schema information (insert) or __idUri (update)
+             */
+            // add __idUri information with resource URI
+            $htmlElements[] = '{% if root_item["_idUri"] is defined %}';
+            $htmlElements[] = '<input type="hidden" name="__idUri" value="{{ root_item["_idUri"] }}">';
+            $htmlElements[] = '{% else %}';
+            // add uri schema if new item is to create
+            $htmlElements[] = '<input type="hidden" name="__uriSchema" value="">';
+            $htmlElements[] = '{% endif %}';
 
         // if parent type given, put div container around properties
         } else {
-            $html = $spacesBefore;
-            $html .= '<div id="'. $propertyUri .'__entry_'. ($level-1) .'">';
-
-            $spacesBefore .= '    ';
+            $htmlElements[] = '<div id="'. $propertyUri .'__entry_'. ($level-1) .'">';
             $suffix = '__' . ($level-1);
         }
 
@@ -172,35 +196,29 @@ class Form
 
             // handle restriction-reference-is-of-type on a property
             // TODO decide if we want to support sub-sub-sub... forms
-            if (isset($propertyBlank['kno:restriction-reference-is-of-type'])
-                && $level < 3) {
+            if (isset($propertyBlank['kno:restriction-reference-is-of-type']) && $level < 3) {
 
                 $propId = $this->getHtmlFriendlyIdentifier($propertyUri);
                 $referencedTypeBlank = $propertyBlank['kno:restriction-reference-is-of-type'];
                 $referencedTypeBlank->initBySelfSearch();
                 $referenceTypeUri = $propertyBlank['kno:restriction-reference-is-of-type']['_idUri'];
 
-                $html .= PHP_EOL . PHP_EOL . $spacesBefore;
-                $html .= '<div id="'. $propId .'__container">';
+                $htmlElements[] = '<div id="'. $propId .'__container">';
 
                 // type info and uri schema for elements of the sub form
-                $html .= PHP_EOL . $spacesBefore . '    ';
-                $html .= '<input type="hidden" name="'. $propertyUri .'__type" value="'. $referenceTypeUri .'">';
-                $html .= PHP_EOL . $spacesBefore . '    ';
-                $html .= '<input type="hidden" name="'. $propertyUri .'__uriSchema" value="">';
-
-                $html .= PHP_EOL . $spacesBefore . '    ';
-                $html .= '{% if root_item["'. $propertyUri .'"] is defined %}';
-                $html .= PHP_EOL . $spacesBefore . '        ';
-                $html .= '{% for key,sub_item in root_item["'. $propertyUri .'"] %}';
-                $html .= PHP_EOL . $spacesBefore . '        ';
-                $html .= '<div id="'. $propertyUri .'__entry_{{key}}">';
-                $html .= PHP_EOL . $spacesBefore . '            ';
-                $html .= '<input type="hidden" name="'. $referenceTypeUri .'____idUri__{{key}}" value="{{ sub_item["_idUri"] }}">';
+                $htmlElements[] = '<input type="hidden" name="'. $propertyUri .'__type" '.
+                                         'value="'. $referenceTypeUri .'">';
+                $htmlElements[] = '<input type="hidden" name="'. $propertyUri .'__uriSchema" value="">';
 
                 /*
                  * add loop to show existing entries for this property relation, if available
                  */
+                $htmlElements[] = '{% if root_item["'. $propertyUri .'"] is defined %}';
+                $htmlElements[] = '{% for key,sub_item in root_item["'. $propertyUri .'"] %}';
+                $htmlElements[] = '<div id="'. $propertyUri .'__entry_{{key}}">';
+                $htmlElements[] = '<input type="hidden" name="'. $referenceTypeUri .'____idUri__{{key}}" '.
+                                         'value="{{ sub_item["_idUri"] }}">';
+
                 $htmlFriendlyRefTypeUri = $this->getHtmlFriendlyIdentifier($referenceTypeUri); // e.g. foo:BarClass
                 $htmlFriendlyPropUri = $this->getHtmlFriendlyIdentifier($referenceTypeUri);   // e.g. foo:bazProperty;
                 unset($referencedTypeBlank['_idUri']);
@@ -210,20 +228,15 @@ class Form
 
                     // go through sub_item properties
                     $for = $htmlFriendlyRefTypeUri .'__'. $htmlFriendlyUri .'__{{key}}';
-                    $html .= PHP_EOL . PHP_EOL . $spacesBefore . $spacesBefore . $spacesBefore . $spacesBefore;
-                    $html .= '<label for="'. $for .'">Titel</label>';
-                    $html .= PHP_EOL . $spacesBefore . $spacesBefore . $spacesBefore . $spacesBefore;
-                    $html .= '<input type="text" id="backmodel_Area__'. $htmlFriendlyUri .'__{{key}}"';
-                    $html .= PHP_EOL . $spacesBefore . $spacesBefore . $spacesBefore . $spacesBefore;
-                    $html .= '    name="'. $referenceTypeUri .'__'. $uri .'__{{key}}" value="{{ sub_item["'. $uri .'"] }}" required="required">';
+                    $htmlElements[] = '<label for="'. $for .'">Titel</label>';
+                    $htmlElements[] = '<input type="text" id="backmodel_Area__'. $htmlFriendlyUri .'__{{key}}" '
+                        . 'name="'. $referenceTypeUri .'__'. $uri .'__{{key}}" '
+                        . 'value="{{ sub_item["'. $uri .'"] }}" required="required">';
                 }
 
-                $html .= PHP_EOL . $spacesBefore .'        ';
-                $html .= '</div>';
-                $html .= PHP_EOL . $spacesBefore .'        ';
-                $html .= '{% endfor %}';
-                $html .= PHP_EOL . $spacesBefore .'    ';
-                $html .= '{% endif %}';
+                $htmlElements[] = '</div>';
+                $htmlElements[] = '{% endfor %}';
+                $htmlElements[] = '{% endif %}';
 
                 /*
                  * add sub form
@@ -234,38 +247,42 @@ class Form
                     $typeUri,
                     $level+1
                 );
-                $html .= PHP_EOL . PHP_EOL . $subForm;
 
-                $html .= PHP_EOL . $spacesBefore . '</div>';
+                $htmlElements = array_merge($htmlElements, $subForm);
+
+                $htmlElements[] = '</div>';
 
                 /*
                  * add if else block to provide either a fresh __number field or one for existing values
                  */
-                $html .= PHP_EOL . $spacesBefore;
-                $html .= '{% if root_item["'. $propertyUri .'"] is defined %}';
-                $html .= PHP_EOL . $spacesBefore .'    ';
-                $html .= '<input type="hidden" id="'. $propId .'__number" name="'. $propertyUri .'__number" ';
-                $html .=    'value="{{ root_item["'. $propertyUri .'"]|length }}"/>';
-                $html .= PHP_EOL . $spacesBefore;
-                $html .= '{% else %}';
-                $html .= PHP_EOL . $spacesBefore .'    ';
-                $html .= '<input type="hidden" id="'. $propId .'__number" name="'. $propertyUri .'__number" value="1"/>';
-                $html .= PHP_EOL . $spacesBefore;
-                $html .= '{% endif %}';
+                $htmlElements[] = '{% if root_item["'. $propertyUri .'"] is defined %}';
+                $htmlElements[] = '<input type="hidden" id="'. $propId .'__number" '
+                                         . 'name="'. $propertyUri .'__number" '
+                                         . 'value="{{ root_item["'. $propertyUri .'"]|length }}"/>';
+                $htmlElements[] = '{% else %}';
+                $htmlElements[] = '<input type="hidden" id="'. $propId .'__number" '
+                                       . 'name="'. $propertyUri .'__number" value="1"/>';
+                $htmlElements[] = '{% endif %}';
 
                 // button to add more
-                $html .= PHP_EOL . $spacesBefore . $this->generateButton($propId, 'Add');
+                $htmlElements[] = $this->generateButton($propId, 'Add');
 
                 // js
                 $javascript .= PHP_EOL . $this->generateJavascriptForSubResources($propId, $subForm);
 
             } else {
-                $html .= PHP_EOL . PHP_EOL . $spacesBefore . '<br/><br/>';
+                $htmlElements[] = '<br/><br/>';
 
                 if (1 == $level) {
-                    $html .= PHP_EOL . $spacesBefore . $this->getInputTextFor($propertyUri);
+                    $htmlElements = array_merge(
+                        $htmlElements,
+                        $this->getInputTextFor($propertyUri)
+                    );
                 } else {
-                    $html .= PHP_EOL . $spacesBefore . $this->getInputTextFor($propertyUri, $typeUri, $level);
+                    $htmlElements = array_merge(
+                        $htmlElements,
+                        $this->getInputTextFor($propertyUri, $typeUri, $level)
+                    );
                 }
             }
 
@@ -275,28 +292,45 @@ class Form
 
         if (!$this->rdfHelpers->simpleCheckUri($parentTypeUri)) {
             // add submit button
-            $html .= PHP_EOL . PHP_EOL . $spacesBefore;
-            $html .= '<br/><br/>' . PHP_EOL;
-            $html .= $spacesBefore . '<button class="btn btn-primary" type="submit">Submit</button>';
+            $htmlElements[] = '<br/><br/>';
+            $htmlElements[] = '<button class="btn btn-primary" type="submit">Save</button>';
 
-            $html .= PHP_EOL . '</form>';
+            $htmlElements[] = '<input type="hidden" name="action" value="true">';
+
+            $htmlElements[] = '</form>';
         } else {
-            $html .= PHP_EOL . substr($spacesBefore, 4) . '</div>';
+            $htmlElements[] = '</div>';
         }
 
-        // add plain javascript
-        if (0 < strlen($javascript)) {
-            $html .= PHP_EOL . $javascript;
-        }
+        if (!$this->rdfHelpers->simpleCheckUri($parentTypeUri)) {
+            // put all the HTML stuff together and produce cool, correctly indented HTML
+            $html = $this->htmlGenerator->transformFormArrayToCoolHtml($htmlElements);
 
-        return $html;
+            // add plain javascript
+            if (0 < strlen($javascript)) {
+                $html .= PHP_EOL . $javascript;
+            }
+
+            return $html;
+        } else {
+            // add plain javascript
+            if (0 < strlen($javascript)) {
+                $htmlElements[] = PHP_EOL . $javascript;
+            }
+
+            return $htmlElements;
+        }
     }
 
     /**
-     *
+     * @param string $id
+     * @param array $subFormElements
+     * @param int number Optional, default is 1
      */
-    protected function generateJavascriptForSubResources(string $id, string $subFormHTML, int $number = 1)
+    protected function generateJavascriptForSubResources(string $id, array $subFormElements, int $number = 1)
     {
+        $subFormHTML = $this->htmlGenerator->transformFormArrayToCoolHtml($subFormElements, 4);
+
         return '
 <script type="text/javascript">
     var '. $id .'__number = 1;
@@ -307,9 +341,8 @@ class Form
         $("#'. $id .'__btn").on("click", function(){
             ++'. $id .'__number;
 
-            $("#'. $id .'__container").append(`
-                <br/>'. PHP_EOL . $subFormHTML .'
-                `
+            $("#'. $id .'__container").append(
+                `<br/>'. PHP_EOL . $subFormHTML .'`
                 .replace(/_entry_(\d)/g, "_entry_" + backmodel_has_areas__number)
                 .replace(/__\d"/g, "__" + backmodel_has_areas__number + "\"")
             );
@@ -333,16 +366,11 @@ class Form
 
     /**
      * @param string $propertyUri
-     * @param string $value Optional, default is ''
      * @param string $typeUri Optional, default is null
-     * @param string $level Optional, default is 1
-     * @return string Ready-to-use HTML with given values.
+     * @return array
      */
-    public function getInputTextFor(
-        string $propertyUri,
-        string $typeUri = null,
-        int $level = 1
-    ) : string {
+    public function getInputTextFor(string $propertyUri, string $typeUri = null, int $level = 1) : array
+    {
         // suffix for property name like rdfs:label ==> rdfs:label
         $suffix = '';
         if (1 < $level) {
@@ -357,10 +385,7 @@ class Form
             $name = $propertyUri . $suffix;
         }
 
-        $spacesBefore = '';
-        for ($i = 0; $i < $level*4; $i++) { $spacesBefore .= ' '; }
-
-        $html = '';
+        $htmlElements = array();
         if ($this->rdfHelpers->simpleCheckURI($propertyUri)) {
             $blank = $this->dataBlankHelper->load($propertyUri);
 
@@ -371,36 +396,39 @@ class Form
                 } else {
                     $label = $blank['rdfs:label'];
                 }
-                $html = '<label for="'. $id .'">'. $label .'</label>';
-                $html .= PHP_EOL . $spacesBefore;
-
-                if (1 < $level) {
-                     $html .= '    ';
-                }
+                $htmlElements[] = '<label for="'. $id .'">'. $label .'</label>';
             }
         }
 
-        $value = '{% if sub_item["'. $propertyUri .'"] is defined %}{{ sub_item["'. $propertyUri .'"] }}{% endif %}';
+        $value = '{% if sub_item["'. $propertyUri .'"] is defined %}'
+            . '{{ sub_item["'. $propertyUri .'"] }}'
+            . '{% endif %}';
 
-        $html .= '<input type="text" id="'. $id .'" name="'. $name .'" value="'. $value .'" required="required">';
+        $htmlElements[] = '<input type="text" id="'. $id .'" '
+                                . 'name="'. $name .'" '
+                                . 'value="'. $value .'" required="required">';
 
-        return $html;
+        return $htmlElements;
     }
 
     /**
      * @param string $name
      * @param string $value Optional, default is ''
-     * @return string Ready-to-use HTML with given values.
+     * @return array
      */
-    public function getSelectBoxFor(string $name, array $options) : string
+    public function getSelectBoxFor(string $name, array $options) : array
     {
-        $html = '<select name="'. $name .'" required="required">';
+        $htmlElements = array();
+
+        $htmlElements[] = '<select name="'. $name .'" required="required">';
 
         foreach ($options as $value => $label) {
-            $html .= PHP_EOL .'    <option value="'. $value .'">'. $label .'</option>';
+            $htmlElements[] = '<option value="'. $value .'">'. $label .'</option>';
         }
 
-        return $html . PHP_EOL . '</select>';
+        $htmlElements[] = '</select>';
+
+        return $htmlElements;
     }
 
     /**

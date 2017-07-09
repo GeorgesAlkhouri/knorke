@@ -35,29 +35,24 @@ class HtmlGenerator
 
     protected function getElementType(string $formArrayElement) : string
     {
-        /*
-         * forms
-         */
-        if       (false !== strpos($formArrayElement, '<form')) {
-            return 'form-open';
-        } elseif (false !== strpos($formArrayElement, '</form>')) {
-            return 'form-close';
-        /*
-         * div
-         */
-        } elseif (false !== strpos($formArrayElement, '<div')) {
-            return 'div-open';
-        } elseif (false !== strpos($formArrayElement, '</div>')) {
-            return 'div-close';
-        /*
-         * input
-         */
-        } elseif (false !== strpos($formArrayElement, '<input')) {
-            return 'input';
+        $types = array(
+            '<div'      => 'div-open',
+            '</div>'    => 'div-close',
+            '<form'     => 'form-open',
+            '</form>'   => 'form-close',
+            '<span'     => 'span-open',
+            '</span>'   => 'span-close',
+            '<select'   => 'select-open',
+            '</select>' => 'select-close',
+        );
 
-        } else {
-            return 'mixed';
+        foreach ($types as $htmlFragment => $type) {
+            if (false !== strpos($formArrayElement, $htmlFragment)) {
+                return $type;
+            }
         }
+
+        return 'mixed';
     }
 
     /**
@@ -70,8 +65,9 @@ class HtmlGenerator
     {
         $type = $this->getElementType($formArrayElement);
 
-        return false !== strpos($type, 'form-close')
-            || false !== strpos($type, 'div-close');
+        return 'form-close' == $type
+            || 'div-close'  == $type
+            || 'span-close' == $type;
     }
 
     /**
@@ -84,8 +80,9 @@ class HtmlGenerator
     {
         $type = $this->getElementType($formArrayElement);
 
-        return false !== strpos($type, 'form-open')
-            || false !== strpos($type, 'div-open');
+        return 'form-open' == $type
+            || 'div-open'  == $type
+            || 'span-open' == $type;
     }
 
     /**
@@ -96,10 +93,8 @@ class HtmlGenerator
      */
     protected function isSurroundingElement(string $formArrayElement) : bool
     {
-        $type = $this->getElementType($formArrayElement);
-
-        return false !== strpos($type, 'form')
-            || false !== strpos($type, 'div');
+        return $this->isOpeningElement($formArrayElement)
+            || $this->isClosingElement($formArrayElement);
     }
 
     /**
@@ -111,7 +106,7 @@ class HtmlGenerator
         $html = '';
         $tmpLvl = $level;
 
-        foreach ($formArray as $key => $element) {
+        foreach ($formArray as $element) {
             // like div, form, ..
             if ($this->isSurroundingElement($element)) {
                 if ($this->isClosingElement($element)) {

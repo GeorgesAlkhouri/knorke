@@ -40,8 +40,7 @@ class Form
         $this->configuration = array_merge(
             array(
                 'form' => array(
-                    'action_url' => null,
-                    'root_item_uri_variable' => null,
+                    'action_url' => null, // action property of a <form> DOM element
                 )
             ),
             $configuration
@@ -166,9 +165,10 @@ class Form
         // no parent type given, add form head
         if (!$this->rdfHelpers->simpleCheckUri($parentTypeUri)) {
 
+            // shortcut for action-url of the form
             $url = $this->configuration['form']['action_url'];
-            $htmlElements[] = '<form method="post"'. PHP_EOL .
-                '    action="'. $url .'{% if root_item["_idUri"] is defined %}{{ root_item["_idUri"] }}{% endif %}">';
+
+            $htmlElements[] = '<form method="post" action="'. $url .'">';
 
             // type info
             $htmlElements[] = '<input type="hidden" name="__type" value="'. $typeUri .'">';

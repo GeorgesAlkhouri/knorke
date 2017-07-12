@@ -15,7 +15,12 @@ class FormTest extends UnitTestCase
             array($this->testGraph),
             $this->dataBlankHelper,
             $this->rdfHelpers,
-            $this->commonNamespaces
+            $this->commonNamespaces,
+            array(
+                'form' => array(
+                    'action_url' => 'http://url/',
+                )
+            )
         );
     }
 
@@ -92,10 +97,11 @@ class FormTest extends UnitTestCase
 
         $this->commonNamespaces->add('form', 'http://form/');
 
+        // echo $this->fixture->generateFormFor('form:Event'); return;
+
         $this->assertEquals(
 '
-<form method="post"
-    action="{% if root_item["_idUri"] is defined %}{{ root_item["_idUri"] }}{% endif %}">
+<form method="post" action="http://url/">
     <input type="hidden" name="__type" value="form:Event">
     {% if root_item["_idUri"] is defined %}
         <input type="hidden" name="__idUri" value="{{ root_item["_idUri"] }}">

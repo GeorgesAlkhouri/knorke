@@ -12,7 +12,6 @@ class FormTest extends UnitTestCase
 
         $this->fixture = new Form(
             $this->store,
-            array($this->testGraph),
             $this->dataBlankHelper,
             $this->rdfHelpers,
             $this->commonNamespaces,
@@ -97,8 +96,6 @@ class FormTest extends UnitTestCase
 
         $this->commonNamespaces->add('form', 'http://form/');
 
-        // echo $this->fixture->generateFormFor('form:Event'); return;
-
         $this->assertEquals(
 '
 <form method="post" action="http://url/">
@@ -118,10 +115,9 @@ class FormTest extends UnitTestCase
             {% for key,sub_item in root_item["form:has-x"] %}
                 <div id="form:has-x__entry_{{key}}">
                     <input type="hidden" name="form:X____idUri__{{key}}" value="{{ sub_item["_idUri"] }}">
-                    <label for="form_X__rdfs_label__{{key}}">Titel</label>
-                    <input type="text" id="backmodel_Area__rdfs_label__{{key}}" name="form:X__rdfs:label__{{key}}" value="{{ sub_item["rdfs:label"] }}" required="required">
-                    <label for="form_X__form_comment__{{key}}">Titel</label>
-                    <input type="text" id="backmodel_Area__form_comment__{{key}}" name="form:X__form:comment__{{key}}" value="{{ sub_item["form:comment"] }}" required="required">
+                    <label for="form_X__rdfs_label__{{key}}">Title</label>
+                    <input type="text" id="form_X__rdfs_label__{{key}}" name="form:X__rdfs:label__{{key}}" value="{{ sub_item["rdfs:label"] }}" required="required">
+                    <input type="text" id="form_X__form_comment__{{key}}" name="form:X__form:comment__{{key}}" value="{{ sub_item["form:comment"] }}" required="required">
                 </div>
             {% endfor %}
         {% endif %}
@@ -141,7 +137,11 @@ class FormTest extends UnitTestCase
     <button class="btn btn-primary" id="form_has-x__btn" type="button">Add</button>
     <br/><br/>
     <button class="btn btn-primary" type="submit">Save</button>
-    <input type="hidden" name="action" value="true">
+    {% if root_item["_idUri"] is defined %}
+        <input type="hidden" name="action" value="update">
+        {% else %}
+        <input type="hidden" name="action" value="create">
+    {% endif %}
 </form>
 
 

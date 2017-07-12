@@ -24,7 +24,6 @@ class Form
      */
     public function __construct(
         Store $store,
-        array $graphs,
         DataBlankHelper $dataBlankHelper,
         RdfHelpers $rdfHelpers,
         CommonNamespaces $commonNamespaces,
@@ -32,7 +31,6 @@ class Form
     ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->dataBlankHelper = $dataBlankHelper;
-        $this->graphs = $graphs;
         $this->rdfHelpers = $rdfHelpers;
         $this->store = $store;
 
@@ -47,20 +45,6 @@ class Form
         );
 
         $this->htmlGenerator = new TwigHtmlGenerator();
-    }
-
-    /**
-     * @param array $graphs Array of NamedNode instances
-     */
-    protected function buildGraphsList(array $graphs) : string
-    {
-        $fromGraphList = array();
-
-        foreach ($graphs as $graph) {
-            $fromGraphList[] = 'FROM <'. $graph->getUri(). '>';
-        }
-
-        return implode(' ', $fromGraphList);
     }
 
     /**
@@ -225,11 +209,14 @@ class Form
                 foreach ($referencedTypeBlank->getPropertyAsArrayOfItems('kno:has-property') as $entry) {
                     $uri = $entry['_idUri'];
                     $htmlFriendlyUri = $this->getHtmlFriendlyIdentifier($entry['_idUri']);
+                    $id = $htmlFriendlyRefTypeUri .'__'. $htmlFriendlyUri .'__{{key}}';
+
+                    if (isset($entry['rdfs:label'])) {
+                        $htmlElements[] = '<label for="'. $id .'">'. $entry['rdfs:label']->getValue() .'</label>';
+                    }
 
                     // go through sub_item properties
-                    $for = $htmlFriendlyRefTypeUri .'__'. $htmlFriendlyUri .'__{{key}}';
-                    $htmlElements[] = '<label for="'. $for .'">Titel</label>';
-                    $htmlElements[] = '<input type="text" id="backmodel_Area__'. $htmlFriendlyUri .'__{{key}}" '
+                    $htmlElements[] = '<input type="text" id="'. $id .'" '
                         . 'name="'. $referenceTypeUri .'__'. $uri .'__{{key}}" '
                         . 'value="{{ sub_item["'. $uri .'"] }}" required="required">';
                 }
@@ -295,7 +282,12 @@ class Form
             $htmlElements[] = '<br/><br/>';
             $htmlElements[] = '<button class="btn btn-primary" type="submit">Save</button>';
 
-            $htmlElements[] = '<input type="hidden" name="action" value="true">';
+            // add field to tell the program, if its an update or creation
+            $htmlElements[] = '{% if root_item["_idUri"] is defined %}';
+            $htmlElements[] = '<input type="hidden" name="action" value="update">';
+            $htmlElements[] = '{% else %}';
+            $htmlElements[] = '<input type="hidden" name="action" value="create">';
+            $htmlElements[] = '{% endif %}';
 
             $htmlElements[] = '</form>';
         } else {

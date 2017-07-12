@@ -367,6 +367,9 @@ class Form
         $suffix = '';
         if (1 < $level) {
             $suffix = '__'. ($level-1);
+            $itemName = 'sub_item';
+        } else {
+            $itemName = 'root_item';
         }
 
         if (null !== $typeUri) {
@@ -392,8 +395,8 @@ class Form
             }
         }
 
-        $value = '{% if sub_item["'. $propertyUri .'"] is defined %}'
-            . '{{ sub_item["'. $propertyUri .'"] }}'
+        $value = '{% if '. $itemName .'["'. $propertyUri .'"] is defined %}'
+            . '{{ '. $itemName .'["'. $propertyUri .'"] }}'
             . '{% endif %}';
 
         $htmlElements[] = '<input type="text" id="'. $id .'" '

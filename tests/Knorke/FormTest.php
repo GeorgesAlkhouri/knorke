@@ -107,7 +107,7 @@ class FormTest extends UnitTestCase
     {% endif %}
     <br/><br/>
     <label for="form_located_in">Findet statt in</label>
-    <input type="text" id="form_located_in" name="form:located-in" value="{% if sub_item["form:located-in"] is defined %}{{ sub_item["form:located-in"] }}{% endif %}" required="required">
+    <input type="text" id="form_located_in" name="form:located-in" value="{% if root_item["form:located-in"] is defined %}{{ root_item["form:located-in"] }}{% endif %}" required="required">
     <div id="form_has_x__container">
         <input type="hidden" name="form:has-x__type" value="form:X">
         <input type="hidden" name="form:has-x__uriSchema" value="">

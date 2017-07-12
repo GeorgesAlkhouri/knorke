@@ -32,7 +32,7 @@ class FormTest extends UnitTestCase
         $propertyBlank = $this->dataBlankHelper->createDataBlank();
 
         $this->assertEquals(
-            'http://foo/was-geht/',
+            'http://foo/was_geht/',
             $this->fixture->buildUriByUriSchema(
                 'http://foo/?foo:label?/',
                 $propertyBlank,
@@ -48,7 +48,7 @@ class FormTest extends UnitTestCase
         $propertyBlank = $this->dataBlankHelper->createDataBlank();
 
         $this->assertEquals(
-            'http://bar/was-geht/',
+            'http://bar/was_geht/',
             $this->fixture->buildUriByUriSchema(
                 '%root-uri%?foo:label?/',
                 $propertyBlank,
@@ -106,9 +106,9 @@ class FormTest extends UnitTestCase
         <input type="hidden" name="__uriSchema" value="">
     {% endif %}
     <br/><br/>
-    <label for="form_located-in">Findet statt in</label>
-    <input type="text" id="form_located-in" name="form:located-in" value="{% if sub_item["form:located-in"] is defined %}{{ sub_item["form:located-in"] }}{% endif %}" required="required">
-    <div id="form_has-x__container">
+    <label for="form_located_in">Findet statt in</label>
+    <input type="text" id="form_located_in" name="form:located-in" value="{% if sub_item["form:located-in"] is defined %}{{ sub_item["form:located-in"] }}{% endif %}" required="required">
+    <div id="form_has_x__container">
         <input type="hidden" name="form:has-x__type" value="form:X">
         <input type="hidden" name="form:has-x__uriSchema" value="">
         {% if root_item["form:has-x"] is defined %}
@@ -130,11 +130,11 @@ class FormTest extends UnitTestCase
         </div>
     </div>
     {% if root_item["form:has-x"] is defined %}
-        <input type="hidden" id="form_has-x__number" name="form:has-x__number" value="{{ root_item["form:has-x"]|length }}"/>
+        <input type="hidden" id="form_has_x__number" name="form:has-x__number" value="{{ root_item["form:has-x"]|length }}"/>
         {% else %}
-        <input type="hidden" id="form_has-x__number" name="form:has-x__number" value="1"/>
+        <input type="hidden" id="form_has_x__number" name="form:has-x__number" value="1"/>
     {% endif %}
-    <button class="btn btn-primary" id="form_has-x__btn" type="button">Add</button>
+    <button class="btn btn-primary" id="form_has_x__btn" type="button">Add</button>
     <br/><br/>
     <button class="btn btn-primary" type="submit">Save</button>
     {% if root_item["_idUri"] is defined %}
@@ -146,15 +146,15 @@ class FormTest extends UnitTestCase
 
 
 <script type="text/javascript">
-    var form_has-x__number = 1;
+    var form_has_x__number = 1;
     $(document).ready(function(){
         /*
-         * dynamically add further fields to #form_has-x__container
+         * dynamically add further fields to #form_has_x__container
          */
-        $("#form_has-x__btn").on("click", function(){
-            ++form_has-x__number;
+        $("#form_has_x__btn").on("click", function(){
+            ++form_has_x__number;
 
-            $("#form_has-x__container").append(
+            $("#form_has_x__container").append(
                 `<br/>
 
                 <div id="form:has-x__entry_1">
@@ -168,7 +168,7 @@ class FormTest extends UnitTestCase
                 .replace(/__\d"/g, "__" + backmodel_has_areas__number + "\"")
             );
 
-            $("#form_has-x__number").val(form_has-x__number);
+            $("#form_has_x__number").val(form_has_x__number);
         });
     });
 </script>',

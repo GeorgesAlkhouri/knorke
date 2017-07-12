@@ -353,7 +353,7 @@ class Form
      */
     protected function getHtmlFriendlyIdentifier(string $uri) : string
     {
-        return preg_replace('/[^a-zA-Z0-9_\-]/', '_', $uri);
+        return preg_replace('/[^a-zA-Z0-9_]/', '_', $uri);
     }
 
     /**

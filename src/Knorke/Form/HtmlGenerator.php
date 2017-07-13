@@ -126,7 +126,8 @@ class HtmlGenerator
                 }
             }
 
-            $html .= PHP_EOL . $this->genWSpaces($tmpLvl);
+            $html .= PHP_EOL . PHP_EOL;
+            $html .= $this->genWSpaces($tmpLvl);
             $html .= $element;
 
             // if an opening surrounding element was pasted, increase level for the next element

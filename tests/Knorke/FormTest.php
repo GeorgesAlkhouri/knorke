@@ -15,6 +15,8 @@ class FormTest extends UnitTestCase
             $this->dataBlankHelper,
             $this->rdfHelpers,
             $this->commonNamespaces,
+            $this->nodeFactory,
+            $this->statementFactory,
             array(
                 'form' => array(
                     'action_url' => 'http://url/',
@@ -24,39 +26,62 @@ class FormTest extends UnitTestCase
     }
 
     /*
-     * Tests for buildUriByUriSchema
+     * Tests for buildSubElementUriByUriSchema
      */
 
-    public function testBuildUriByUriSchema()
+    public function testBuildSubElementUriByUriSchema()
     {
         $propertyBlank = $this->dataBlankHelper->createDataBlank();
 
         $this->assertEquals(
-            'http://foo/was_geht/',
-            $this->fixture->buildUriByUriSchema(
+            'http://foo/label/',
+            $this->fixture->buildSubElementUriByUriSchema(
                 'http://foo/?foo:label?/',
-                $propertyBlank,
                 array( // = raw form input
-                    'foo:label' => 'was-geht'
-                )
+                    'foo:root-element__foo:root-prop-1__foo:sub-element-type__foo:label__0' => 'label'
+                ),
+                'foo:root-element',
+                'foo:root-prop-1',
+                'foo:sub-element-type',
+                '0',
+                'http://root-uri/'
             )
         );
     }
 
-    public function testBuildUriByUriSchemaWithRootUri()
+    public function testBuildSubElementUriByUriSchemaWithRootUri()
     {
         $propertyBlank = $this->dataBlankHelper->createDataBlank();
 
         $this->assertEquals(
-            'http://bar/was_geht/',
-            $this->fixture->buildUriByUriSchema(
-                '%root-uri%?foo:label?/',
-                $propertyBlank,
+            'http://root-uri/label',
+            $this->fixture->buildSubElementUriByUriSchema(
+                '%root-uri%?foo:label?',
                 array( // = raw form input
-                    'foo:label' => 'was-geht'
+                    'foo:root-element__foo:root-prop-1__foo:sub-element-type__foo:label__0' => 'label'
                 ),
-                'http://bar/'
+                'foo:root-element',
+                'foo:root-prop-1',
+                'foo:sub-element-type',
+                '0',
+                'http://root-uri/'
             )
+        );
+    }
+
+    /*
+     * Tests for getSubFormElements
+     */
+
+    public function testGetSubFormElements()
+    {
+        $html = '%subForm rootElementUri="form:type1" rootElementPropertyUri="form:t1-p2" subElementTypeUri="form:type2" %';
+
+        $res = $this->fixture->getSubFormElements($html);
+
+        $this->assertEquals(
+            array('form:type1', 'form:t1-p2', 'form:type2'),
+            $res
         );
     }
 
@@ -72,23 +97,23 @@ class FormTest extends UnitTestCase
             @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
             @prefix rdfs: <'. $this->commonNamespaces->getUri('rdfs') .'> .
 
-            form:Event ;
-                kno:has-property form:located-in ;
-                kno:has-property form:has-x .
+            form:type1 ;
+                kno:has-property form:t1-p1 ;
+                kno:has-property form:t1-p2 .
 
-            form:has-x
-                kno:restriction-reference-is-of-type form:X .
+            form:t1-p1
+                rdfs:label "Root-Prop-1 DE"@de ;
+                rdfs:label "Root-Prop-1 EN"@en .
 
-            form:located-in
-                rdfs:label "Findet statt in"@de ;
-                rdfs:label "Located in"@en .
+            form:t1-p2
+                kno:restriction-reference-is-of-type form:type2 .
 
-            form:X
-                kno:has-property rdfs:label ;
-                kno:has-property form:comment .
+            form:type2
+                kno:has-property form:t2-p1 ;
+                kno:has-property form:t2-p2 .
 
-            rdfs:label
-                rdfs:label "Title"@en .
+            form:t2-p1
+                rdfs:label "Type2-Prop-1"@en .
             ',
             $this->testGraph,
             $this->store
@@ -97,255 +122,440 @@ class FormTest extends UnitTestCase
         $this->commonNamespaces->add('form', 'http://form/');
 
         $this->assertEquals(
-'
+            array('
+
 <form method="post" action="http://url/">
-    <input type="hidden" name="__type" value="form:Event">
+
+    <input type="hidden" name="__type" value="form:type1">
+
     {% if root_item["_idUri"] is defined %}
+
         <input type="hidden" name="__idUri" value="{{ root_item["_idUri"] }}">
+
         {% else %}
+
         <input type="hidden" name="__uriSchema" value="">
+
     {% endif %}
+
     <br/><br/>
-    <label for="form_located_in">Findet statt in</label>
-    <input type="text" id="form_located_in" name="form:located-in" value="{% if root_item["form:located-in"] is defined %}{{ root_item["form:located-in"] }}{% endif %}" required="required">
-    <div id="form_has_x__container">
-        <input type="hidden" name="form:has-x__type" value="form:X">
-        <input type="hidden" name="form:has-x__uriSchema" value="">
+
+    <input type="text" name="form:t1-p1" value="{% if root_item["form:t1-p1"] is defined %}{{ root_item["form:t1-p1"] }}{% endif %}">
+
+    <div id="form_t1_p2__container">
+
+        <input type="hidden" name="form:t1-p2__type" value="form:type2">
+
+        <input type="hidden" name="form:t1-p2__uriSchema" value="">
+
         {% set entry_count = 0 %}
-        {% if root_item["form:has-x"] is defined %}
-            {% for key,sub_item in root_item["form:has-x"] %}
-                <div id="form:has-x__entry_{{key}}">
-                    <input type="hidden" name="form:X____idUri__{{key}}" value="{{ sub_item["_idUri"] }}">
-                    <label for="form_X__rdfs_label__{{key}}">Title</label>
-                    <input type="text" id="form_X__rdfs_label__{{key}}" name="form:X__rdfs:label__{{key}}" value="{{ sub_item["rdfs:label"] }}" required="required">
-                    <input type="text" id="form_X__form_comment__{{key}}" name="form:X__form:comment__{{key}}" value="{{ sub_item["form:comment"] }}" required="required">
+
+        {% if root_item["form:t1-p2"] is defined %}
+
+            {% for key,sub_item in root_item["form:t1-p2"] %}
+
+                <div class="form_t1_p2_element">
+
+                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__{{ entry_count }}" value="{{ sub_item["form:t2-p1"] }}">
+
+                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__{{ entry_count }}" value="{{ sub_item["form:t2-p2"] }}">
+
                 </div>
-                {% set entry_count = key %}
+
             {% endfor %}
+
             {% set entry_count = entry_count+1 %}
+
         {% endif %}
-        <div id="form_has_x__entry_{{ entry_count }}">
-            <br/><br/>
-            <label for="form_X__rdfs_label__{{ entry_count }}">Title</label>
-            <input type="text" id="form_X__rdfs_label__{{ entry_count }}" name="form:X__rdfs:label__{{ entry_count }}" value="{% if sub_item["rdfs:label"] is defined %}{{ sub_item["rdfs:label"] }}{% endif %}" required="required">
-            <br/><br/>
-            <input type="text" id="form_X__form_comment__{{ entry_count }}" name="form:X__form:comment__{{ entry_count }}" value="{% if sub_item["form:comment"] is defined %}{{ sub_item["form:comment"] }}{% endif %}" required="required">
-        </div>
+
+        <button class="btn btn-primary" id="form_t1_p2__btn" type="button">Add</button>
+
+        <input type="hidden" name="form:type1__form:t1-p2__number" value="{{ 1+root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">
+
     </div>
-    {% if root_item["form:has-x"] is defined %}
-        <input type="hidden" id="form_has_x__number" name="form:has-x__number" value="{{ 1+root_item["form:has-x"]|length }}"/>
-        {% else %}
-        <input type="hidden" id="form_has_x__number" name="form:has-x__number" value="1"/>
-    {% endif %}
-    <button class="btn btn-primary" id="form_has_x__btn" type="button">Add</button>
-    <br/><br/>
-    <button class="btn btn-primary" type="submit">Save</button>
-    {% if root_item["_idUri"] is defined %}
-        <input type="hidden" name="action" value="update">
-        {% else %}
-        <input type="hidden" name="action" value="create">
-    {% endif %}
-</form>
 
-
+</form>',
+                /*
+                 * JS
+                 */
+                array(
+                    '
 <script type="text/javascript">
 
-    // store latest number of root_item["form:has-x"] entries
-    var form_has_x__number = {{ 1+root_item["form:has-x"]|length }};
+    // store latest number of root_item["form:t1-p2"] entries
+    var form_t1_p2__number = {{ 1+root_item["form:t1-p2"]|length }};
     $(document).ready(function(){
         /*
-         * dynamically add further fields to #form_has_x__container
+         * dynamically add further fields to #form_t1_p2__container
          */
-        $("#form_has_x__btn").on("click", function(){
-            ++form_has_x__number;
+        $("#form_t1_p2__btn").on("click", function(){
+            ++form_t1_p2__number;
 
-            $("#form_has_x__container").append(
+            $("#form_t1_p2__container").append(
                 `<br/>
 
-                <div id="form_has_x__entry_` + backmodel_has_areas__number + `">
-                    <br/><br/>
-                    <label for="form_X__rdfs_label__` + backmodel_has_areas__number + `">Title</label>
-                    <input type="text" id="form_X__rdfs_label__` + backmodel_has_areas__number + `" name="form:X__rdfs:label__` + backmodel_has_areas__number + `" value="" required="required">
-                    <br/><br/>
-                    <input type="text" id="form_X__form_comment__` + backmodel_has_areas__number + `" name="form:X__form:comment__` + backmodel_has_areas__number + `" value="" required="required">
+
+                <div class="form_t1_p2_element">
+
+                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__` + backmodel_has_areas__number + `" value="">
+
+                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__` + backmodel_has_areas__number + `" value="">
+
                 </div>`
             );
 
-            $("#form_has_x__number").val(form_has_x__number);
+            $("#form_t1_p2__number").val(form_t1_p2__number);
         });
     });
-</script>',
-            $this->fixture->generateFormFor('form:Event')
+</script>'
+                )
+            ),
+            $this->fixture->generateFormFor('form:type1')
         );
     }
 
     /*
-     * Tests for transformParameterArrayToDataValidationArray
+     * Tests for generateSubForm
      */
 
-    public function testTransformParameterArrayToDataValidationArraySimple()
+    public function testGenerateSubForm()
     {
-        /*
-         * prepare test data set
-         */
-        $this->commonNamespaces->add('foo', 'http://foo/');
-
+        // add test data
         $this->importTurtle('
-            @prefix foo: <'. $this->commonNamespaces->getUri('foo') .'> .
+            @prefix form: <http://form/> .
             @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdfs: <'. $this->commonNamespaces->getUri('rdfs') .'> .
 
-            foo:type1
-                kno:has-property foo:root-prop1 ;
-                kno:has-property foo:root-prop2 ;
-                kno:has-property foo:label ;
-                kno:has-property foo:has-x .
+            form:type1 ;
+                kno:has-property form:t1-p1 ;
+                kno:has-property form:t1-p2 .
 
-            foo:type2
-                kno:has-property foo:label .
+            form:t1-p1
+                rdfs:label "Root-Prop-1 DE"@de ;
+                rdfs:label "Root-Prop-1 EN"@en .
 
+            form:t1-p2
+                kno:restriction-reference-is-of-type form:type2 .
+
+            form:type2
+                kno:has-property form:t2-p1 ;
+                kno:has-property form:t2-p2 .
+
+            form:t2-p1
+                rdfs:label "Type2-Prop-1"@en .
             ',
-            $this->testGraph
+            $this->testGraph,
+            $this->store
         );
 
-        /*
-         * set parameters for function to test
-         */
-        $typeUri = 'foo:type1';
-        $formInput = array(
-            '__type'                    => 'foo:type1',
-            '__uriSchema'               => 'http://foo/?foo:label?/',
-            'foo:root-prop1'            => 'val1',
-            'foo:root-prop2'            => 'val2',
-            'foo:label'                 => 'val3'
-        );
-
-        $res = $this->fixture->transformParameterArrayToDataValidationArray($formInput, $typeUri);
+        $this->commonNamespaces->add('form', 'http://form/');
 
         $this->assertEquals(
             array(
-                '_idUri'            => 'http://foo/val3/',
-                'foo:root-prop1'    => 'val1',
-                'foo:root-prop2'    => 'val2',
-                'foo:label'         => 'val3',
+                array(
+                    '<div id="form_t1_p2__container">',
+                        '<input type="hidden" name="form:t1-p2__type" value="form:type2">',
+                        '<input type="hidden" name="form:t1-p2__uriSchema" value="">',
+                        '{% set entry_count = 0 %}',
+                        '{% if root_item["form:t1-p2"] is defined %}',
+                            '{% for key,sub_item in root_item["form:t1-p2"] %}',
+                                '<div class="form_t1_p2_element">',
+                                    '<input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__{{ entry_count }}" value="{{ sub_item["form:t2-p1"] }}">',
+                                    '<input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__{{ entry_count }}" value="{{ sub_item["form:t2-p2"] }}">',
+                                '</div>',
+                            '{% endfor %}',
+                            '{% set entry_count = entry_count+1 %}',
+                        '{% endif %}',
+                        '<button class="btn btn-primary" id="form_t1_p2__btn" type="button">Add</button>',
+                        '<input type="hidden" name="form:type1__form:t1-p2__number" value="{{ 1+root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">',
+                    '</div>',
+                ),
+'
+<script type="text/javascript">
+
+    // store latest number of root_item["form:t1-p2"] entries
+    var form_t1_p2__number = {{ 1+root_item["form:t1-p2"]|length }};
+    $(document).ready(function(){
+        /*
+         * dynamically add further fields to #form_t1_p2__container
+         */
+        $("#form_t1_p2__btn").on("click", function(){
+            ++form_t1_p2__number;
+
+            $("#form_t1_p2__container").append(
+                `<br/>
+
+
+                <div class="form_t1_p2_element">
+
+                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__` + backmodel_has_areas__number + `" value="">
+
+                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__` + backmodel_has_areas__number + `" value="">
+
+                </div>`
+            );
+
+            $("#form_t1_p2__number").val(form_t1_p2__number);
+        });
+    });
+</script>'
             ),
-            $res
+            $this->fixture->generateSubForm('form:type1', 'form:t1-p2', 'form:type2')
         );
     }
 
-    public function testTransformParameterArrayToDataValidationArraySimulateSubForm()
+    /*
+     * Tests for inputFieldHidden
+     */
+
+    public function testInputFieldHidden()
     {
-        /*
-         * prepare test data set
-         */
-        $this->commonNamespaces->add('foo', 'http://foo/');
-
-        $this->importTurtle('
-            @prefix foo: <'. $this->commonNamespaces->getUri('foo') .'> .
-            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
-
-            foo:type1
-                kno:has-property foo:root-prop1 ;
-                kno:has-property foo:label ;
-                kno:has-property foo:has-type2 .
-
-            foo:type2
-                kno:has-property foo:label .
-
-            ',
-            $this->testGraph
+        $this->assertEquals(
+            '<input type="hidden" name="name" value="val" id="id">',
+            $this->fixture->inputFieldHidden('name', 'val', 'id')
         );
+        $this->assertEquals(
+            '<input type="hidden" name="name" value="val">',
+            $this->fixture->inputFieldHidden('name', 'val')
+        );
+        $this->assertEquals(
+            '<input type="hidden" name="name" value="">',
+            $this->fixture->inputFieldHidden('name')
+        );
+    }
+
+    /*
+     * Tests for inputFieldText
+     */
+
+    public function testInputFieldText()
+    {
+        $this->assertEquals(
+            '<input type="text" name="name" value="val" id="id" required="required">',
+            $this->fixture->inputFieldText('name', 'val', 'id', true)
+        );
+
+        $this->assertEquals(
+            '<input type="text" name="name" value="val" id="id">',
+            $this->fixture->inputFieldText('name', 'val', 'id')
+        );
+        $this->assertEquals(
+            '<input type="text" name="name" value="val">',
+            $this->fixture->inputFieldText('name', 'val')
+        );
+    }
+
+    /*
+     * Tests for transformParameterArrayToStatementArray
+     */
+
+    // tests update of existing entries
+    public function testTransformParameterArrayToStatementArray()
+    {
+        // add test data
+        $this->importTurtle('
+            @prefix form: <http://form/> .
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdfs: <'. $this->commonNamespaces->getUri('rdfs') .'> .
+
+            form:type1 ;
+                kno:has-property form:t1-p1 ;
+                kno:has-property form:t1-p2 ;
+                kno:has-property form:t1-p3 .
+
+            form:t1-p1
+                rdfs:label "Root-Prop-1 DE"@de ;
+                rdfs:label "Root-Prop-1 EN"@en .
+
+            form:t1-p2
+                kno:restriction-reference-is-of-type form:type2 .
+
+            form:type2
+                kno:has-property form:t2-p1 ;
+                kno:has-property form:t2-p2 .
+
+            form:t2-p1
+                rdfs:label "Type2-Prop-1"@en .
+            ',
+            $this->testGraph,
+            $this->store
+        );
+
+        $this->commonNamespaces->add('form', 'http://form/');
 
         /*
          * set parameters for function to test
          */
-        $typeUri = 'foo:type1';
+        $typeUri = 'form:type1';
         $formInput = array(
-            '__type'                    => 'foo:type1',
-            '__uriSchema'               => 'http://foo/?foo:label?/',
-            'foo:root-prop1'            => 'prop1',
-            'foo:label'                 => 'label',
-            // from a sub formular, which contains data for resources of type foo:type2
-            'foo:has-type2__type'       => 'foo:type2',
-            'foo:has-type2__uriSchema'  => '%root-uri%area/?foo:label?',
-            'foo:type2__foo:label__0'   => 'area1',
-            'foo:has-type2__number'     => '1',
+            '__type'                                                     => $typeUri,
+            '__idUri'                                                    => 'http://type1/',
+            'form:t1-p1'                                                 => 't1-p1-value',
+            // sub entry 1
+            'form:type1__form:t1-p2__form:type2__uriSchema'              => '%root-uri%?form:t2-p1?',
+            'form:type1__form:t1-p2__form:type2____idUri__0'             => 'http://type1/sub-value1',
+            'form:type1__form:t1-p2__form:type2__form:t2-p1__0'          => 'sub-value1',
+            'form:type1__form:t1-p2__form:type2__form:t2-p2__0'          => 'sub-value2',
+            // sub entry 2 (not yet "created", therefore needs an URI)
+            'form:type1__form:t1-p2__form:type2__form:t2-p1__1'          => 'sub-value3',
+            'form:type1__form:t1-p2__form:type2__form:t2-p2__1'          => 'sub-value4',
+            'form:type1__form:t1-p2__number'                             => '2',
+
+            'form:t1-p3'                                                 => 't1-p3-value',
         );
 
-        $res = $this->fixture->transformParameterArrayToDataValidationArray($formInput, $typeUri);
+        $res = $this->fixture->transformParameterArrayToStatementArray($formInput);
 
         $this->assertEquals(
             array(
-                '_idUri'            => 'http://foo/label/',
-                'foo:root-prop1'    => 'prop1',
-                'foo:label'         => 'label',
-                'foo:has-type2'     => array(
-                    array(
-                        '_idUri'    => 'http://foo/label/area/area1',
-                        'foo:label' => 'area1'
-                    )
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/'),
+                    $this->nodeFactory->createNamedNode('form:t1-p1'),
+                    $this->nodeFactory->createLiteral('t1-p1-value')
+                ),
+                // root element ===> sub element 1
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/'),
+                    $this->nodeFactory->createNamedNode('form:t1-p2'),
+                    $this->nodeFactory->createNamedNode('http://type1/sub-value1')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/sub-value1'),
+                    $this->nodeFactory->createNamedNode('form:t2-p1'),
+                    $this->nodeFactory->createLiteral('sub-value1')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/sub-value1'),
+                    $this->nodeFactory->createNamedNode('form:t2-p2'),
+                    $this->nodeFactory->createLiteral('sub-value2')
+                ),
+                // root element ===> sub element 2
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/'),
+                    $this->nodeFactory->createNamedNode('form:t1-p2'),
+                    $this->nodeFactory->createNamedNode('http://type1/sub_value3')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/sub_value3'),
+                    $this->nodeFactory->createNamedNode('form:t2-p1'),
+                    $this->nodeFactory->createLiteral('sub-value3')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/sub_value3'),
+                    $this->nodeFactory->createNamedNode('form:t2-p2'),
+                    $this->nodeFactory->createLiteral('sub-value4')
+                ),
+                // t1-p3
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/'),
+                    $this->nodeFactory->createNamedNode('form:t1-p3'),
+                    $this->nodeFactory->createLiteral('t1-p3-value')
                 )
             ),
             $res
         );
     }
 
-    public function testTransformParameterArrayToDataValidationArraySimulateSubFormExistingData()
+    // tests for new root entity
+    public function testTransformParameterArrayToStatementArrayNewRootEntity()
     {
-        /*
-         * prepare test data set
-         */
-        $this->commonNamespaces->add('foo', 'http://foo/');
-
+        // add test data
         $this->importTurtle('
-            @prefix foo: <'. $this->commonNamespaces->getUri('foo') .'> .
+            @prefix form: <http://form/> .
             @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdfs: <'. $this->commonNamespaces->getUri('rdfs') .'> .
 
-            foo:type1
-                kno:has-property foo:root-prop1 ;
-                kno:has-property foo:label ;
-                kno:has-property foo:has-type2 .
+            form:type1 ;
+                kno:has-property form:t1-p1 ;
+                kno:has-property form:t1-p2 ;
+                kno:has-property form:t1-p3 .
 
-            foo:type2
-                kno:has-property foo:label .
+            form:t1-p1
+                rdfs:label "Root-Prop-1 DE"@de ;
+                rdfs:label "Root-Prop-1 EN"@en .
 
+            form:t1-p2
+                kno:restriction-reference-is-of-type form:type2 .
+
+            form:type2
+                kno:has-property form:t2-p1 ;
+                kno:has-property form:t2-p2 .
+
+            form:t2-p1
+                rdfs:label "Type2-Prop-1"@en .
             ',
-            $this->testGraph
+            $this->testGraph,
+            $this->store
         );
+
+        $this->commonNamespaces->add('form', 'http://form/');
 
         /*
          * set parameters for function to test
          */
-        $typeUri = 'foo:type1';
+        $typeUri = 'form:type1';
         $formInput = array(
-            '__idUri'                   => 'http://existing/resource/',
-            '__type'                    => 'foo:type1',
-            'foo:root-prop1'            => 'prop1',
-            'foo:label'                 => 'label',
-            // from a sub formular, which contains data for resources of type foo:type2
-            'foo:has-type2__type'       => 'foo:type2',
-            'foo:type2____idUri__0'     => 'http://area/1',
-            'foo:type2__foo:label__0'   => 'area1',
-            'foo:type2____idUri__1'     => 'http://area/2',
-            'foo:type2__foo:label__1'   => 'area2',
-            'foo:has-type2__number'     => '2',
+            '__type'                                                     => $typeUri,
+            '__uriSchema'                                                => 'http://new/?form:t1-p1?/',
+            'form:t1-p1'                                                 => 't1-p1-value',
+            // sub entry 1
+            'form:type1__form:t1-p2__form:type2__uriSchema'              => '%root-uri%?form:t2-p1?',
+            'form:type1__form:t1-p2__form:type2__form:t2-p1__0'          => 'sub-value1',
+            'form:type1__form:t1-p2__form:type2__form:t2-p2__0'          => 'sub-value2',
+            // sub entry 2 (not yet "created", therefore needs an URI)
+            'form:type1__form:t1-p2__form:type2__form:t2-p1__1'          => 'sub-value3',
+            'form:type1__form:t1-p2__form:type2__form:t2-p2__1'          => 'sub-value4',
+            'form:type1__form:t1-p2__number'                             => '2',
+
+            'form:t1-p3'                                                 => 't1-p3-value',
         );
 
-        $res = $this->fixture->transformParameterArrayToDataValidationArray($formInput, $typeUri);
+        $res = $this->fixture->transformParameterArrayToStatementArray($formInput);
 
         $this->assertEquals(
             array(
-                '_idUri'            => 'http://existing/resource/',
-                'foo:root-prop1'    => 'prop1',
-                'foo:label'         => 'label',
-                'foo:has-type2'     => array(
-                    array(
-                        '_idUri'    => 'http://area/1',
-                        'foo:label' => 'area1'
-                    ),
-                    array(
-                        '_idUri'    => 'http://area/2',
-                        'foo:label' => 'area2'
-                    ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
+                    $this->nodeFactory->createNamedNode('form:t1-p1'),
+                    $this->nodeFactory->createLiteral('t1-p1-value')
+                ),
+                // root element ===> sub element 1
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
+                    $this->nodeFactory->createNamedNode('form:t1-p2'),
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value1')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value1'),
+                    $this->nodeFactory->createNamedNode('form:t2-p1'),
+                    $this->nodeFactory->createLiteral('sub-value1')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value1'),
+                    $this->nodeFactory->createNamedNode('form:t2-p2'),
+                    $this->nodeFactory->createLiteral('sub-value2')
+                ),
+                // root element ===> sub element 2
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
+                    $this->nodeFactory->createNamedNode('form:t1-p2'),
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value3')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value3'),
+                    $this->nodeFactory->createNamedNode('form:t2-p1'),
+                    $this->nodeFactory->createLiteral('sub-value3')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value3'),
+                    $this->nodeFactory->createNamedNode('form:t2-p2'),
+                    $this->nodeFactory->createLiteral('sub-value4')
+                ),
+                // t1-p3
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
+                    $this->nodeFactory->createNamedNode('form:t1-p3'),
+                    $this->nodeFactory->createLiteral('t1-p3-value')
                 )
             ),
             $res

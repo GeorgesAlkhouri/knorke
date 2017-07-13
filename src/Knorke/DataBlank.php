@@ -201,8 +201,8 @@ class DataBlank implements \ArrayAccess, \Iterator, \Countable
 
     /**
      * Makes working with references easier. Usually, you don't know, if the reference is an
-     * array or a datablank instance. In that case, call this function, it will return an array
-     * so you can use a certain property as it is a list.
+     * array or a datablank instance. In that case, call this function, it will return an array,
+     * so you can use a certain property as it were a list.
      *
      * @param string $property
      * @return array

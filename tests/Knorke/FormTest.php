@@ -111,6 +111,7 @@ class FormTest extends UnitTestCase
     <div id="form_has_x__container">
         <input type="hidden" name="form:has-x__type" value="form:X">
         <input type="hidden" name="form:has-x__uriSchema" value="">
+        {% set entry_count = 0 %}
         {% if root_item["form:has-x"] is defined %}
             {% for key,sub_item in root_item["form:has-x"] %}
                 <div id="form:has-x__entry_{{key}}">
@@ -119,18 +120,20 @@ class FormTest extends UnitTestCase
                     <input type="text" id="form_X__rdfs_label__{{key}}" name="form:X__rdfs:label__{{key}}" value="{{ sub_item["rdfs:label"] }}" required="required">
                     <input type="text" id="form_X__form_comment__{{key}}" name="form:X__form:comment__{{key}}" value="{{ sub_item["form:comment"] }}" required="required">
                 </div>
+                {% set entry_count = key %}
             {% endfor %}
+            {% set entry_count = entry_count+1 %}
         {% endif %}
-        <div id="form:has-x__entry_1">
+        <div id="form_has_x__entry_{{ entry_count }}">
             <br/><br/>
-            <label for="form_X__rdfs_label__1">Title</label>
-            <input type="text" id="form_X__rdfs_label__1" name="form:X__rdfs:label__1" value="{% if sub_item["rdfs:label"] is defined %}{{ sub_item["rdfs:label"] }}{% endif %}" required="required">
+            <label for="form_X__rdfs_label__{{ entry_count }}">Title</label>
+            <input type="text" id="form_X__rdfs_label__{{ entry_count }}" name="form:X__rdfs:label__{{ entry_count }}" value="{% if sub_item["rdfs:label"] is defined %}{{ sub_item["rdfs:label"] }}{% endif %}" required="required">
             <br/><br/>
-            <input type="text" id="form_X__form_comment__1" name="form:X__form:comment__1" value="{% if sub_item["form:comment"] is defined %}{{ sub_item["form:comment"] }}{% endif %}" required="required">
+            <input type="text" id="form_X__form_comment__{{ entry_count }}" name="form:X__form:comment__{{ entry_count }}" value="{% if sub_item["form:comment"] is defined %}{{ sub_item["form:comment"] }}{% endif %}" required="required">
         </div>
     </div>
     {% if root_item["form:has-x"] is defined %}
-        <input type="hidden" id="form_has_x__number" name="form:has-x__number" value="{{ root_item["form:has-x"]|length }}"/>
+        <input type="hidden" id="form_has_x__number" name="form:has-x__number" value="{{ 1+root_item["form:has-x"]|length }}"/>
         {% else %}
         <input type="hidden" id="form_has_x__number" name="form:has-x__number" value="1"/>
     {% endif %}
@@ -146,7 +149,9 @@ class FormTest extends UnitTestCase
 
 
 <script type="text/javascript">
-    var form_has_x__number = 1;
+
+    // store latest number of root_item["form:has-x"] entries
+    var form_has_x__number = {{ 1+root_item["form:has-x"]|length }};
     $(document).ready(function(){
         /*
          * dynamically add further fields to #form_has_x__container
@@ -157,15 +162,13 @@ class FormTest extends UnitTestCase
             $("#form_has_x__container").append(
                 `<br/>
 
-                <div id="form:has-x__entry_1">
+                <div id="form_has_x__entry_` + backmodel_has_areas__number + `">
                     <br/><br/>
-                    <label for="form_X__rdfs_label__1">Title</label>
-                    <input type="text" id="form_X__rdfs_label__1" name="form:X__rdfs:label__1" value="{% if sub_item["rdfs:label"] is defined %}{{ sub_item["rdfs:label"] }}{% endif %}" required="required">
+                    <label for="form_X__rdfs_label__` + backmodel_has_areas__number + `">Title</label>
+                    <input type="text" id="form_X__rdfs_label__` + backmodel_has_areas__number + `" name="form:X__rdfs:label__` + backmodel_has_areas__number + `" value="" required="required">
                     <br/><br/>
-                    <input type="text" id="form_X__form_comment__1" name="form:X__form:comment__1" value="{% if sub_item["form:comment"] is defined %}{{ sub_item["form:comment"] }}{% endif %}" required="required">
+                    <input type="text" id="form_X__form_comment__` + backmodel_has_areas__number + `" name="form:X__form:comment__` + backmodel_has_areas__number + `" value="" required="required">
                 </div>`
-                .replace(/_entry_(\d)/g, "_entry_" + backmodel_has_areas__number)
-                .replace(/__\d"/g, "__" + backmodel_has_areas__number + "\"")
             );
 
             $("#form_has_x__number").val(form_has_x__number);

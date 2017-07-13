@@ -170,7 +170,7 @@ class Form
 
         // if parent type given, put div container around properties
         } else {
-            $htmlElements[] = '<div id="'. $propertyUri .'__entry_'. ($level-1) .'">';
+            $htmlElements[] = '<div id="'. $this->getHtmlFriendlyIdentifier($propertyUri) .'__entry_{{ entry_count }}">';
             $suffix = '__' . ($level-1);
         }
 
@@ -197,6 +197,7 @@ class Form
                 /*
                  * add loop to show existing entries for this property relation, if available
                  */
+                $htmlElements[] = '{% set entry_count = 0 %}';
                 $htmlElements[] = '{% if root_item["'. $propertyUri .'"] is defined %}';
                 $htmlElements[] = '{% for key,sub_item in root_item["'. $propertyUri .'"] %}';
                 $htmlElements[] = '<div id="'. $propertyUri .'__entry_{{key}}">';
@@ -222,7 +223,9 @@ class Form
                 }
 
                 $htmlElements[] = '</div>';
+                $htmlElements[] = '{% set entry_count = key %}';
                 $htmlElements[] = '{% endfor %}';
+                $htmlElements[] = '{% set entry_count = entry_count+1 %}';
                 $htmlElements[] = '{% endif %}';
 
                 /*
@@ -245,7 +248,7 @@ class Form
                 $htmlElements[] = '{% if root_item["'. $propertyUri .'"] is defined %}';
                 $htmlElements[] = '<input type="hidden" id="'. $propId .'__number" '
                                          . 'name="'. $propertyUri .'__number" '
-                                         . 'value="{{ root_item["'. $propertyUri .'"]|length }}"/>';
+                                         . 'value="{{ 1+root_item["'. $propertyUri .'"]|length }}"/>';
                 $htmlElements[] = '{% else %}';
                 $htmlElements[] = '<input type="hidden" id="'. $propId .'__number" '
                                        . 'name="'. $propertyUri .'__number" value="1"/>';
@@ -255,7 +258,7 @@ class Form
                 $htmlElements[] = $this->generateButton($propId, 'Add');
 
                 // js
-                $javascript .= PHP_EOL . $this->generateJavascriptForSubResources($propId, $subForm);
+                $javascript .= PHP_EOL . $this->generateJavascriptForSubResources($propertyUri, $subForm);
 
             } else {
                 $htmlElements[] = '<br/><br/>';
@@ -315,38 +318,48 @@ class Form
     }
 
     /**
-     * @param string $id
+     * @param string $propertyUri URI of the property which can have multiple objects
      * @param array $subFormElements
      * @param int number Optional, default is 1
      */
-    protected function generateJavascriptForSubResources(string $id, array $subFormElements, int $number = 1)
+    protected function generateJavascriptForSubResources(string $propertyUri, array $subFormElements, int $number = 1)
     {
         $subFormHTML = $this->htmlGenerator->transformFormArrayToCoolHtml($subFormElements, 4);
 
+        // replace {{ entry_count }} with a javascript variable
+        // the reason is, that JS controls the increasing index, whereas entry_count is controled by twig
+        $subFormHTML = str_replace('{{ entry_count }}', '` + backmodel_has_areas__number + `', $subFormHTML);
+
+        // remove twig related content: {% %} and {{ }}
+        $subFormHTML = preg_replace('/{%.*?%}/si', '', $subFormHTML);
+        $subFormHTML = preg_replace('/{{.*?}}/si', '', $subFormHTML);
+
+        $htmlFriendlyPropertyUri = $this->getHtmlFriendlyIdentifier($propertyUri);
+
         return '
 <script type="text/javascript">
-    var '. $id .'__number = 1;
+
+    // store latest number of root_item["'. $propertyUri .'"] entries
+    var '. $htmlFriendlyPropertyUri .'__number = {{ 1+root_item["'. $propertyUri .'"]|length }};
     $(document).ready(function(){
         /*
-         * dynamically add further fields to #'. $id .'__container
+         * dynamically add further fields to #'. $htmlFriendlyPropertyUri .'__container
          */
-        $("#'. $id .'__btn").on("click", function(){
-            ++'. $id .'__number;
+        $("#'. $htmlFriendlyPropertyUri .'__btn").on("click", function(){
+            ++'. $htmlFriendlyPropertyUri .'__number;
 
-            $("#'. $id .'__container").append(
+            $("#'. $htmlFriendlyPropertyUri .'__container").append(
                 `<br/>'. PHP_EOL . $subFormHTML .'`
-                .replace(/_entry_(\d)/g, "_entry_" + backmodel_has_areas__number)
-                .replace(/__\d"/g, "__" + backmodel_has_areas__number + "\"")
             );
 
-            $("#'. $id .'__number").val('. $id .'__number);
+            $("#'. $htmlFriendlyPropertyUri .'__number").val('. $htmlFriendlyPropertyUri .'__number);
         });
     });
 </script>';
     }
 
     /**
-     * Because rdfs:label sucks as ID in HTML, we need something like rdfs_label.
+     * Because identifier like rdfs:label suck as ID in HTML, we need something like rdfs_label.
      *
      * @param string $uri
      * @return string HTML friendly URI which can be used as name or ID for HTML DOM elements.
@@ -366,7 +379,7 @@ class Form
         // suffix for property name like rdfs:label ==> rdfs:label
         $suffix = '';
         if (1 < $level) {
-            $suffix = '__'. ($level-1);
+            $suffix = '__{{ entry_count }}';
             $itemName = 'sub_item';
         } else {
             $itemName = 'root_item';
@@ -401,27 +414,7 @@ class Form
 
         $htmlElements[] = '<input type="text" id="'. $id .'" '
                                 . 'name="'. $name .'" '
-                                . 'value="'. $value .'" required="required">';
-
-        return $htmlElements;
-    }
-
-    /**
-     * @param string $name
-     * @param string $value Optional, default is ''
-     * @return array
-     */
-    public function getSelectBoxFor(string $name, array $options) : array
-    {
-        $htmlElements = array();
-
-        $htmlElements[] = '<select name="'. $name .'" required="required">';
-
-        foreach ($options as $value => $label) {
-            $htmlElements[] = '<option value="'. $value .'">'. $label .'</option>';
-        }
-
-        $htmlElements[] = '</select>';
+                                . 'value="'. $value .' " required="required">';
 
         return $htmlElements;
     }

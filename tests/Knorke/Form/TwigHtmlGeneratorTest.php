@@ -34,14 +34,23 @@ class TwigHtmlGeneratorTest extends HtmlGeneratorTest
 
         $this->assertEquals(
             '
+
 <form>
+
     <input type=""/>
+
     <input type=""/>
+
     <div>
+
         {% if 1==2 %}
+
             cool twig
+
         {% endif %}
+
     </div>
+
 </form>',
             $this->fixture->transformFormArrayToCoolHtml($formArray)
         );
@@ -63,14 +72,23 @@ class TwigHtmlGeneratorTest extends HtmlGeneratorTest
 
         $this->assertEquals(
             '
+
     <form>
+
         <input type=""/>
+
         <input type=""/>
+
         <div>
+
             {% if 1==2 %}
+
                 cool twig
+
             {% endif %}
+
         </div>
+
     </form>',
             $this->fixture->transformFormArrayToCoolHtml($formArray, 1)
         );
@@ -94,14 +112,23 @@ class TwigHtmlGeneratorTest extends HtmlGeneratorTest
 
         $this->assertEquals(
             '
+
 <form method="post" action="{% if root_item["_idUri"] is defined %}{{ root_item["_idUri"] }}{% endif %}">
+
     <input type="hidden" name="__type" value="http://bar">
+
     {% if root_item["_idUri"] is defined %}
+
         <input type="hidden" name="__idUri" value="{{ root_item["_idUri"] }}">
+
         {% else %}
+
         <input type="hidden" name="__uriSchema" value="">
+
     {% endif %}
+
     <br/><br/>
+
 </form>',
             $this->fixture->transformFormArrayToCoolHtml($formArray, 0)
         );

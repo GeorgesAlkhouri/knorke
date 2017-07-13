@@ -74,7 +74,9 @@ class Form
     }
 
     /**
-     *
+     * @param string $schema
+     * @param array $rawFormInput
+     * @return string
      */
     public function buildRootElementUriByUriSchema(string $schema, array $rawFormInput) : string
     {
@@ -174,11 +176,34 @@ class Form
     /**
      * @param string $id
      * @param string $label
-     * @param string $cssClasses = "btn btn-primary"
+     * @param string $type Optional, default is 'button'
+     * @param string $cssClasses Optional, default is "btn btn-primary"
      */
-    public function button(string $id, string $label, string $cssClasses = "btn btn-primary")
+    public function button(string $id, string $label, $type = 'button', string $cssClasses = 'btn btn-primary')
     {
-        return '<button class="'. $cssClasses .'" id="'. $id .'" type="button">'. $label .'</button>';
+        return '<button class="'. $cssClasses .'" id="'. $id .'" type="'. $type .'">'. $label .'</button>';
+    }
+
+    /**
+     * Gets a label for a given resource URI.
+     *
+     * @param string $uri
+     * @return string Label or given URI.
+     */
+    protected function getLabelFor(string $uri)
+    {
+        $blank = $this->dataBlankHelper->load($uri);
+
+        // TODO extend that to support further label properties as well as different languages
+        if (isset($blank['rdfs:label'])) {
+            if (is_array($blank['rdfs:label'])) {
+                return $blank['rdfs:label'][0];
+            } else {
+                return $blank['rdfs:label'];
+            }
+        }
+
+        return $uri;
     }
 
     /**
@@ -268,12 +293,12 @@ class Form
     }
 
     /**
-     * @paraam string $for
-     * @paraam string $value
+     * @param string $label
+     * @return string
      */
-    protected function label(string $for, string $value)
+    protected function labelText(string $label)
     {
-        return '<label for="'. $for .'">'. $value .'</label';
+        return '<strong>'. $label .'</strong><br/>';
     }
 
     /**
@@ -346,6 +371,7 @@ class Form
              */
             } else {
                 $htmlElements[] = '<br/><br/>';
+                $htmlElements[] = $this->labelText($this->getLabelFor($rootElementPropertyUri));
                 $htmlElements[] = $this->inputFieldText(
                     $rootElementPropertyUri,
                     '{% if root_item["'. $rootElementPropertyUri .'"] is defined %}{{ root_item["'. $rootElementPropertyUri .'"] }}{% endif %}'
@@ -380,6 +406,17 @@ class Form
                 $this->insertArrayAtPosition($htmlElements, $key, $subFormHtmlElements);
             }
         }
+
+        // add hidden field named action which contains insert or update
+        $htmlElements[] =       '{% if root_item["_idUri"] is defined %}';
+        $htmlElements[] =           $this->inputFieldHidden('action', 'update');
+        $htmlElements[] =       '{% else %}';
+        $htmlElements[] =           $this->inputFieldHidden('action', 'insert');
+        $htmlElements[] =       '{% endif %}';
+
+        // add submit button
+        $htmlElements[] =       '<br/><br/>';
+        $htmlElements[] =       $this->button('', 'Save', 'submit');
 
         $htmlElements[] = '</form>';
 
@@ -427,24 +464,37 @@ class Form
         $subElements   = array();
         $subElements[] =                '<div class="'. $htmlFriendlyRootElementPropertyUri .'_element">';
         foreach ($subElementTypeBlank['kno:has-property'] as $subElementProperty) {
+            $subElementPropertyUri = isset($subElementProperty['_idUri']) ? $subElementProperty['_idUri'] : $subElementProperty;
+
+            // label
+            $subElements[] =            $this->labelText($this->getLabelFor($subElementPropertyUri));
+
+            // input field
             $subElements[] =            $this->inputFieldText(
-                                            $namePrefixForSubElementProperties . $subElementProperty['_idUri'] .'__{{ entry_count }}',
-                                            '{{ sub_item["'. $subElementProperty['_idUri'] .'"] }}'
+                                            $namePrefixForSubElementProperties . $subElementPropertyUri .'__{{ entry_count }}',
+                                            '{{ sub_item["'. $subElementPropertyUri .'"] }}'
                                         );
         }
+
+        // __idUri
+        $subElements[] =                $this->inputFieldHidden(
+                                            $namePrefixForSubElementProperties . '__idUri__{{ entry_count }}',
+                                            '{{ sub_item["_idUri"] }}'
+                                        );
+
         $subElements[] =                '</div>';
 
         $htmlElements = array_merge($htmlElements, $subElements);
 
+        $htmlElements[] =              '{% set entry_count = entry_count+1 %}';
         $htmlElements[] =           '{% endfor %}';
-        $htmlElements[] =           '{% set entry_count = entry_count+1 %}';
         $htmlElements[] =       '{% endif %}';
 
-        $htmlElements[] =       $this->button($htmlFriendlyRootElementPropertyUri .'__btn', 'Add');
+        $htmlElements[] =       $this->button($htmlFriendlyRootElementPropertyUri .'__btn', 'Add', 'button', 'btn btn-primary btn-xs');
 
         $htmlElements[] =       $this->inputFieldHidden(
                                     $rootElementUri .'__'. $rootElementPropertyUri .'__number',
-                                    '{{ 1+root_item["'. $rootElementPropertyUri .'"]|length }}',
+                                    '{{ root_item["'. $rootElementPropertyUri .'"]|length }}',
                                     $htmlFriendlyRootElementPropertyUri .'__number'
                                 );
 
@@ -528,6 +578,8 @@ class Form
                 '__type'                                                     => $typeUri,
                 '__idUri'                                                    => 'http://type1/',
                 'form:t1-p1'                                                 => 't1-p1-value',
+                'form:t1-p2__uriSchema'                                      => '%root-uri%?form:t2-p1?',
+                'form:t1-p2__type'                                           => 'form:type2',
                 // sub entry 1
                 'form:type1__form:t1-p2__form:type2__form:t2-p1____idUri__1' => 'http://type2/1',
                 'form:type1__form:t1-p2__form:type2__form:t2-p1__1'          => 'sub-value1',
@@ -622,7 +674,7 @@ class Form
                     } else {
                         // assume __uriSchema key is set
                         $subElementUri = $this->buildSubElementUriByUriSchema(
-                            $formInput[$subKey . '__uriSchema'],
+                            $formInput[$property['_idUri'] . '__uriSchema'],
                             $formInput,
                             $formInput['__type'],
                             $property['_idUri'],
@@ -638,12 +690,21 @@ class Form
                         );
                     }
 
+                    // add rdf:type relation
+                    $result[] = $this->statementFactory->createStatement(
+                       $this->nodeFactory->createNamedNode($subElementUri),
+                       $this->nodeFactory->createNamedNode('rdf:type'),
+                       $this->nodeFactory->createNamedNode($formInput[$property['_idUri'] .'__type'])
+                    );
+
                     foreach ($referencedTypeBlank['kno:has-property'] as $subProperty) {
+                        $subPropertyUri = isset($subProperty['_idUri']) ? $subProperty['_idUri'] : $subProperty;
+
                         $result[] = $this->statementFactory->createStatement(
                             $this->nodeFactory->createNamedNode($subElementUri),
-                            $this->nodeFactory->createNamedNode($subProperty['_idUri']),
+                            $this->nodeFactory->createNamedNode($subPropertyUri),
                             $this->getNodeForGivenValue(
-                                $formInput[$subKey .'__' . $subProperty['_idUri'] .'__'. $subEntryIndex]
+                                $formInput[$subKey .'__' . $subPropertyUri .'__'. $subEntryIndex]
                             )
                         );
                     }

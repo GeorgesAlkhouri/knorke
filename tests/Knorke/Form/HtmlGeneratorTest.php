@@ -38,18 +38,31 @@ class HtmlGeneratorTest extends UnitTestCase
 
         $this->assertEquals(
             '
+
 <form>
+
     <input type=""/>
+
     <input type=""/>
+
     <div>
+
         cool here!
+
     </div>
+
     <select>
+
         <option>1</option>
+
     </select>
+
     <span>
+
         some stuff
+
     </span>
+
 </form>',
             $this->fixture->transformFormArrayToCoolHtml($formArray)
         );
@@ -84,12 +97,19 @@ class HtmlGeneratorTest extends UnitTestCase
 
         $this->assertEquals(
             '
+
     <form>
+
         <input type=""/>
+
         <input type=""/>
+
         <div>
+
             cool here!
+
         </div>
+
     </form>',
             $this->fixture->transformFormArrayToCoolHtml($formArray, 1)
         );
@@ -109,12 +129,19 @@ class HtmlGeneratorTest extends UnitTestCase
 
         $this->assertEquals(
             '
+
 <div id="form:has-x__entry_1">
+
     <br/><br/>
+
     <label for="form_X__rdfs_label__1">Title</label>
+
     <input type="text" id="form_X__rdfs_label__1"name="form:X__rdfs:label__1"value="..." required="required">
+
     <br/><br/>
+
     <input type="text" id="form_X__form_comment__1" name="foo" value="..." required="required">
+
 </div>',
             $this->fixture->transformFormArrayToCoolHtml($formArray, 0)
         );

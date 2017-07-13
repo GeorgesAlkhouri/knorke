@@ -140,6 +140,8 @@ class FormTest extends UnitTestCase
 
     <br/><br/>
 
+    <strong>Root-Prop-1 DE</strong><br/>
+
     <input type="text" name="form:t1-p1" value="{% if root_item["form:t1-p1"] is defined %}{{ root_item["form:t1-p1"] }}{% endif %}">
 
     <div id="form_t1_p2__container">
@@ -156,23 +158,43 @@ class FormTest extends UnitTestCase
 
                 <div class="form_t1_p2_element">
 
+                    <strong>Type2-Prop-1</strong><br/>
+
                     <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__{{ entry_count }}" value="{{ sub_item["form:t2-p1"] }}">
+
+                    <strong>form:t2-p2</strong><br/>
 
                     <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__{{ entry_count }}" value="{{ sub_item["form:t2-p2"] }}">
 
+                    <input type="hidden" name="form:type1__form:t1-p2__form:type2____idUri__{{ entry_count }}" value="{{ sub_item["_idUri"] }}">
+
                 </div>
+
+                {% set entry_count = entry_count+1 %}
 
             {% endfor %}
 
-            {% set entry_count = entry_count+1 %}
-
         {% endif %}
 
-        <button class="btn btn-primary" id="form_t1_p2__btn" type="button">Add</button>
+        <button class="btn btn-primary btn-xs" id="form_t1_p2__btn" type="button">Add</button>
 
-        <input type="hidden" name="form:type1__form:t1-p2__number" value="{{ 1+root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">
+        <input type="hidden" name="form:type1__form:t1-p2__number" value="{{ root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">
 
     </div>
+
+    {% if root_item["_idUri"] is defined %}
+
+        <input type="hidden" name="action" value="update">
+
+        {% else %}
+
+        <input type="hidden" name="action" value="insert">
+
+    {% endif %}
+
+    <br/><br/>
+
+    <button class="btn btn-primary" id="" type="submit">Save</button>
 
 </form>',
                 /*
@@ -197,9 +219,15 @@ class FormTest extends UnitTestCase
 
                 <div class="form_t1_p2_element">
 
+                    <strong>Type2-Prop-1</strong><br/>
+
                     <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__` + backmodel_has_areas__number + `" value="">
 
+                    <strong>form:t2-p2</strong><br/>
+
                     <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__` + backmodel_has_areas__number + `" value="">
+
+                    <input type="hidden" name="form:type1__form:t1-p2__form:type2____idUri__` + backmodel_has_areas__number + `" value="">
 
                 </div>`
             );
@@ -260,14 +288,21 @@ class FormTest extends UnitTestCase
                         '{% if root_item["form:t1-p2"] is defined %}',
                             '{% for key,sub_item in root_item["form:t1-p2"] %}',
                                 '<div class="form_t1_p2_element">',
+
+                                    '<strong>Type2-Prop-1</strong><br/>',
                                     '<input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__{{ entry_count }}" value="{{ sub_item["form:t2-p1"] }}">',
+
+                                    '<strong>form:t2-p2</strong><br/>',
                                     '<input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__{{ entry_count }}" value="{{ sub_item["form:t2-p2"] }}">',
+
+                                    '<input type="hidden" name="form:type1__form:t1-p2__form:type2____idUri__{{ entry_count }}" value="{{ sub_item["_idUri"] }}">',
+
                                 '</div>',
+                                '{% set entry_count = entry_count+1 %}',
                             '{% endfor %}',
-                            '{% set entry_count = entry_count+1 %}',
                         '{% endif %}',
-                        '<button class="btn btn-primary" id="form_t1_p2__btn" type="button">Add</button>',
-                        '<input type="hidden" name="form:type1__form:t1-p2__number" value="{{ 1+root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">',
+                        '<button class="btn btn-primary btn-xs" id="form_t1_p2__btn" type="button">Add</button>',
+                        '<input type="hidden" name="form:type1__form:t1-p2__number" value="{{ root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">',
                     '</div>',
                 ),
 '
@@ -288,9 +323,15 @@ class FormTest extends UnitTestCase
 
                 <div class="form_t1_p2_element">
 
+                    <strong>Type2-Prop-1</strong><br/>
+
                     <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__` + backmodel_has_areas__number + `" value="">
 
+                    <strong>form:t2-p2</strong><br/>
+
                     <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__` + backmodel_has_areas__number + `" value="">
+
+                    <input type="hidden" name="form:type1__form:t1-p2__form:type2____idUri__` + backmodel_has_areas__number + `" value="">
 
                 </div>`
             );
@@ -392,7 +433,8 @@ class FormTest extends UnitTestCase
             '__idUri'                                                    => 'http://type1/',
             'form:t1-p1'                                                 => 't1-p1-value',
             // sub entry 1
-            'form:type1__form:t1-p2__form:type2__uriSchema'              => '%root-uri%?form:t2-p1?',
+            'form:t1-p2__uriSchema'                                      => '%root-uri%?form:t2-p1?',
+            'form:t1-p2__type'                                           => 'form:type2',
             'form:type1__form:t1-p2__form:type2____idUri__0'             => 'http://type1/sub-value1',
             'form:type1__form:t1-p2__form:type2__form:t2-p1__0'          => 'sub-value1',
             'form:type1__form:t1-p2__form:type2__form:t2-p2__0'          => 'sub-value2',
@@ -421,6 +463,11 @@ class FormTest extends UnitTestCase
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/sub-value1'),
+                    $this->nodeFactory->createNamedNode('rdf:type'),
+                    $this->nodeFactory->createNamedNode('form:type2')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/sub-value1'),
                     $this->nodeFactory->createNamedNode('form:t2-p1'),
                     $this->nodeFactory->createLiteral('sub-value1')
                 ),
@@ -429,11 +476,15 @@ class FormTest extends UnitTestCase
                     $this->nodeFactory->createNamedNode('form:t2-p2'),
                     $this->nodeFactory->createLiteral('sub-value2')
                 ),
-                // root element ===> sub element 2
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/'),
                     $this->nodeFactory->createNamedNode('form:t1-p2'),
                     $this->nodeFactory->createNamedNode('http://type1/sub_value3')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/sub_value3'),
+                    $this->nodeFactory->createNamedNode('rdf:type'),
+                    $this->nodeFactory->createNamedNode('form:type2')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/sub_value3'),
@@ -445,7 +496,6 @@ class FormTest extends UnitTestCase
                     $this->nodeFactory->createNamedNode('form:t2-p2'),
                     $this->nodeFactory->createLiteral('sub-value4')
                 ),
-                // t1-p3
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/'),
                     $this->nodeFactory->createNamedNode('form:t1-p3'),
@@ -499,7 +549,8 @@ class FormTest extends UnitTestCase
             '__uriSchema'                                                => 'http://new/?form:t1-p1?/',
             'form:t1-p1'                                                 => 't1-p1-value',
             // sub entry 1
-            'form:type1__form:t1-p2__form:type2__uriSchema'              => '%root-uri%?form:t2-p1?',
+            'form:t1-p2__uriSchema'                                      => '%root-uri%?form:t2-p1?',
+            'form:t1-p2__type'                                           => 'form:type2',
             'form:type1__form:t1-p2__form:type2__form:t2-p1__0'          => 'sub-value1',
             'form:type1__form:t1-p2__form:type2__form:t2-p2__0'          => 'sub-value2',
             // sub entry 2 (not yet "created", therefore needs an URI)
@@ -527,6 +578,11 @@ class FormTest extends UnitTestCase
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value1'),
+                    $this->nodeFactory->createNamedNode('rdf:type'),
+                    $this->nodeFactory->createNamedNode('form:type2')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value1'),
                     $this->nodeFactory->createNamedNode('form:t2-p1'),
                     $this->nodeFactory->createLiteral('sub-value1')
                 ),
@@ -535,11 +591,15 @@ class FormTest extends UnitTestCase
                     $this->nodeFactory->createNamedNode('form:t2-p2'),
                     $this->nodeFactory->createLiteral('sub-value2')
                 ),
-                // root element ===> sub element 2
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
                     $this->nodeFactory->createNamedNode('form:t1-p2'),
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value3')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value3'),
+                    $this->nodeFactory->createNamedNode('rdf:type'),
+                    $this->nodeFactory->createNamedNode('form:type2')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value3'),
@@ -551,7 +611,6 @@ class FormTest extends UnitTestCase
                     $this->nodeFactory->createNamedNode('form:t2-p2'),
                     $this->nodeFactory->createLiteral('sub-value4')
                 ),
-                // t1-p3
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
                     $this->nodeFactory->createNamedNode('form:t1-p3'),

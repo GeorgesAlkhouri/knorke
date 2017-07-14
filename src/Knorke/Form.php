@@ -490,15 +490,15 @@ class Form
         $htmlElements[] =           '{% endfor %}';
         $htmlElements[] =       '{% endif %}';
 
-        $htmlElements[] =       $this->button($htmlFriendlyRootElementPropertyUri .'__btn', 'Add', 'button', 'btn btn-primary btn-xs');
-
-        $htmlElements[] =       $this->inputFieldHidden(
-                                    $rootElementUri .'__'. $rootElementPropertyUri .'__number',
-                                    '{{ root_item["'. $rootElementPropertyUri .'"]|length }}',
-                                    $htmlFriendlyRootElementPropertyUri .'__number'
-                                );
-
         $htmlElements[] = '</div>';
+
+        $htmlElements[] = $this->button($htmlFriendlyRootElementPropertyUri .'__btn', 'Add', 'button', 'btn btn-primary btn-xs');
+
+        $htmlElements[] = $this->inputFieldHidden(
+                            $rootElementUri .'__'. $rootElementPropertyUri .'__number',
+                            '{{ root_item["'. $rootElementPropertyUri .'"]|length }}',
+                            $htmlFriendlyRootElementPropertyUri .'__number'
+                          );
 
         /*
          * generate according javascript, which allows addition of further sub forms for this type
@@ -534,17 +534,18 @@ class Form
 <script type="text/javascript">
 
     // store latest number of root_item["'. $rootElementPropertyUri .'"] entries
-    var '. $htmlFriendlyPropertyUri .'__number = {{ 1+root_item["'. $rootElementPropertyUri .'"]|length }};
+    var '. $htmlFriendlyPropertyUri .'__number = {{ root_item["'. $rootElementPropertyUri .'"]|length }};
     $(document).ready(function(){
         /*
          * dynamically add further fields to #'. $htmlFriendlyPropertyUri .'__container
          */
         $("#'. $htmlFriendlyPropertyUri .'__btn").on("click", function(){
-            ++'. $htmlFriendlyPropertyUri .'__number;
 
             $("#'. $htmlFriendlyPropertyUri .'__container").append(
                 `<br/>'. PHP_EOL . $subFormHTML .'`
             );
+
+            ++'. $htmlFriendlyPropertyUri .'__number;
 
             $("#'. $htmlFriendlyPropertyUri .'__number").val('. $htmlFriendlyPropertyUri .'__number);
         });
@@ -609,6 +610,7 @@ class Form
         // here we know that all data are OK
 
         $result = array();
+        $cN = $this->commonNamespaces; // shortcut for easier usage later on
 
         $rootTypeBlank = $this->dataBlankHelper->load($formInput['__type']);
 
@@ -627,8 +629,8 @@ class Form
              */
             if (isset($formInput[$property['_idUri']])) {
                 $result[] = $this->statementFactory->createStatement(
-                    $this->nodeFactory->createNamedNode($rootElementUri),
-                    $this->nodeFactory->createNamedNode($property['_idUri']),
+                    $this->nodeFactory->createNamedNode($cN->extendUri($rootElementUri)),
+                    $this->nodeFactory->createNamedNode($cN->extendUri($property['_idUri'])),
                     $this->getNodeForGivenValue($formInput[$property['_idUri']])
                 );
 
@@ -643,7 +645,8 @@ class Form
 
                 // get all has-property entry for the referenced instance of type
                 $referencedTypeBlank = $this->dataBlankHelper->load(
-                    $property['kno:restriction-reference-is-of-type']['_idUri']
+                    $property['kno:restriction-reference-is-of-type']['_idUri'],
+                    array('use_prefixed_predicates' => true, 'use_prefixed_objects' => true,)
                 );
 
                 // first part of the subKey which identifies sub elements
@@ -665,15 +668,15 @@ class Form
                     // sub element has an URI already
                     if (isset($formInput[$subKey .'____idUri__'. $subEntryIndex])) {
                         $result[] = $this->statementFactory->createStatement(
-                           $this->nodeFactory->createNamedNode($rootElementUri),
-                           $this->nodeFactory->createNamedNode($property['_idUri']),
-                           $this->nodeFactory->createNamedNode($formInput[$subKey .'____idUri__'. $subEntryIndex])
+                           $this->nodeFactory->createNamedNode($cN->extendUri($rootElementUri)),
+                           $this->nodeFactory->createNamedNode($cN->extendUri($property['_idUri'])),
+                           $this->nodeFactory->createNamedNode($cN->extendUri($formInput[$subKey .'____idUri__'. $subEntryIndex]))
                         );
-                        $subElementUri = $formInput[$subKey .'____idUri__'. $subEntryIndex];
+                        $subElementUri = $cN->extendUri($formInput[$subKey .'____idUri__'. $subEntryIndex]);
                     // generate new URI for sub element
                     } else {
                         // assume __uriSchema key is set
-                        $subElementUri = $this->buildSubElementUriByUriSchema(
+                        $subElementUri = $cN->extendUri($this->buildSubElementUriByUriSchema(
                             $formInput[$property['_idUri'] . '__uriSchema'],
                             $formInput,
                             $formInput['__type'],
@@ -681,11 +684,11 @@ class Form
                             $this->commonNamespaces->shortenUri($referencedTypeBlank['_idUri']),
                             $subEntryIndex,
                             $rootElementUri
-                        );
+                        ));
 
                         $result[] = $this->statementFactory->createStatement(
-                           $this->nodeFactory->createNamedNode($rootElementUri),
-                           $this->nodeFactory->createNamedNode($property['_idUri']),
+                           $this->nodeFactory->createNamedNode($cN->extendUri($rootElementUri)),
+                           $this->nodeFactory->createNamedNode($cN->extendUri($property['_idUri'])),
                            $this->nodeFactory->createNamedNode($subElementUri)
                         );
                     }
@@ -693,8 +696,8 @@ class Form
                     // add rdf:type relation
                     $result[] = $this->statementFactory->createStatement(
                        $this->nodeFactory->createNamedNode($subElementUri),
-                       $this->nodeFactory->createNamedNode('rdf:type'),
-                       $this->nodeFactory->createNamedNode($formInput[$property['_idUri'] .'__type'])
+                       $this->nodeFactory->createNamedNode($cN->extendUri('rdf:type')),
+                       $this->nodeFactory->createNamedNode($cN->extendUri($formInput[$property['_idUri'] .'__type']))
                     );
 
                     foreach ($referencedTypeBlank['kno:has-property'] as $subProperty) {
@@ -702,7 +705,7 @@ class Form
 
                         $result[] = $this->statementFactory->createStatement(
                             $this->nodeFactory->createNamedNode($subElementUri),
-                            $this->nodeFactory->createNamedNode($subPropertyUri),
+                            $this->nodeFactory->createNamedNode($cN->extendUri($subPropertyUri)),
                             $this->getNodeForGivenValue(
                                 $formInput[$subKey .'__' . $subPropertyUri .'__'. $subEntryIndex]
                             )

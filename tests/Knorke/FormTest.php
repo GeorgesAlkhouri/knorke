@@ -176,11 +176,11 @@ class FormTest extends UnitTestCase
 
         {% endif %}
 
-        <button class="btn btn-primary btn-xs" id="form_t1_p2__btn" type="button">Add</button>
-
-        <input type="hidden" name="form:type1__form:t1-p2__number" value="{{ root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">
-
     </div>
+
+    <button class="btn btn-primary btn-xs" id="form_t1_p2__btn" type="button">Add</button>
+
+    <input type="hidden" name="form:type1__form:t1-p2__number" value="{{ root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">
 
     {% if root_item["_idUri"] is defined %}
 
@@ -205,13 +205,12 @@ class FormTest extends UnitTestCase
 <script type="text/javascript">
 
     // store latest number of root_item["form:t1-p2"] entries
-    var form_t1_p2__number = {{ 1+root_item["form:t1-p2"]|length }};
+    var form_t1_p2__number = {{ root_item["form:t1-p2"]|length }};
     $(document).ready(function(){
         /*
          * dynamically add further fields to #form_t1_p2__container
          */
         $("#form_t1_p2__btn").on("click", function(){
-            ++form_t1_p2__number;
 
             $("#form_t1_p2__container").append(
                 `<br/>
@@ -231,6 +230,8 @@ class FormTest extends UnitTestCase
 
                 </div>`
             );
+
+            ++form_t1_p2__number;
 
             $("#form_t1_p2__number").val(form_t1_p2__number);
         });
@@ -301,21 +302,20 @@ class FormTest extends UnitTestCase
                                 '{% set entry_count = entry_count+1 %}',
                             '{% endfor %}',
                         '{% endif %}',
-                        '<button class="btn btn-primary btn-xs" id="form_t1_p2__btn" type="button">Add</button>',
-                        '<input type="hidden" name="form:type1__form:t1-p2__number" value="{{ root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">',
                     '</div>',
+                    '<button class="btn btn-primary btn-xs" id="form_t1_p2__btn" type="button">Add</button>',
+                    '<input type="hidden" name="form:type1__form:t1-p2__number" value="{{ root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">',
                 ),
 '
 <script type="text/javascript">
 
     // store latest number of root_item["form:t1-p2"] entries
-    var form_t1_p2__number = {{ 1+root_item["form:t1-p2"]|length }};
+    var form_t1_p2__number = {{ root_item["form:t1-p2"]|length }};
     $(document).ready(function(){
         /*
          * dynamically add further fields to #form_t1_p2__container
          */
         $("#form_t1_p2__btn").on("click", function(){
-            ++form_t1_p2__number;
 
             $("#form_t1_p2__container").append(
                 `<br/>
@@ -335,6 +335,8 @@ class FormTest extends UnitTestCase
 
                 </div>`
             );
+
+            ++form_t1_p2__number;
 
             $("#form_t1_p2__number").val(form_t1_p2__number);
         });
@@ -452,53 +454,53 @@ class FormTest extends UnitTestCase
             array(
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/'),
-                    $this->nodeFactory->createNamedNode('form:t1-p1'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p1'),
                     $this->nodeFactory->createLiteral('t1-p1-value')
                 ),
                 // root element ===> sub element 1
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/'),
-                    $this->nodeFactory->createNamedNode('form:t1-p2'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p2'),
                     $this->nodeFactory->createNamedNode('http://type1/sub-value1')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/sub-value1'),
-                    $this->nodeFactory->createNamedNode('rdf:type'),
-                    $this->nodeFactory->createNamedNode('form:type2')
+                    $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                    $this->nodeFactory->createNamedNode('http://form/type2')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/sub-value1'),
-                    $this->nodeFactory->createNamedNode('form:t2-p1'),
+                    $this->nodeFactory->createNamedNode('http://form/t2-p1'),
                     $this->nodeFactory->createLiteral('sub-value1')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/sub-value1'),
-                    $this->nodeFactory->createNamedNode('form:t2-p2'),
+                    $this->nodeFactory->createNamedNode('http://form/t2-p2'),
                     $this->nodeFactory->createLiteral('sub-value2')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/'),
-                    $this->nodeFactory->createNamedNode('form:t1-p2'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p2'),
                     $this->nodeFactory->createNamedNode('http://type1/sub_value3')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/sub_value3'),
-                    $this->nodeFactory->createNamedNode('rdf:type'),
-                    $this->nodeFactory->createNamedNode('form:type2')
+                    $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                    $this->nodeFactory->createNamedNode('http://form/type2')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/sub_value3'),
-                    $this->nodeFactory->createNamedNode('form:t2-p1'),
+                    $this->nodeFactory->createNamedNode('http://form/t2-p1'),
                     $this->nodeFactory->createLiteral('sub-value3')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/sub_value3'),
-                    $this->nodeFactory->createNamedNode('form:t2-p2'),
+                    $this->nodeFactory->createNamedNode('http://form/t2-p2'),
                     $this->nodeFactory->createLiteral('sub-value4')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/'),
-                    $this->nodeFactory->createNamedNode('form:t1-p3'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p3'),
                     $this->nodeFactory->createLiteral('t1-p3-value')
                 )
             ),
@@ -567,53 +569,53 @@ class FormTest extends UnitTestCase
             array(
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
-                    $this->nodeFactory->createNamedNode('form:t1-p1'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p1'),
                     $this->nodeFactory->createLiteral('t1-p1-value')
                 ),
                 // root element ===> sub element 1
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
-                    $this->nodeFactory->createNamedNode('form:t1-p2'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p2'),
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value1')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value1'),
-                    $this->nodeFactory->createNamedNode('rdf:type'),
-                    $this->nodeFactory->createNamedNode('form:type2')
+                    $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                    $this->nodeFactory->createNamedNode('http://form/type2')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value1'),
-                    $this->nodeFactory->createNamedNode('form:t2-p1'),
+                    $this->nodeFactory->createNamedNode('http://form/t2-p1'),
                     $this->nodeFactory->createLiteral('sub-value1')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value1'),
-                    $this->nodeFactory->createNamedNode('form:t2-p2'),
+                    $this->nodeFactory->createNamedNode('http://form/t2-p2'),
                     $this->nodeFactory->createLiteral('sub-value2')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
-                    $this->nodeFactory->createNamedNode('form:t1-p2'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p2'),
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value3')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value3'),
-                    $this->nodeFactory->createNamedNode('rdf:type'),
-                    $this->nodeFactory->createNamedNode('form:type2')
+                    $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                    $this->nodeFactory->createNamedNode('http://form/type2')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value3'),
-                    $this->nodeFactory->createNamedNode('form:t2-p1'),
+                    $this->nodeFactory->createNamedNode('http://form/t2-p1'),
                     $this->nodeFactory->createLiteral('sub-value3')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/sub_value3'),
-                    $this->nodeFactory->createNamedNode('form:t2-p2'),
+                    $this->nodeFactory->createNamedNode('http://form/t2-p2'),
                     $this->nodeFactory->createLiteral('sub-value4')
                 ),
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
-                    $this->nodeFactory->createNamedNode('form:t1-p3'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p3'),
                     $this->nodeFactory->createLiteral('t1-p3-value')
                 )
             ),

@@ -4,6 +4,7 @@ namespace Tests\Knorke;
 
 use Knorke\DataBlankHelper;
 use Knorke\Importer;
+use Knorke\Restriction;
 use Knorke\Data\ParserFactory;
 use PHPUnit\Framework\TestCase;
 use Saft\Addition\ARC2\Store\ARC2;
@@ -91,6 +92,12 @@ class UnitTestCase extends TestCase
             $this->rdfHelpers,
             $this->store,
             array($this->testGraph)
+        );
+
+        $this->restriction = new Restriction(
+            $this->commonNamespaces,
+            $this->rdfHelpers,
+            $this->dataBlankHelper
         );
 
         $this->importer = new Importer(
@@ -316,11 +323,15 @@ class UnitTestCase extends TestCase
 
     /**
      * @param string $rdf
-     * @param NamedNode $graph
+     * @param NamedNode $graph Optional, default is null
      * @param Store $store Optional, default null
      */
-    protected function importTurtle(string $rdf, NamedNode $graph, Store $store = null)
+    protected function importTurtle(string $rdf, NamedNode $graph = null, Store $store = null)
     {
+        if (null == $graph) {
+            $graph = $this->testGraph;
+        }
+
         if (null == $store) {
             $store = $this->store;
         }

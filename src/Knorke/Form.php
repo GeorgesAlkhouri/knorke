@@ -19,6 +19,9 @@ class Form
     protected $dataBlankHelper;
     protected $graphs;
     protected $rdfHelpers;
+    protected $restrictions;
+    protected $statementFactory;
+    protected $store;
 
 
     /**
@@ -27,6 +30,7 @@ class Form
      * @param CommonNamespaces $commonNamespaces
      * @param NodeFactory $nodeFactory
      * @param StatementFactory $statementFactory
+     * @param Restriction $restriction
      * @param array $configuration = array()
      */
     public function __construct(
@@ -36,12 +40,14 @@ class Form
         CommonNamespaces $commonNamespaces,
         NodeFactory $nodeFactory,
         StatementFactory $statementFactory,
+        Restriction $restriction,
         array $configuration = array()
     ) {
         $this->commonNamespaces = $commonNamespaces;
         $this->dataBlankHelper = $dataBlankHelper;
         $this->nodeFactory = $nodeFactory;
         $this->rdfHelpers = $rdfHelpers;
+        $this->restriction = $restriction;
         $this->statementFactory = $statementFactory;
         $this->store = $store;
 
@@ -320,8 +326,16 @@ class Form
                 if (!is_array($value)) {
                     $value = array($value);
                 }
-                foreach ($value as $rootElementBlank) {
-                    $properties[] = $rootElementBlank['_idUri'];
+                foreach ($value as $entry) {
+                    $properties[] = $entry['_idUri'];
+                }
+            /*
+             * care about property kno:inherits-all-properties-of.
+             * gather all referenced properties and add them to the list.
+             */
+            } elseif ('kno:inherits-all-properties-of' == $key && isset($value['kno:has-property'])) {
+                foreach ($value->getPropertyAsArrayOfItems('kno:has-property') as $subEntry) {
+                    $properties[] = $subEntry['_idUri'];
                 }
             }
         }
@@ -494,11 +508,27 @@ class Form
 
         $htmlElements[] = $this->button($htmlFriendlyRootElementPropertyUri .'__btn', 'Add', 'button', 'btn btn-primary btn-xs');
 
+        /*
+         * if (sub elements) property is defined, stored the number of available sub elements.
+         * if no, just store 0.
+         */
+        $htmlElements[] = '{% if root_item["'. $rootElementPropertyUri .'"] is defined %}';
+
         $htmlElements[] = $this->inputFieldHidden(
                             $rootElementUri .'__'. $rootElementPropertyUri .'__number',
                             '{{ root_item["'. $rootElementPropertyUri .'"]|length }}',
                             $htmlFriendlyRootElementPropertyUri .'__number'
                           );
+
+        $htmlElements[] = '{% else %}';
+
+        $htmlElements[] = $this->inputFieldHidden(
+                            $rootElementUri .'__'. $rootElementPropertyUri .'__number',
+                            '0',
+                            $htmlFriendlyRootElementPropertyUri .'__number'
+                          );
+
+        $htmlElements[] = '{% endif %}';
 
         /*
          * generate according javascript, which allows addition of further sub forms for this type
@@ -534,7 +564,11 @@ class Form
 <script type="text/javascript">
 
     // store latest number of root_item["'. $rootElementPropertyUri .'"] entries
-    var '. $htmlFriendlyPropertyUri .'__number = {{ root_item["'. $rootElementPropertyUri .'"]|length }};
+    {% if root_item["'. $rootElementPropertyUri .'"] is defined %}
+        var '. $htmlFriendlyPropertyUri .'__number = {{ root_item["'. $rootElementPropertyUri .'"]|length }};
+    {% else %}
+        var '. $htmlFriendlyPropertyUri .'__number = 0;
+    {% endif %}
     $(document).ready(function(){
         /*
          * dynamically add further fields to #'. $htmlFriendlyPropertyUri .'__container

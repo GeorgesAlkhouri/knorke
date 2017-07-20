@@ -17,6 +17,7 @@ class FormTest extends UnitTestCase
             $this->commonNamespaces,
             $this->nodeFactory,
             $this->statementFactory,
+            $this->restriction,
             array(
                 'form' => array(
                     'action_url' => 'http://url/',
@@ -180,7 +181,15 @@ class FormTest extends UnitTestCase
 
     <button class="btn btn-primary btn-xs" id="form_t1_p2__btn" type="button">Add</button>
 
-    <input type="hidden" name="form:type1__form:t1-p2__number" value="{{ root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">
+    {% if root_item["form:t1-p2"] is defined %}
+
+        <input type="hidden" name="form:type1__form:t1-p2__number" value="{{ root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">
+
+        {% else %}
+
+        <input type="hidden" name="form:type1__form:t1-p2__number" value="0" id="form_t1_p2__number">
+
+    {% endif %}
 
     {% if root_item["_idUri"] is defined %}
 
@@ -205,7 +214,11 @@ class FormTest extends UnitTestCase
 <script type="text/javascript">
 
     // store latest number of root_item["form:t1-p2"] entries
-    var form_t1_p2__number = {{ root_item["form:t1-p2"]|length }};
+    {% if root_item["form:t1-p2"] is defined %}
+        var form_t1_p2__number = {{ root_item["form:t1-p2"]|length }};
+    {% else %}
+        var form_t1_p2__number = 0;
+    {% endif %}
     $(document).ready(function(){
         /*
          * dynamically add further fields to #form_t1_p2__container
@@ -240,6 +253,77 @@ class FormTest extends UnitTestCase
                 )
             ),
             $this->fixture->generateFormFor('form:type1')
+        );
+    }
+
+    // test that referenced properties via inherits-all-properties-of referenced are checked
+    public function testGenerateFormForWithInheritsAllPropertiesOf()
+    {
+        // add test data
+        $this->importTurtle('
+            @prefix form: <http://form/> .
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdfs: <'. $this->commonNamespaces->getUri('rdfs') .'> .
+
+            form:type1 ;
+                kno:has-property form:t1-p1 .
+
+            form:type2
+                kno:has-property form:t2-p1 ;
+                kno:inherits-all-properties-of form:type1 .
+            '
+        );
+
+        $this->commonNamespaces->add('form', 'http://form/');
+
+        $this->assertEquals(
+            array(
+                '
+
+<form method="post" action="http://url/">
+
+    <input type="hidden" name="__type" value="form:type2">
+
+    {% if root_item["_idUri"] is defined %}
+
+        <input type="hidden" name="__idUri" value="{{ root_item["_idUri"] }}">
+
+        {% else %}
+
+        <input type="hidden" name="__uriSchema" value="">
+
+    {% endif %}
+
+    <br/><br/>
+
+    <strong>form:t2-p1</strong><br/>
+
+    <input type="text" name="form:t2-p1" value="{% if root_item["form:t2-p1"] is defined %}{{ root_item["form:t2-p1"] }}{% endif %}">
+
+    <br/><br/>
+
+    <strong>http://form/t1-p1</strong><br/>
+
+    <input type="text" name="http://form/t1-p1" value="{% if root_item["http://form/t1-p1"] is defined %}{{ root_item["http://form/t1-p1"] }}{% endif %}">
+
+    {% if root_item["_idUri"] is defined %}
+
+        <input type="hidden" name="action" value="update">
+
+        {% else %}
+
+        <input type="hidden" name="action" value="insert">
+
+    {% endif %}
+
+    <br/><br/>
+
+    <button class="btn btn-primary" id="" type="submit">Save</button>
+
+</form>'        ,
+                array()
+            ),
+            $this->fixture->generateFormFor('form:type2')
         );
     }
 
@@ -304,13 +388,21 @@ class FormTest extends UnitTestCase
                         '{% endif %}',
                     '</div>',
                     '<button class="btn btn-primary btn-xs" id="form_t1_p2__btn" type="button">Add</button>',
+                    '{% if root_item["form:t1-p2"] is defined %}',
                     '<input type="hidden" name="form:type1__form:t1-p2__number" value="{{ root_item["form:t1-p2"]|length }}" id="form_t1_p2__number">',
+                    '{% else %}',
+                    '<input type="hidden" name="form:type1__form:t1-p2__number" value="0" id="form_t1_p2__number">',
+                    '{% endif %}',
                 ),
 '
 <script type="text/javascript">
 
     // store latest number of root_item["form:t1-p2"] entries
-    var form_t1_p2__number = {{ root_item["form:t1-p2"]|length }};
+    {% if root_item["form:t1-p2"] is defined %}
+        var form_t1_p2__number = {{ root_item["form:t1-p2"]|length }};
+    {% else %}
+        var form_t1_p2__number = 0;
+    {% endif %}
     $(document).ready(function(){
         /*
          * dynamically add further fields to #form_t1_p2__container

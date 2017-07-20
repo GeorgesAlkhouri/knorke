@@ -159,9 +159,13 @@ class FormTest extends UnitTestCase
 
                 <div class="form_t1_p2_element">
 
+                    <br/><br/>
+
                     <strong>Type2-Prop-1</strong><br/>
 
                     <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__{{ entry_count }}" value="{{ sub_item["form:t2-p1"] }}">
+
+                    <br/><br/>
 
                     <strong>form:t2-p2</strong><br/>
 
@@ -231,15 +235,19 @@ class FormTest extends UnitTestCase
 
                 <div class="form_t1_p2_element">
 
+                    <br/><br/>
+
                     <strong>Type2-Prop-1</strong><br/>
 
-                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__` + backmodel_has_areas__number + `" value="">
+                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__` + form_t1_p2__number + `" value="">
+
+                    <br/><br/>
 
                     <strong>form:t2-p2</strong><br/>
 
-                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__` + backmodel_has_areas__number + `" value="">
+                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__` + form_t1_p2__number + `" value="">
 
-                    <input type="hidden" name="form:type1__form:t1-p2__form:type2____idUri__` + backmodel_has_areas__number + `" value="">
+                    <input type="hidden" name="form:type1__form:t1-p2__form:type2____idUri__` + form_t1_p2__number + `" value="">
 
                 </div>`
             );
@@ -265,11 +273,13 @@ class FormTest extends UnitTestCase
             @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
             @prefix rdfs: <'. $this->commonNamespaces->getUri('rdfs') .'> .
 
-            form:type1 ;
-                kno:has-property form:t1-p1 .
+            form:type1
+                kno:has-property form:t1-p1 ;
+                kno:has-property form:t1-p2 .
 
             form:type2
                 kno:has-property form:t2-p1 ;
+                kno:has-property form:t2-p2 ;
                 kno:inherits-all-properties-of form:type1 .
             '
         );
@@ -302,9 +312,21 @@ class FormTest extends UnitTestCase
 
     <br/><br/>
 
-    <strong>http://form/t1-p1</strong><br/>
+    <strong>form:t2-p2</strong><br/>
 
-    <input type="text" name="http://form/t1-p1" value="{% if root_item["http://form/t1-p1"] is defined %}{{ root_item["http://form/t1-p1"] }}{% endif %}">
+    <input type="text" name="form:t2-p2" value="{% if root_item["form:t2-p2"] is defined %}{{ root_item["form:t2-p2"] }}{% endif %}">
+
+    <br/><br/>
+
+    <strong>form:t1-p1</strong><br/>
+
+    <input type="text" name="form:t1-p1" value="{% if root_item["form:t1-p1"] is defined %}{{ root_item["form:t1-p1"] }}{% endif %}">
+
+    <br/><br/>
+
+    <strong>form:t1-p2</strong><br/>
+
+    <input type="text" name="form:t1-p2" value="{% if root_item["form:t1-p2"] is defined %}{{ root_item["form:t1-p2"] }}{% endif %}">
 
     {% if root_item["_idUri"] is defined %}
 
@@ -374,9 +396,11 @@ class FormTest extends UnitTestCase
                             '{% for key,sub_item in root_item["form:t1-p2"] %}',
                                 '<div class="form_t1_p2_element">',
 
+                                    '<br/><br/>',
                                     '<strong>Type2-Prop-1</strong><br/>',
                                     '<input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__{{ entry_count }}" value="{{ sub_item["form:t2-p1"] }}">',
 
+                                    '<br/><br/>',
                                     '<strong>form:t2-p2</strong><br/>',
                                     '<input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__{{ entry_count }}" value="{{ sub_item["form:t2-p2"] }}">',
 
@@ -415,15 +439,19 @@ class FormTest extends UnitTestCase
 
                 <div class="form_t1_p2_element">
 
+                    <br/><br/>
+
                     <strong>Type2-Prop-1</strong><br/>
 
-                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__` + backmodel_has_areas__number + `" value="">
+                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p1__` + form_t1_p2__number + `" value="">
+
+                    <br/><br/>
 
                     <strong>form:t2-p2</strong><br/>
 
-                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__` + backmodel_has_areas__number + `" value="">
+                    <input type="text" name="form:type1__form:t1-p2__form:type2__form:t2-p2__` + form_t1_p2__number + `" value="">
 
-                    <input type="hidden" name="form:type1__form:t1-p2__form:type2____idUri__` + backmodel_has_areas__number + `" value="">
+                    <input type="hidden" name="form:type1__form:t1-p2__form:type2____idUri__` + form_t1_p2__number + `" value="">
 
                 </div>`
             );

@@ -209,7 +209,7 @@ class Form
             }
         }
 
-        return $uri;
+        return $this->commonNamespaces->shortenUri($uri);
     }
 
     /**
@@ -321,21 +321,41 @@ class Form
          * collect all has-property objects
          */
         $properties = array();
-        foreach ($rootElementBlank as $key => $value) {
+        foreach ($rootElementBlank as $key => $property) {
             if ('kno:has-property' == $key) {
-                if (!is_array($value)) {
-                    $value = array($value);
+                if (!is_array($property)) {
+                    $property = array($property);
                 }
-                foreach ($value as $entry) {
+                foreach ($property as $entry) {
                     $properties[] = $entry['_idUri'];
                 }
             /*
              * care about property kno:inherits-all-properties-of.
              * gather all referenced properties and add them to the list.
              */
-            } elseif ('kno:inherits-all-properties-of' == $key && isset($value['kno:has-property'])) {
-                foreach ($value->getPropertyAsArrayOfItems('kno:has-property') as $subEntry) {
-                    $properties[] = $subEntry['_idUri'];
+            } elseif ('kno:inherits-all-properties-of' == $key && isset($property['kno:has-property'])) {
+                $property->initBySelfSearch();
+
+                // string
+                if (is_string($property['kno:has-property'])) {
+                    $uri = $this->commonNamespaces->shortenUri($property['kno:has-property']);
+                    $properties[$uri] = $uri;
+
+                // array
+                } elseif (is_array($property['kno:has-property'])) {
+                    foreach ($property['kno:has-property'] as $subEntry) {
+                        $uri = $this->commonNamespaces->shortenUri($subEntry['_idUri']);
+                        $properties[$uri] = $uri;
+                    }
+
+                // datablank
+                } elseif ($property['kno:has-property'] instanceof DataBlank) {
+                    $uri = $this->commonNamespaces->shortenUri($property['kno:has-property']['_idUri']);
+                    $properties[$uri] = $uri;
+
+                // unknown
+                } else {
+                    throw new KnorkeException('Unknown kno:has-property reference: '. json_encode($property['kno:has-property']));
                 }
             }
         }
@@ -481,6 +501,7 @@ class Form
             $subElementPropertyUri = isset($subElementProperty['_idUri']) ? $subElementProperty['_idUri'] : $subElementProperty;
 
             // label
+            $subElements[] =            '<br/><br/>';
             $subElements[] =            $this->labelText($this->getLabelFor($subElementPropertyUri));
 
             // input field
@@ -547,18 +568,18 @@ class Form
     {
         $subFormHTML = $this->htmlGenerator->transformFormArrayToCoolHtml($subFormElements, 4);
 
+        $htmlFriendlyPropertyUri = $this->getHtmlFriendlyIdentifier($rootElementPropertyUri);
+
         // remove buttons
         $subFormHTML = preg_replace('/<button.*<\/button>/si', '', $subFormHTML);
 
         // replace {{ entry_count }} with a javascript variable
         // the reason is, that JS controls the increasing index, whereas entry_count is controled by twig
-        $subFormHTML = str_replace('{{ entry_count }}', '` + backmodel_has_areas__number + `', $subFormHTML);
+        $subFormHTML = str_replace('{{ entry_count }}', '` + '. $htmlFriendlyPropertyUri .'__number + `', $subFormHTML);
 
         // remove twig related content: {% %} and {{ }}
         $subFormHTML = preg_replace('/{%.*?%}/si', '', $subFormHTML);
         $subFormHTML = preg_replace('/{{.*?}}/si', '', $subFormHTML);
-
-        $htmlFriendlyPropertyUri = $this->getHtmlFriendlyIdentifier($rootElementPropertyUri);
 
         return '
 <script type="text/javascript">

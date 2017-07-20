@@ -677,8 +677,38 @@ class Form
             $rootElementUri = $this->buildRootElementUriByUriSchema($formInput['__uriSchema'], $formInput);
         }
 
+        /*
+         * if kno:inherits-all-properties-of is used, add properties of referenced class to blank
+         * TODO test different variations of the references (array, string, array of datablank instances,...)
+         */
+        $referencedProperties = array();
+        if (isset($rootTypeBlank['kno:inherits-all-properties-of'])) {
+            $reference = $rootTypeBlank['kno:inherits-all-properties-of'];
+
+            if ($reference instanceof DataBlank) {
+                $nodes = array($reference);
+            } elseif (is_array($reference)) {
+                $nodes = $reference;
+            } else {
+                throw new KnorkeException('Unknown kno:inherits-all-properties-of reference: '. json_encode($reference));
+            }
+
+            // add has-property references of the referenced type to the original one
+            foreach ($nodes as $node) {
+                $node->initBySelfSearch();
+                if (isset($node['kno:has-property'])) {
+                    foreach ($node->getPropertyAsArrayOfItems('kno:has-property') as $property) {
+                        $referencedProperties[] = $property;
+                    }
+                }
+            }
+        }
+
+        $rootTypeProperties = 0 == count($rootTypeBlank['kno:has-property']) ? array() : $rootTypeBlank['kno:has-property'];
+        $properties = array_merge($referencedProperties, $rootTypeProperties);
+
         // go through all required properties of the root type
-        foreach ($rootTypeBlank['kno:has-property'] as $property) {
+        foreach ($properties as $property) {
             /*
              * direct hit for key value pair
              */

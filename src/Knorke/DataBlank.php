@@ -270,6 +270,14 @@ class DataBlank implements \ArrayAccess, \Iterator, \Countable
             $this->offsetSet('_idUri', $resourceId);
         }
 
+        if (isset($this->data['_idUri'])) {
+            $uri = $this->data['_idUri'];
+            $this->data = array();
+            $this->data['_idUri'] = $uri;
+        } else {
+            $this->data = array();
+        }
+
         $graphFromList = $this->buildGraphsList($this->graphs);
 
         $resourceId = $this->commonNamespaces->extendUri($resourceId);

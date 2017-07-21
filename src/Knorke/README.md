@@ -81,9 +81,32 @@ $dataValidator->validate(array(
 ```
 
 
-Sure, you didn't modeled the constraint explicit, for instance, the `http://has-settings` property may point to a resource of a different type. But in my opinion, if you control the data handling, such cases are rare and may be detected by a sufficient test environment, before they become problematic. 
+Sure, you didn't modeled the constraint explicit, for instance, the `http://has-settings` property may point to a resource of a different type. But in my opinion, if you control the data handling, such cases are rare and may be detected by a sufficient test environment, before they become problematic.
 
 For more information see [knowledge/knorke.ttl](https://github.com/k00ni/knorke/blob/master/knowledge/knorke.ttl) and validation [tests](https://github.com/k00ni/knorke/blob/master/tests/Knorke/DataValidatorTest.php).
+
+## ResourceGuy and ResourceGuyHelper
+
+Stores triples, nodes are represented as Node instances.
+
+```php
+$guy = new ResourceGuy();
+$anotherGuy = new ResourceGuy();
+
+// storing
+$guy['foaf:name'] = $nodeFactory->createLiteral('Mister X');
+$guy['foaf:knows'] = $anotherGuy; // ResourceGuy
+$guy['foaf:name'] = 'Mister X'; // <== will result in an error, use instance of Literal instead
+
+// getting
+$guy['foaf:name'] = $nodeFactory->createLiteral('Mister X');
+echo $guy['foaf:name'];
+echo $guy['http://xmlns.com/foaf/0.1/name']; // <== will also work because of a known prefix foaf
+
+// set and get URI of the ResourceGuy instance
+$guy['_idUri'] = $nodeFactory->createNamedNode('http://uri/');
+echo $guy['_idUri']->getUri(); // will output a string
+```
 
 
 ## class StatisticValue

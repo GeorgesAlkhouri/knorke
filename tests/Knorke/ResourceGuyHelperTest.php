@@ -44,6 +44,30 @@ class ResourceGuyHelperTest extends UnitTestCase
         );
     }
 
+    public function testCreateInstanceByUriWithLevels()
+    {
+        $this->importTurtle('
+            @prefix foo: <http://foo/> .
+
+            foo:1 foo:2 foo:3 .
+            foo:3 foo:4 foo:5 .
+            '
+        );
+
+        $expectedGuy = new ResourceGuy($this->commonNamespaces);
+        $expectedGuy['_idUri'] = $this->nodeFactory->createNamedNode('http://foo/1');
+
+        // sub ResourceGuy instance
+        $expectedGuy['http://foo/2'] = new ResourceGuy($this->commonNamespaces);
+        $expectedGuy['http://foo/2']['_idUri'] = $this->nodeFactory->createNamedNode('http://foo/3');
+        $expectedGuy['http://foo/2']['http://foo/4'] = $this->nodeFactory->createNamedNode('http://foo/5');
+
+        $this->assertEquals(
+            $expectedGuy,
+            $this->fixture->createInstanceByUri('http://foo/1', 2)
+        );
+    }
+
     /*
      * Tests for toStatements
      */

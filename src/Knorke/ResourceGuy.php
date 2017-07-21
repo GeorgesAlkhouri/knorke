@@ -86,7 +86,7 @@ class ResourceGuy implements \ArrayAccess, \Iterator, \Countable
         if (is_array($value) || $value instanceof ResourceGuy || $value instanceof Node) {
             $this->propertyValues[$key] = $value;
         } else {
-            throw new KnorkeException('Only arrays, ResourceGuy or Node instances are allows to store here.');
+            throw new KnorkeException('Only arrays, ResourceGuy or Node instances are allows to store here: '. json_encode($value));
         }
     }
 

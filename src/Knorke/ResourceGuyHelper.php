@@ -4,6 +4,7 @@ namespace Knorke;
 
 use Knorke\Exception\KnorkeException;
 use Saft\Rdf\CommonNamespaces;
+use Saft\Rdf\NamedNode;
 use Saft\Rdf\Node;
 use Saft\Rdf\NodeFactory;
 use Saft\Rdf\RdfHelpers;
@@ -50,10 +51,17 @@ class ResourceGuyHelper
 
     /**
      * @param string $uri
-     * @return ResourceGuy
+     * @param int $level Optional, default is 1. If higher 1, on each level all NamedNode instances get
+     *                   replaced by ResourceGuy instance, if available.
+     * @param int $currentLevel Optional, default is 1. Stores current level. Only relevant when in recursion.
+     * @return ResourceGuy|null
      */
-    public function createInstanceByUri(string $uri) : ResourceGuy
+    public function createInstanceByUri(string $uri, int $maxLevel = 1, int $currentLevel = 1)
     {
+        if ($maxLevel < $currentLevel) {
+            return null;
+        }
+
         $res = $this->store->query(
             'SELECT * '. $this->buildGraphsList($this->graphs) .' WHERE { <'. $uri .'> ?p ?o.}'
         );
@@ -66,6 +74,27 @@ class ResourceGuyHelper
             $predicateUri = $entry['p']->getUri();
             if (isset($guy[$predicateUri])) {
                 $guy[$predicateUri] = array($guy[$predicateUri], $entry['o']);
+
+            } elseif ($entry['o'] instanceof NamedNode) {
+                // if maxLevel higher 1 was given, transform NamedNode instances to ResourceGuy instances, recursivly
+                if (1 < $maxLevel && $currentLevel <= $maxLevel) {
+                    $res = $this->createInstanceByUri(
+                        $entry['o']->getUri(),
+                        $maxLevel,
+                        $currentLevel+1
+                    );
+                    // check before saving, because sometimes null gets returned. that can
+                    // happen if referenced URI has no further triples. in that case we
+                    // will keep the URI.
+                    if ($res instanceof ResourceGuy) {
+                        $guy[$predicateUri] = $res;
+                    } else {
+                        $guy[$predicateUri] = $entry['o'];
+                    }
+
+                } elseif (1 == $maxLevel || $currentLevel == $maxLevel) {
+                    $guy[$predicateUri] = $entry['o'];
+                }
             } else {
                 $guy[$predicateUri] = $entry['o'];
             }
@@ -75,24 +104,9 @@ class ResourceGuyHelper
     }
 
     /**
-     * @param string $value
-     * @return Node
-     * @throws \Exception if blank node was given.
-     */
-    protected function getNodeForGivenValue(string $value) : Node
-    {
-        // named node
-        if ($this->rdfHelpers->simpleCheckUri($value)) {
-            return $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($value));
-
-        // literal
-        } else {
-            return $this->nodeFactory->createLiteral($value);
-        }
-    }
-
-    /**
-     * @return array
+     * Transforms a ResourceGuy instance and potential referenced ones to statement array.
+     *
+     * @return array Array of Statement instances.
      */
     public function toStatements(ResourceGuy $guy) : array
     {

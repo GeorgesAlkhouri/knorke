@@ -574,6 +574,11 @@ class FormTest extends UnitTestCase
             array(
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://type1/'),
+                    $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('rdf')),
+                    $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($typeUri))
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://type1/'),
                     $this->nodeFactory->createNamedNode('http://form/t1-p1'),
                     $this->nodeFactory->createLiteral('t1-p1-value')
                 ),
@@ -637,7 +642,7 @@ class FormTest extends UnitTestCase
             @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
             @prefix rdfs: <'. $this->commonNamespaces->getUri('rdfs') .'> .
 
-            form:type1 ;
+            form:type1
                 kno:has-property form:t1-p1 ;
                 kno:has-property form:t1-p2 ;
                 kno:has-property form:t1-p3 .
@@ -689,6 +694,11 @@ class FormTest extends UnitTestCase
             array(
                 $this->statementFactory->createStatement(
                     $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
+                    $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('rdf')),
+                    $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($typeUri))
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/t1_p1_value/'),
                     $this->nodeFactory->createNamedNode('http://form/t1-p1'),
                     $this->nodeFactory->createLiteral('t1-p1-value')
                 ),
@@ -738,6 +748,78 @@ class FormTest extends UnitTestCase
                     $this->nodeFactory->createNamedNode('http://form/t1-p3'),
                     $this->nodeFactory->createLiteral('t1-p3-value')
                 )
+            ),
+            $res
+        );
+    }
+
+    // tests with __ignoreContainers. this info has to result in ignoring further restrictions of
+    // sub types.
+    public function testTransformParameterArrayToStatementArrayIgnoreConstraints()
+    {
+        // add test data
+        $this->importTurtle('
+            @prefix form: <http://form/> .
+            @prefix kno: <'. $this->commonNamespaces->getUri('kno') .'> .
+            @prefix rdf: <'. $this->commonNamespaces->getUri('rdf') .'> .
+            @prefix rdfs: <'. $this->commonNamespaces->getUri('rdfs') .'> .
+
+            form:type1
+                kno:has-property form:t1-p1 ;
+                kno:has-property form:t1-p2 .
+
+            form:t1-p2
+                kno:restriction-reference-is-of-type form:type2 .
+
+            form:type2 rdfs:label "Type2"@en ;
+                kno:has-property form:t2-property-to-be-ignored .
+            ',
+            $this->testGraph,
+            $this->store
+        );
+
+        $this->commonNamespaces->add('form', 'http://form/');
+
+        /*
+         * set parameters for function to test
+         */
+        $typeUri = 'form:type1';
+        $formInput = array(
+            '__type'                                                     => $typeUri,
+            '__idUri'                                                    => 'http://new/',
+            'form:t1-p1'                                                 => 't1-p1-value',
+            'form:t1-p2__uriSchema'                                      => '%root-uri%?form:t2-p1?',
+            'form:t1-p2__type'                                           => 'form:type2',
+            'form:type1__form:t1-p2__form:type2____idUri__0'             => 'http://type2/1',
+            'form:type1__form:t1-p2__form:type2____idUri__1'             => 'http://type2/2',
+            'form:type1__form:t1-p2__number'                             => '2',
+            'form:type1__form:t1-p2__ignoreConstraints'                  => 'true',
+        );
+
+        $res = $this->fixture->transformParameterArrayToStatementArray($formInput);
+
+        $this->assertEquals(
+            array(
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/'),
+                    $this->nodeFactory->createNamedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
+                    $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($typeUri))
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p1'),
+                    $this->nodeFactory->createLiteral('t1-p1-value')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p2'),
+                    $this->nodeFactory->createNamedNode('http://type2/1')
+                ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://new/'),
+                    $this->nodeFactory->createNamedNode('http://form/t1-p2'),
+                    $this->nodeFactory->createNamedNode('http://type2/2')
+                ),
             ),
             $res
         );

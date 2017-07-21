@@ -704,8 +704,22 @@ class Form
             }
         }
 
-        $rootTypeProperties = 0 == count($rootTypeBlank['kno:has-property']) ? array() : $rootTypeBlank['kno:has-property'];
+        /*
+         * make sure, if set, that has-property reference is an array
+         */
+        if (isset($rootTypeBlank['kno:has-property'])) {
+            $rootTypeProperties = $rootTypeBlank->getPropertyAsArrayOfItems('kno:has-property');
+        } else {
+            $rootTypeProperties = array();
+        }
+
         $properties = array_merge($referencedProperties, $rootTypeProperties);
+
+        $result[] = $this->statementFactory->createStatement(
+            $this->nodeFactory->createNamedNode($cN->extendUri($rootElementUri)),
+            $this->nodeFactory->createNamedNode($this->commonNamespaces->getUri('rdf')),
+            $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($formInput['__type']))
+        );
 
         // go through all required properties of the root type
         foreach ($properties as $property) {
@@ -723,77 +737,102 @@ class Form
              * check for ..._number field which has to indicate that there is a list of sub entries
              */
             } elseif (isset($formInput[$formInput['__type'] .'__'. $property['_idUri'].'__number'])) {
-                /*
-                 * we assume there are sub entries for $property['_idUri'] available.
-                 * these entries are of type $property['kno:restriction-reference-is-of-type']['_idUri'].
-                 */
 
-                // get all has-property entry for the referenced instance of type
-                $referencedTypeBlank = $this->dataBlankHelper->load(
-                    $property['kno:restriction-reference-is-of-type']['_idUri'],
-                    array('use_prefixed_predicates' => true, 'use_prefixed_objects' => true,)
-                );
-
-                // first part of the subKey which identifies sub elements
-                $subKey = $formInput['__type']                                                  // form:type1
-                    .'__' . $property['_idUri']                                                 // form:t1-p2
-                    .'__'. $this->commonNamespaces->shortenUri($referencedTypeBlank['_idUri']); // form:type2
-
-                $entryNumber = $formInput[$formInput['__type'] .'__'. $property['_idUri'].'__number'];
-                /*
-                 * handle entries like
-                 *      ...
-                 *      'form:type1__form:t1-p2__form:type2__form:t2-p1__1' => 'sub-value1',
-                 *      ...
-                 */
-                for ($subEntryIndex = 0; $subEntryIndex < $entryNumber; ++$subEntryIndex) {
+                // if something like form:type1__form:t1-p2__ignoreConstraints is not set
+                if (false == isset($formInput[$formInput['__type'] .'__'. $property['_idUri'] .'__ignoreConstraints'])) {
                     /*
-                     * connect root resource with this sub element
+                     * we assume there are sub entries for $property['_idUri'] available.
+                     * these entries are of type $property['kno:restriction-reference-is-of-type']['_idUri'].
                      */
-                    // sub element has an URI already
-                    if (isset($formInput[$subKey .'____idUri__'. $subEntryIndex])) {
-                        $result[] = $this->statementFactory->createStatement(
-                           $this->nodeFactory->createNamedNode($cN->extendUri($rootElementUri)),
-                           $this->nodeFactory->createNamedNode($cN->extendUri($property['_idUri'])),
-                           $this->nodeFactory->createNamedNode($cN->extendUri($formInput[$subKey .'____idUri__'. $subEntryIndex]))
-                        );
-                        $subElementUri = $cN->extendUri($formInput[$subKey .'____idUri__'. $subEntryIndex]);
-                    // generate new URI for sub element
-                    } else {
-                        // assume __uriSchema key is set
-                        $subElementUri = $cN->extendUri($this->buildSubElementUriByUriSchema(
-                            $formInput[$property['_idUri'] . '__uriSchema'],
-                            $formInput,
-                            $formInput['__type'],
-                            $property['_idUri'],
-                            $this->commonNamespaces->shortenUri($referencedTypeBlank['_idUri']),
-                            $subEntryIndex,
-                            $rootElementUri
-                        ));
 
-                        $result[] = $this->statementFactory->createStatement(
-                           $this->nodeFactory->createNamedNode($cN->extendUri($rootElementUri)),
-                           $this->nodeFactory->createNamedNode($cN->extendUri($property['_idUri'])),
-                           $this->nodeFactory->createNamedNode($subElementUri)
-                        );
-                    }
-
-                    // add rdf:type relation
-                    $result[] = $this->statementFactory->createStatement(
-                       $this->nodeFactory->createNamedNode($subElementUri),
-                       $this->nodeFactory->createNamedNode($cN->extendUri('rdf:type')),
-                       $this->nodeFactory->createNamedNode($cN->extendUri($formInput[$property['_idUri'] .'__type']))
+                    // get all has-property entry for the referenced instance of type
+                    $referencedTypeBlank = $this->dataBlankHelper->load(
+                        $property['kno:restriction-reference-is-of-type']['_idUri'],
+                        array('use_prefixed_predicates' => true, 'use_prefixed_objects' => true,)
                     );
 
-                    foreach ($referencedTypeBlank['kno:has-property'] as $subProperty) {
-                        $subPropertyUri = isset($subProperty['_idUri']) ? $subProperty['_idUri'] : $subProperty;
+                    // first part of the subKey which identifies sub elements
+                    $subKey = $formInput['__type']                                                  // form:type1
+                        .'__' . $property['_idUri']                                                 // form:t1-p2
+                        .'__'. $this->commonNamespaces->shortenUri($referencedTypeBlank['_idUri']); // form:type2
 
+                    $entryNumber = $formInput[$formInput['__type'] .'__'. $property['_idUri'].'__number'];
+                    /*
+                     * handle entries like
+                     *      ...
+                     *      'form:type1__form:t1-p2__form:type2__form:t2-p1__1' => 'sub-value1',
+                     *      ...
+                     */
+                    for ($subEntryIndex = 0; $subEntryIndex < $entryNumber; ++$subEntryIndex) {
+                        /*
+                         * connect root resource with this sub element
+                         */
+                        // sub element has an URI already
+                        if (isset($formInput[$subKey .'____idUri__'. $subEntryIndex])) {
+                            $result[] = $this->statementFactory->createStatement(
+                               $this->nodeFactory->createNamedNode($cN->extendUri($rootElementUri)),
+                               $this->nodeFactory->createNamedNode($cN->extendUri($property['_idUri'])),
+                               $this->nodeFactory->createNamedNode($cN->extendUri($formInput[$subKey .'____idUri__'. $subEntryIndex]))
+                            );
+                            $subElementUri = $cN->extendUri($formInput[$subKey .'____idUri__'. $subEntryIndex]);
+                        // generate new URI for sub element
+                        } else {
+                            // assume __uriSchema key is set
+                            $subElementUri = $cN->extendUri($this->buildSubElementUriByUriSchema(
+                                $formInput[$property['_idUri'] . '__uriSchema'],
+                                $formInput,
+                                $formInput['__type'],
+                                $property['_idUri'],
+                                $this->commonNamespaces->shortenUri($referencedTypeBlank['_idUri']),
+                                $subEntryIndex,
+                                $rootElementUri
+                            ));
+
+                            $result[] = $this->statementFactory->createStatement(
+                               $this->nodeFactory->createNamedNode($cN->extendUri($rootElementUri)),
+                               $this->nodeFactory->createNamedNode($cN->extendUri($property['_idUri'])),
+                               $this->nodeFactory->createNamedNode($subElementUri)
+                            );
+                        }
+
+                        // add rdf:type relation
                         $result[] = $this->statementFactory->createStatement(
-                            $this->nodeFactory->createNamedNode($subElementUri),
-                            $this->nodeFactory->createNamedNode($cN->extendUri($subPropertyUri)),
-                            $this->getNodeForGivenValue(
-                                $formInput[$subKey .'__' . $subPropertyUri .'__'. $subEntryIndex]
-                            )
+                           $this->nodeFactory->createNamedNode($subElementUri),
+                           $this->nodeFactory->createNamedNode($cN->extendUri('rdf:type')),
+                           $this->nodeFactory->createNamedNode($cN->extendUri($formInput[$property['_idUri'] .'__type']))
+                        );
+
+                        foreach ($referencedTypeBlank['kno:has-property'] as $subProperty) {
+                            $subPropertyUri = isset($subProperty['_idUri']) ? $subProperty['_idUri'] : $subProperty;
+
+                            $result[] = $this->statementFactory->createStatement(
+                                $this->nodeFactory->createNamedNode($subElementUri),
+                                $this->nodeFactory->createNamedNode($cN->extendUri($subPropertyUri)),
+                                $this->getNodeForGivenValue(
+                                    $formInput[$subKey .'__' . $subPropertyUri .'__'. $subEntryIndex]
+                                )
+                            );
+                        }
+                    }
+
+                // if sub type restrictions are to be ignored, only care about referenced URIs
+                } elseif (isset($formInput[$formInput['__type'] .'__'. $property['_idUri'] .'__ignoreConstraints'])
+                    && 'true' == $formInput[$formInput['__type'] .'__'. $property['_idUri'] .'__ignoreConstraints']) {
+
+                    // for instance: form:type1__form:t1-p2__form:type2
+                    $key = $formInput['__type']
+                        .'__'. $property['_idUri']
+                        .'__'. $this->commonNamespaces->shortenUri($property['kno:restriction-reference-is-of-type']['_idUri']);
+
+                    // for instance: form:type1__form:t1-p2__number
+                    $entryNumber = $formInput[$formInput['__type'] .'__'. $property['_idUri'].'__number'];
+
+                    for ($i=0; $i < $entryNumber; ++$i) {
+                        // only add connetion between root element URI, current property and URI of the sub element
+                        $result[] = $this->statementFactory->createStatement(
+                            $this->nodeFactory->createNamedNode($rootElementUri),
+                            $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($property['_idUri'])),
+                            $this->nodeFactory->createNamedNode($this->commonNamespaces->extendUri($formInput[$key .'____idUri__'. $i]))
                         );
                     }
                 }

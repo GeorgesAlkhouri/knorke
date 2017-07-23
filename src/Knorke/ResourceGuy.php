@@ -40,6 +40,26 @@ class ResourceGuy implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
+     * Creates a full copy of the ResourceGuy instance as well as sub guys, if available.
+     *
+     * @return array
+     */
+    public function getArrayCopy() : array
+    {
+        $copy = array();
+
+        foreach ($this->propertyValues as $key => $value) {
+            if ($value instanceof ResourceGuy) {
+                $copy[$key] = $value->getArrayCopy();
+            } else {
+                $copy[$key] = $value;
+            }
+        }
+
+        return $copy;
+    }
+
+    /**
      * @return int|string
      */
     public function key()

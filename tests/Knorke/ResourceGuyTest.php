@@ -25,6 +25,30 @@ class ResourceGuyTest extends UnitTestCase
     }
 
     /*
+     * Tests for getArrayCopy
+     */
+
+    public function testGetArrayCopy()
+    {
+        $this->fixture->reset();
+
+        $this->fixture['foaf:knows'] = new ResourceGuy($this->commonNamespaces);
+        $this->fixture['foaf:knows']['_idUri'] = $this->nodeFactory->createNamedNode('http://another-guy/');
+
+        $this->fixture['foaf:name'] = $this->nodeFactory->createLiteral('Mister X');
+
+        $this->assertEquals(
+            array(
+                'foaf:knows' => array(
+                    '_idUri' => 'http://another-guy/'
+                ),
+                'foaf:name' => 'Mister X'
+            ),
+            $this->fixture->getArrayCopy()
+        );
+    }
+
+    /*
      * Tests for get and set
      */
 

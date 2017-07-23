@@ -111,13 +111,46 @@ class ResourceGuyHelper
         return $guy;
     }
 
-    public function getInstancesByType(string $typeUri, $maxLevel = 1) : array
+    /**
+     * @param string $typeUri
+     * @param int $maxLevel Optional, default is 1
+     */
+    public function getInstancesByType(string $typeUri, int $maxLevel = 1) : array
     {
         $typeUri = $this->commonNamespaces->extendUri($typeUri);
 
         $res = $this->store->query('
             PREFIX rdf: <'. $this->commonNamespaces->getUri('rdf') .'>
             SELECT * '. $this->buildGraphsList($this->graphs) .' WHERE { ?guy rdf:type <'. $typeUri .'>. }'
+        );
+
+        $guys = array();
+
+        foreach ($res as $entry) {
+            $guys[] = $this->createInstanceByUri($entry['guy'], $maxLevel);
+        }
+
+        return $guys;
+    }
+
+    /**
+     * @param string $typeUri
+     * @param string $whereClause
+     * @param int $maxLevel Optional, default is 1
+     */
+    public function getInstancesByWhereClause(
+        string $typeUri,
+        string $whereClause,
+        int $maxLevel = 1
+    ) : array {
+        $typeUri = $this->commonNamespaces->extendUri($typeUri);
+
+        $res = $this->store->query('
+            PREFIX rdf: <'. $this->commonNamespaces->getUri('rdf') .'>
+            SELECT * '. $this->buildGraphsList($this->graphs) .' WHERE {
+                ?guy rdf:type <'. $typeUri .'>.
+                '. $whereClause .'
+            }'
         );
 
         $guys = array();

@@ -104,6 +104,40 @@ class ResourceGuyHelperTest extends UnitTestCase
     }
 
     /*
+     * Tests for getInstancesByWhereClause
+     */
+
+    public function testGetInstancesByWhereClause()
+    {
+        $this->importTurtle('
+            @prefix foo: <http://foo/> .
+
+            foo:1 a foo:baz ;
+                  foo:3 "cool" .
+            '
+        );
+
+        $subGuy = new ResourceGuy($this->commonNamespaces);
+        $subGuy['_idUri'] = $this->nodeFactory->createNamedNode('http://foo/baz');
+
+        $expectedGuy = new ResourceGuy($this->commonNamespaces);
+        $expectedGuy['_idUri'] = $this->nodeFactory->createNamedNode('http://foo/1');
+        $expectedGuy[$this->commonNamespaces->getUri('rdf'). 'type'] = $subGuy;
+        $expectedGuy['http://foo/3'] = $this->nodeFactory->createLiteral('cool');
+
+        $this->assertEquals(
+            array(
+                $expectedGuy
+            ),
+            $this->fixture->getInstancesByWhereClause(
+                'http://foo/baz',
+                '?guy <http://foo/3> "cool"',
+                2
+            )
+        );
+    }
+
+    /*
      * Tests for toStatements
      */
 

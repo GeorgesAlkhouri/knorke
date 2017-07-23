@@ -14,6 +14,17 @@ class ResourceGuyTest extends UnitTestCase
     }
 
     /*
+     * Tests for isset
+     */
+
+    public function testIsset()
+    {
+        $this->fixture['foaf:name'] = $this->nodeFactory->createLiteral('Mister X');
+
+        $this->assertTrue(isset($this->fixture[$this->commonNamespaces->getUri('foaf') . 'name']));
+    }
+
+    /*
      * Tests for get and set
      */
 
@@ -24,9 +35,19 @@ class ResourceGuyTest extends UnitTestCase
 
     public function testSetAndGet()
     {
+        $this->fixture->reset();
+
+        // prefixed to extended
         $this->fixture['foaf:name'] = $this->nodeFactory->createLiteral('Mister X');
-        $this->assertEquals('Mister X', $this->fixture['foaf:name']->getValue());
         $this->assertEquals('Mister X', $this->fixture[$this->commonNamespaces->getUri('foaf') . 'name']->getValue());
+
+        $this->fixture->reset();
+
+        // extended to prefixed
+        $this->fixture[$this->commonNamespaces->getUri('foaf') . 'name'] = $this->nodeFactory->createLiteral('Mister X');
+        $this->assertEquals('Mister X', $this->fixture['foaf:name']->getValue());
+
+        $this->fixture->reset();
 
         $this->fixture['foaf:knows'] = $this->nodeFactory->createNamedNode('http://foaf/Person/MisterX');
         $this->assertEquals('http://foaf/Person/MisterX', $this->fixture['foaf:knows']->getUri());

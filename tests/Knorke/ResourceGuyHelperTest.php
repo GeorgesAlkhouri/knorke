@@ -13,7 +13,7 @@ class ResourceGuyHelperTest extends UnitTestCase
 
         $this->fixture = new ResourceGuyHelper(
             $this->store,
-            array($this->testGraph),
+            array($this->testGraph->getUri()),
             $this->statementFactory,
             $this->nodeFactory,
             $this->rdfHelpers,
@@ -61,6 +61,41 @@ class ResourceGuyHelperTest extends UnitTestCase
         $expectedGuy['http://foo/2'] = new ResourceGuy($this->commonNamespaces);
         $expectedGuy['http://foo/2']['_idUri'] = $this->nodeFactory->createNamedNode('http://foo/3');
         $expectedGuy['http://foo/2']['http://foo/4'] = $this->nodeFactory->createNamedNode('http://foo/5');
+
+        $this->assertEquals(
+            $expectedGuy,
+            $this->fixture->createInstanceByUri('http://foo/1', 2)
+        );
+    }
+
+    public function testCreateInstanceByUriWithLevelsInArray()
+    {
+        $this->importTurtle('
+            @prefix foo: <http://foo/> .
+
+            foo:1 foo:2 foo:3 ;
+                  foo:2 foo:5 .
+
+            foo:3 foo:4 foo:5 .
+
+            foo:5 foo:6 foo:7 .
+            '
+        );
+
+        $expectedGuy = new ResourceGuy($this->commonNamespaces);
+        $expectedGuy['_idUri'] = $this->nodeFactory->createNamedNode('http://foo/1');
+
+        // sub ResourceGuy instance
+        $subGuy3 = new ResourceGuy($this->commonNamespaces);
+        $subGuy3['_idUri'] = $this->nodeFactory->createNamedNode('http://foo/3');
+        $subGuy3['http://foo/4'] = $this->nodeFactory->createNamedNode('http://foo/5');
+
+        // sub ResourceGuy instance
+        $subGuy5 = new ResourceGuy($this->commonNamespaces);
+        $subGuy5['_idUri'] = $this->nodeFactory->createNamedNode('http://foo/5');
+        $subGuy5['http://foo/6'] = $this->nodeFactory->createNamedNode('http://foo/7');
+
+        $expectedGuy['http://foo/2'] = array($subGuy3, $subGuy5);
 
         $this->assertEquals(
             $expectedGuy,

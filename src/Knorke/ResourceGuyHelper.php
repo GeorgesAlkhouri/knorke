@@ -38,12 +38,12 @@ class ResourceGuyHelper
     /**
      * @param array $graphs Array of NamedNode instances
      */
-    protected function buildGraphsList(array $graphs) : string
+    protected function buildGraphsList(array $graphUris) : string
     {
         $fromGraphList = array();
 
-        foreach ($graphs as $graph) {
-            $fromGraphList[] = 'FROM <'. $graph->getUri(). '>';
+        foreach ($graphUris as $graph) {
+            $fromGraphList[] = 'FROM <'. $graph . '>';
         }
 
         return implode(' ', $fromGraphList);
@@ -62,6 +62,8 @@ class ResourceGuyHelper
             return null;
         }
 
+        $uri = $this->commonNamespaces->extendUri($uri);
+
         $res = $this->store->query(
             'SELECT * '. $this->buildGraphsList($this->graphs) .' WHERE { <'. $uri .'> ?p ?o.}'
         );
@@ -72,28 +74,34 @@ class ResourceGuyHelper
 
         foreach ($res as $entry) {
             $predicateUri = $entry['p']->getUri();
+
+            // if maxLevel higher 1 was given, transform NamedNode instances to ResourceGuy instances, recursivly
+            if (1 < $maxLevel && $currentLevel <= $maxLevel && $entry['o'] instanceof NamedNode) {
+                $res = $this->createInstanceByUri(
+                    $entry['o']->getUri(),
+                    $maxLevel,
+                    $currentLevel+1
+                );
+
+                // check before saving, because sometimes null gets returned. that can
+                // happen if referenced URI has no further triples. in that case we
+                // will keep the URI.
+                if ($res instanceof ResourceGuy) {
+                    $entry['o'] = $res;
+                } else {
+                    $entry['o'] = $entry['o'];
+                }
+            }
+
             if (isset($guy[$predicateUri])) {
-                $guy[$predicateUri] = array($guy[$predicateUri], $entry['o']);
-
-            } elseif ($entry['o'] instanceof NamedNode) {
-                // if maxLevel higher 1 was given, transform NamedNode instances to ResourceGuy instances, recursivly
-                if (1 < $maxLevel && $currentLevel <= $maxLevel) {
-                    $res = $this->createInstanceByUri(
-                        $entry['o']->getUri(),
-                        $maxLevel,
-                        $currentLevel+1
-                    );
-                    // check before saving, because sometimes null gets returned. that can
-                    // happen if referenced URI has no further triples. in that case we
-                    // will keep the URI.
-                    if ($res instanceof ResourceGuy) {
-                        $guy[$predicateUri] = $res;
-                    } else {
-                        $guy[$predicateUri] = $entry['o'];
-                    }
-
-                } elseif (1 == $maxLevel || $currentLevel == $maxLevel) {
-                    $guy[$predicateUri] = $entry['o'];
+                // if array, extend it
+                if (is_array($guy[$predicateUri])) {
+                    $arr = $guy[$predicateUri];
+                    $arr[] = $entry['o'];
+                    $guy[$predicateUri] = $arr;
+                // otherwise create array
+                } else {
+                    $guy[$predicateUri] = array($guy[$predicateUri], $entry['o']);
                 }
             } else {
                 $guy[$predicateUri] = $entry['o'];
@@ -101,6 +109,24 @@ class ResourceGuyHelper
         }
 
         return $guy;
+    }
+
+    public function getInstancesByType(string $typeUri, $maxLevel = 1) : array
+    {
+        $typeUri = $this->commonNamespaces->extendUri($typeUri);
+
+        $res = $this->store->query('
+            PREFIX rdf: <'. $this->commonNamespaces->getUri('rdf') .'>
+            SELECT * '. $this->buildGraphsList($this->graphs) .' WHERE { ?guy rdf:type <'. $typeUri .'>. }'
+        );
+
+        $guys = array();
+
+        foreach ($res as $entry) {
+            $guys[] = $this->createInstanceByUri($entry['guy'], $maxLevel);
+        }
+
+        return $guys;
     }
 
     /**

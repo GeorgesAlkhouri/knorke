@@ -52,17 +52,22 @@ class ResourceGuy implements \ArrayAccess, \Iterator, \Countable
         ++$this->position;
     }
 
+    /**
+     * @param string|int $key
+     * @return bool
+     */
     public function offsetExists($key) : bool
     {
-        return isset($this->propertyValues[$key]);
+        return null !== $this->offsetGet($key);
     }
 
     /**
+     * @param string|int $key
      * @return null|ResourceGuy|Node|array
      */
     public function offsetGet($key)
     {
-        if ($this->offsetExists($key)) {
+        if (isset($this->propertyValues[$key])) {
             return $this->propertyValues[$key];
         } else {
             // extended $key
@@ -75,6 +80,8 @@ class ResourceGuy implements \ArrayAccess, \Iterator, \Countable
                 return $this->propertyValues[$extendedKey];
             } elseif (isset($this->propertyValues[$shortenedKey])) {
                 return $this->propertyValues[$shortenedKey];
+
+            // not found
             } else {
                 return null;
             }
@@ -98,6 +105,12 @@ class ResourceGuy implements \ArrayAccess, \Iterator, \Countable
     public function rewind()
     {
         $this->position = 0;
+    }
+
+    public function reset()
+    {
+        $this->rewind();
+        $this->propertyValues = array();
     }
 
     public function valid()

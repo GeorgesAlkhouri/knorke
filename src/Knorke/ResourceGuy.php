@@ -51,6 +51,15 @@ class ResourceGuy implements \ArrayAccess, \Iterator, \Countable
         foreach ($this->propertyValues as $key => $value) {
             if ($value instanceof ResourceGuy) {
                 $copy[$key] = $value->getArrayCopy();
+            } elseif (is_array($value)) {
+                $copy[$key] = array();
+                foreach ($value as $subKey => $subValue) {
+                    if ($subValue instanceof ResourceGuy) {
+                        $copy[$key][] = $subValue->getArrayCopy();
+                    } else {
+                        $copy[$key][] = $subValue;
+                    }
+                }
             } else {
                 $copy[$key] = $value;
             }

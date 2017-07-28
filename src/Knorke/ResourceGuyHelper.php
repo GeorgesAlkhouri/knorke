@@ -50,6 +50,16 @@ class ResourceGuyHelper
     }
 
     /**
+     * Just creates a new instance of ResourceGuy.
+     *
+     * @return ResourceGuy
+     */
+    public function createEmptyInstance()
+    {
+        return new ResourceGuy($this->commonNamespaces);
+    }
+
+    /**
      * @param string $uri
      * @param int $level Optional, default is 1. If higher 1, on each level all NamedNode instances get
      *                   replaced by ResourceGuy instance, if available.

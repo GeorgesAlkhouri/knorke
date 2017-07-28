@@ -8,4 +8,4 @@ Extends https://github.com/SaftIng/Saft with some badass functions to utilize RD
 
 ## License
 
-Not decided, open for discussion.
+[MIT](LICENSE)

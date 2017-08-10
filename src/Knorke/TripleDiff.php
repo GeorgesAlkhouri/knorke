@@ -64,9 +64,9 @@ class TripleDiff
         // each containing used variables and referencing Node instances. A SetResult acts like an array.
         // FYI: https://github.com/SaftIng/Saft/blob/master/src/Saft/Sparql/Result/SetResultImpl.php
 
-        // hint 2: use commonNamespaces->getUri('rdf') to get the URI for the rdf prefix
-        // hint 3: use commonNamespaces->extendUri('rdf:type') to replace prefix with full URI, if available
-        // hint 4: use commonNamespaces->shortenUri('http://...') to replace URI with prefix, if available
+        // hint 2: use $this->commonNamespaces->getUri('rdf') to get the URI for the rdf prefix
+        // hint 3: use $this->commonNamespaces->extendUri('rdf:type') to replace prefix with full URI, if available
+        // hint 4: use $this->commonNamespaces->shortenUri('http://...') to replace URI with prefix, if available
         // FYI: https://github.com/SaftIng/Saft/blob/master/src/Saft/Rdf/CommonNamespaces.php
 
         // TODO @Georges

@@ -2,6 +2,7 @@
 
 namespace Knorke;
 
+use Knorke\Rdf\HashableStatementImpl;
 use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NodeFactory;
@@ -92,6 +93,25 @@ class TripleDiff
         //       NamedNodeImpl, LiteralImpl and BlankNodeImpl.
 
         // TODO @Georges
+        //
+        //
+        // CHECKS:
+        //
+        // Optional: Check for blank_nodes and aborte if necessary
+        //
+        // Handle Triple or Quads
+        //
+        // Create hash dict for all statements in set1 and set2
+        // purge all duplicate triple/quads
+        //
+        // for s in h (smalest hash dict)
+        //     s not in set2: put to diff_set1
+        //     s in set2: put to both
+        // put rest to diff_set2 #only possible if not duplicates in set
+
+
+        $s = $statementSet1[0]; // HashableStatementImpl
+
         return array(
             array(),
             array()

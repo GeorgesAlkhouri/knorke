@@ -94,27 +94,28 @@ class TripleDiff
 
         // TODO @Georges
         //
-        //
-        // CHECKS:
-        //
         // Optional: Check for blank_nodes and aborte if necessary
-        //
-        // Handle Triple or Quads
-        //
-        // Create hash dict for all statements in set1 and set2
-        // purge all duplicate triple/quads
-        //
-        // for s in h (smalest hash dict)
-        //     s not in set2: put to diff_set1
-        //     s in set2: put to both
-        // put rest to diff_set2 #only possible if not duplicates in set
 
+        $reduceFunction = function($carry , $item)
+        {
+            $hash = $item->hash();
+            $carry[$hash] = $item;
 
-        $s = $statementSet1[0]; // HashableStatementImpl
+            return $carry;
+        };
 
+        // Nice benefit: hash set does not contain duplicates
+        $hashset1 = array_reduce($statementSet1, $reduceFunction, []);
+        $hashset2 = array_reduce($statementSet2, $reduceFunction, []);
+
+        $inBoth = array_intersect(array_keys($hashset1), array_keys($hashset2));
+        $diffSet1 = array_diff(array_keys($hashset1), array_keys($hashset2));
+        $diffSet2 = array_diff(array_keys($hashset2), array_keys($hashset1));
+        
         return array(
-            array(),
-            array()
+            $inBoth,
+            $diffSet1,
+            $diffSet2
         );
     }
 }

@@ -28,6 +28,54 @@ class TripleDiffTest extends UnitTestCase
         //       re-created for each test function freshly. For more info look into tests/Knorke/UnitTestCase.php.
     }
 
+
+    protected function generate2TestQuadSets() : array
+    {
+        /**
+         * set1
+         */
+        $set1 = array(
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://set1/a'),
+                $this->nodeFactory->createNamedNode('http://set1/b'),
+                $this->nodeFactory->createNamedNode('http://set1/c'),
+                $this->nodeFactory->createNamedNode('http://graph1/')
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://both/a'),
+                $this->nodeFactory->createNamedNode('http://both/b'),
+                $this->nodeFactory->createNamedNode('http://both/c'),
+                $this->nodeFactory->createNamedNode('http://graph1/')
+            ),
+        );
+
+        /**
+         * set2
+         */
+        $set2 = array(
+          $this->statementFactory->createStatement(
+              $this->nodeFactory->createNamedNode('http://set1/a'),
+              $this->nodeFactory->createNamedNode('http://set1/b'),
+              $this->nodeFactory->createNamedNode('http://set1/c'),
+              $this->nodeFactory->createNamedNode('http://graph2/')
+          ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://both/a'),
+                $this->nodeFactory->createNamedNode('http://both/b'),
+                $this->nodeFactory->createNamedNode('http://both/c'),
+                $this->nodeFactory->createNamedNode('http://graph1/')
+            ),
+            $this->statementFactory->createStatement(
+                $this->nodeFactory->createNamedNode('http://set2/4'),
+                $this->nodeFactory->createNamedNode('http://set2/5'),
+                $this->nodeFactory->createLiteral('666'),
+                $this->nodeFactory->createNamedNode('http://graph2/')
+            ),
+        );
+
+        return array($set1, $set2);
+    }
+
     /**
      * Generates two test sets of Statement instances.
      *
@@ -198,4 +246,86 @@ class TripleDiffTest extends UnitTestCase
             $diffArray
         );
     }
+
+    public function testComputeDiffTwoSetEmpty()
+    {
+        list($set1ToBeIgnored, $set2ToBeIgnored) = $this->generate2TestSets();
+
+        $diffArray = $this->fixture->computeDiffForTwoTripleSets(array(), array());
+
+        $this->assertEquals(
+            array(
+                array(),
+                array()
+            ),
+            $diffArray
+        );
+    }
+
+    public function testDiffWithTwoQuadSets()
+    {
+        list($set1, $set2) = $this->generate2TestQuadSets();
+
+        $diffArray = $this->fixture->computeDiffForTwoTripleSets($set1, $set2);
+
+        $this->assertEquals(
+          array(
+              array(
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://set1/a'),
+                    $this->nodeFactory->createNamedNode('http://set1/b'),
+                    $this->nodeFactory->createNamedNode('http://set1/c'),
+                    $this->nodeFactory->createNamedNode('http://graph1/')
+                )
+              ),
+              array(
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://set1/a'),
+                    $this->nodeFactory->createNamedNode('http://set1/b'),
+                    $this->nodeFactory->createNamedNode('http://set1/c'),
+                    $this->nodeFactory->createNamedNode('http://graph2/')
+                  ),
+                $this->statementFactory->createStatement(
+                    $this->nodeFactory->createNamedNode('http://set2/4'),
+                    $this->nodeFactory->createNamedNode('http://set2/5'),
+                    $this->nodeFactory->createLiteral('666'),
+                    $this->nodeFactory->createNamedNode('http://graph2/')
+                )
+              )
+          ),
+          $diffArray
+      );
+    }
+    public function testDiffWithOneEmptyQuadSet()
+    {
+      list($set1, $ignore) = $this->generate2TestQuadSets();
+
+      $diffArray = $this->fixture->computeDiffForTwoTripleSets($set1, array());
+
+      $this->assertEquals(
+        array(
+            array(
+              $this->statementFactory->createStatement(
+                  $this->nodeFactory->createNamedNode('http://set1/a'),
+                  $this->nodeFactory->createNamedNode('http://set1/b'),
+                  $this->nodeFactory->createNamedNode('http://set1/c'),
+                  $this->nodeFactory->createNamedNode('http://graph1/')
+              ),
+
+              $this->statementFactory->createStatement(
+                  $this->nodeFactory->createNamedNode('http://both/a'),
+                  $this->nodeFactory->createNamedNode('http://both/b'),
+                  $this->nodeFactory->createNamedNode('http://both/c'),
+                  $this->nodeFactory->createNamedNode('http://graph1/')
+              )
+            ),
+            array()
+        ),
+        $diffArray
+      );
+    }
+
+    // public function testWithBlankNodes()
+    // {
+    // }
 }

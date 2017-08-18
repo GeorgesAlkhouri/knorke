@@ -78,25 +78,20 @@ class TripleDiff
     }
 
     /**
-     * Computes the diff of two sets containing triples (Statement instances).
+     * Computes the diff of two sets containing triples or quads (HashableStatement instances).
      *
-     * @param array $statementSet1
-     * @param array $statementSet2
+     * @param array $statementSet1 Set of statements. Must be of type HashableStatement.
+     * @param array $statementSet2 Set of statements. Must be of type HashableStatement.
      * @return array Array of 2 elements: first one contains all statements which are unique to
      *               the first set, second one contains all statements which are unique to the
      *               second set.
      */
     public function computeDiffForTwoTripleSets(array $statementSet1, array $statementSet2) : array
     {
-        // hint: a Statement is either a triple or quad and contains at least 3 Node instances, max is 4.
-        //       For more info look into https://github.com/SaftIng/Saft/tree/master/src/Saft/Rdf and search for
-        //       NamedNodeImpl, LiteralImpl and BlankNodeImpl.
 
-        // TODO @Georges
-        //
-        // Optional: Check for blank_nodes and aborte if necessary
+        // TODO check for blank nodes and abort if necessary
 
-        $reduceFunction = function($carry , $item)
+        $reduceToHash = function($carry , $item)
         {
             $hash = $item->hash();
             $carry[$hash] = $item;
@@ -105,8 +100,8 @@ class TripleDiff
         };
 
         // Nice benefit: hash set does not contain duplicates
-        $hashset1 = array_reduce($statementSet1, $reduceFunction, []);
-        $hashset2 = array_reduce($statementSet2, $reduceFunction, []);
+        $hashset1 = array_reduce($statementSet1, $reduceToHash, []);
+        $hashset2 = array_reduce($statementSet2, $reduceToHash, []);
 
         //$inBoth = array_intersect_key($hashset1, $hashset2);
         $diffSet1 = array_diff_key($hashset1, $hashset2);

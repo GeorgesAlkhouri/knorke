@@ -108,14 +108,14 @@ class TripleDiff
         $hashset1 = array_reduce($statementSet1, $reduceFunction, []);
         $hashset2 = array_reduce($statementSet2, $reduceFunction, []);
 
-        $inBoth = array_intersect(array_keys($hashset1), array_keys($hashset2));
-        $diffSet1 = array_diff(array_keys($hashset1), array_keys($hashset2));
-        $diffSet2 = array_diff(array_keys($hashset2), array_keys($hashset1));
-        
+        //$inBoth = array_intersect_key($hashset1, $hashset2);
+        $diffSet1 = array_diff_key($hashset1, $hashset2);
+        $diffSet2 = array_diff_key($hashset2, $hashset1);
+
         return array(
-            $inBoth,
-            $diffSet1,
-            $diffSet2
+            //array_values($inBoth),
+            array_values($diffSet1),
+            array_values($diffSet2)
         );
     }
 }

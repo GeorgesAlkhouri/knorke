@@ -151,8 +151,6 @@ class TripleDiffTest extends UnitTestCase
             $graphToCheckAgainst        // graph 2
         );
 
-        // print_r($diffArray);
-
         // check
         $this->assertEquals(
             array(
@@ -269,7 +267,7 @@ class TripleDiffTest extends UnitTestCase
     {
         list($set1, $set2) = $this->generate2TestQuadSets();
 
-        $diffArray = $this->fixture->computeDiffForTwoTripleSets($set1, $set2);
+        $diffArray = $this->fixture->computeDiffForTwoTripleSets($set1, $set2, true);
 
         $this->assertEquals(
           array(

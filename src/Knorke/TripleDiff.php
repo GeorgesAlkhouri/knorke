@@ -53,7 +53,7 @@ class TripleDiff
      */
     public function computeDiffForTwoGraphs(string $graphUri1, string $graphUri2) : array
     {
-
+        // query function to get all statements of the graph
         $query = function($graphUri)
         {
           $result = $this->store->query('
@@ -64,44 +64,22 @@ class TripleDiff
           return $result;
         };
 
-        $resultsToStatements = function($graphUri, $resultArray)
+        $graphResult1 = $query($graphUri1);
+        $graphResult2 = $query($graphUri2);
+
+        // function which maps the query result to a statement
+        $resultsToStatements = function($resultArray)
         {
           return $this->statementFactory->createStatement(
               $resultArray['s'],
               $resultArray['p'],
               $resultArray['o']);
-              //$this->nodeFactory->createNamedNode($graphUri));
         };
 
-        $graph1 = $query($graphUri1);
-        $graph2 = $query($graphUri2);
+        $statementSet1 = array_map($resultsToStatements, iterator_to_array($graphResult1));
+        $statementSet2 = array_map($resultsToStatements, iterator_to_array($graphResult2));
 
-        $s1 = array_map(
-            function($resultArray) use ($resultsToStatements, $graphUri1)
-            {
-                return $resultsToStatements($graphUri1, $resultArray);
-            },
-            iterator_to_array($graph1)
-        );
-
-        $s2 = array_map(
-            function($resultArray) use ($resultsToStatements, $graphUri2)
-            {
-                return $resultsToStatements($graphUri2, $resultArray);
-            },
-            iterator_to_array($graph2)
-        );
-        
-        // result is an SetResult instance and contains Statement instances,
-        // each containing used variables and referencing Node instances. A SetResult acts like an array.
-        // FYI: https://github.com/SaftIng/Saft/blob/master/src/Saft/Sparql/Result/SetResultImpl.php
-
-        // hint 2: use commonNamespaces->getUri('rdf') to get the URI for the rdf prefix
-        // hint 3: use commonNamespaces->extendUri('rdf:type') to replace prefix with full URI, if available
-        // hint 4: use commonNamespaces->shortenUri('http://...') to replace URI with prefix, if available
-        // FYI: https://github.com/SaftIng/Saft/blob/master/src/Saft/Rdf/CommonNamespaces.php
-
-        return $this->computeDiffForTwoTripleSets($s1, $s2);
+        return $this->computeDiffForTwoTripleSets($statementSet1, $statementSet2);
     }
 
     /**
@@ -109,18 +87,19 @@ class TripleDiff
      *
      * @param array $statementSet1 Set of statements. Must be of type HashableStatement.
      * @param array $statementSet2 Set of statements. Must be of type HashableStatement.
+     * @param bool $considerGraphUri If comparing quads, graph URIs will be also considered.
      * @return array Array of 2 elements: first one contains all statements which are unique to
      *               the first set, second one contains all statements which are unique to the
      *               second set.
      */
-    public function computeDiffForTwoTripleSets(array $statementSet1, array $statementSet2) : array
+    public function computeDiffForTwoTripleSets(array $statementSet1, array $statementSet2, $considerGraphUri = false) : array
     {
 
         // TODO check for blank nodes and abort if necessary
 
-        $reduceToHash = function($carry , $item)
+        $reduceToHash = function($carry , $item) use ($considerGraphUri)
         {
-            $hash = $item->hash();
+            $hash = $item->hash($considerGraphUri);
             $carry[$hash] = $item;
 
             return $carry;

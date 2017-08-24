@@ -16,11 +16,11 @@ class HashableStatementImpl extends StatementImpl implements HashableStatement
    * @param $algorithm Name of the hash algorithm.
    * @return hash
    */
-    public function hash($algorithm = 'sha256')
+    public function hash($considerGraphUri = false, $algorithm = 'sha256')
     {
 
         $combined = (string)$this->subject . " " . (string)$this->predicate . " " . (string)$this->object;
-        if ($this->isQuad())
+        if ($this->isQuad() && $considerGraphUri)
         {
             $combined = $combined . " " . (string)$this->graph;
         }

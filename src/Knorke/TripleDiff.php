@@ -53,14 +53,45 @@ class TripleDiff
      */
     public function computeDiffForTwoGraphs(string $graphUri1, string $graphUri2) : array
     {
-        /*
-         * hint 1: how to query the store
-         */
-        $result = $this->store->query('
-            SELECT * FROM <http://knorke/testgraph/2> WHERE {
-                ?s ?p ?o.
-            }
-        ');
+
+        $query = function($graphUri)
+        {
+          $result = $this->store->query('
+              SELECT * FROM <' . $graphUri . '> WHERE {
+                  ?s ?p ?o.
+              }
+          ');
+          return $result;
+        };
+
+        $resultsToStatements = function($graphUri, $resultArray)
+        {
+          return $this->statementFactory->createStatement(
+              $resultArray['s'],
+              $resultArray['p'],
+              $resultArray['o']);
+              //$this->nodeFactory->createNamedNode($graphUri));
+        };
+
+        $graph1 = $query($graphUri1);
+        $graph2 = $query($graphUri2);
+
+        $s1 = array_map(
+            function($resultArray) use ($resultsToStatements, $graphUri1)
+            {
+                return $resultsToStatements($graphUri1, $resultArray);
+            },
+            iterator_to_array($graph1)
+        );
+
+        $s2 = array_map(
+            function($resultArray) use ($resultsToStatements, $graphUri2)
+            {
+                return $resultsToStatements($graphUri2, $resultArray);
+            },
+            iterator_to_array($graph2)
+        );
+        
         // result is an SetResult instance and contains Statement instances,
         // each containing used variables and referencing Node instances. A SetResult acts like an array.
         // FYI: https://github.com/SaftIng/Saft/blob/master/src/Saft/Sparql/Result/SetResultImpl.php
@@ -70,11 +101,7 @@ class TripleDiff
         // hint 4: use commonNamespaces->shortenUri('http://...') to replace URI with prefix, if available
         // FYI: https://github.com/SaftIng/Saft/blob/master/src/Saft/Rdf/CommonNamespaces.php
 
-        // TODO @Georges
-        return array(
-            array(),
-            array()
-        );
+        return $this->computeDiffForTwoTripleSets($s1, $s2);
     }
 
     /**

@@ -3,7 +3,6 @@
 namespace Tests\Knorke;
 
 use Knorke\TripleDiff;
-use Knorke\Rdf\HashableStatementFactoryImpl;
 
 class TripleDiffTest extends UnitTestCase
 {
@@ -13,8 +12,6 @@ class TripleDiffTest extends UnitTestCase
     public function setUp()
     {
         parent::setUp();
-
-        $this->statementFactory = new HashableStatementFactoryImpl();
 
         $this->fixture = new TripleDiff(
             $this->rdfHelpers,
@@ -27,7 +24,6 @@ class TripleDiffTest extends UnitTestCase
         // hint: for each test the WHOLE db gets ereased. The graph behind $this->testGraph gets
         //       re-created for each test function freshly. For more info look into tests/Knorke/UnitTestCase.php.
     }
-
 
     protected function generate2TestQuadSets() : array
     {
@@ -223,7 +219,7 @@ class TripleDiffTest extends UnitTestCase
     public function testComputeDiffOneSetEmpty()
     {
         list($set1, $set2ToBeIgnored) = $this->generate2TestSets();
-        // print_r($set1[0]);
+
         $diffArray = $this->fixture->computeDiffForTwoTripleSets($set1, array());
 
         $this->assertEquals(
@@ -297,6 +293,7 @@ class TripleDiffTest extends UnitTestCase
           $diffArray
       );
     }
+
     public function testDiffWithOneEmptyQuadSet()
     {
       list($set1, $ignore) = $this->generate2TestQuadSets();
@@ -326,7 +323,4 @@ class TripleDiffTest extends UnitTestCase
       );
     }
 
-    // public function testWithBlankNodes()
-    // {
-    // }
 }

@@ -2,11 +2,11 @@
 
 namespace Knorke;
 
-use Knorke\Rdf\HashableStatementImpl;
 use Saft\Rdf\RdfHelpers;
 use Saft\Rdf\CommonNamespaces;
 use Saft\Rdf\NodeFactory;
 use Saft\Rdf\StatementFactory;
+use Saft\Rdf\Statement;
 use Saft\Store\Store;
 
 /**
@@ -99,7 +99,7 @@ class TripleDiff
 
         $reduceToHash = function($carry , $item) use ($considerGraphUri)
         {
-            $hash = $item->hash($considerGraphUri);
+            $hash = $this->hash($item, $considerGraphUri);
             $carry[$hash] = $item;
 
             return $carry;
@@ -119,4 +119,22 @@ class TripleDiff
             array_values($diffSet2)
         );
     }
+
+    /**
+     * Computes a hash from a triple or quad by combining s p o [g].
+     * @param Statement $statement The RDF statement which can be a triple or quad.
+     * @param boolean $considerGraphUri Boolean, whether the graph URI should be considered for hash generation or not.
+     * @param $algorithm Name of the hash algorithm.
+     * @return hash
+     */
+      public function hash(Statement $statement, $considerGraphUri = false, $algorithm = 'sha256')
+      {
+          $combined = $statement->getSubject() . " " . $statement->getPredicate() . " " . $statement->getObject();
+          if ($statement->isQuad() && $considerGraphUri)
+          {
+              $combined = $combined . " " . $statement->getGraph();
+          }
+
+          return hash($algorithm, $combined);
+      }
 }

@@ -83,10 +83,10 @@ class TripleDiff
     }
 
     /**
-     * Computes the diff of two sets containing triples or quads (HashableStatement instances).
+     * Computes the diff of two sets containing triples or quads.
      *
-     * @param array $statementSet1 Set of statements. Must be of type HashableStatement.
-     * @param array $statementSet2 Set of statements. Must be of type HashableStatement.
+     * @param array $statementSet1 Set of statements. (Statement instances)
+     * @param array $statementSet2 Set of statements. (Statement instances)
      * @param bool $considerGraphUri If comparing quads, graph URIs will be also considered.
      * @return array Array of 2 elements: first one contains all statements which are unique to
      *               the first set, second one contains all statements which are unique to the
